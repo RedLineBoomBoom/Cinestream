@@ -61,11 +61,19 @@ export function formatRelativeDate(timestamp: number, lang: 'id' | 'en' = 'id'):
   });
 }
 
-export function parseDurationToSeconds(durationStr?: string): number {
+export function parseDurationToSeconds(durationStr?: string | number): number {
   if (!durationStr) return 7200;
+  if (typeof durationStr === 'number') {
+    return durationStr > 300 ? durationStr : durationStr * 60;
+  }
+  const str = String(durationStr).trim();
+  if (/^\d+$/.test(str)) {
+    const num = parseInt(str, 10);
+    return num > 300 ? num : num * 60;
+  }
   let total = 0;
-  const hMatch = durationStr.match(/(\d+)\s*(?:j|h|hr|hour|hours)/i);
-  const mMatch = durationStr.match(/(\d+)\s*(?:m|min|mins|minute|minutes)/i);
+  const hMatch = str.match(/(\d+)\s*(?:j|h|hr|hour|hours)/i);
+  const mMatch = str.match(/(\d+)\s*(?:m|min|mins|minute|minutes)/i);
   if (hMatch) total += parseInt(hMatch[1], 10) * 3600;
   if (mMatch) total += parseInt(mMatch[1], 10) * 60;
   return total > 0 ? total : 7200;

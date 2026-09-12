@@ -56,7 +56,7 @@ const getInitialTab = (): string => {
 };
 
 const MainContent: React.FC = () => {
-  const { watchlist, watchlistMediaMap, recordWatch, historyItems } = useWatchlist();
+  const { watchlist, watchlistMediaMap, recordWatch, historyItems, continueWatching } = useWatchlist();
   const { playClick, playHover, playWhoosh } = useSound();
   const { t, language } = useLanguage();
   const {
@@ -269,17 +269,39 @@ const MainContent: React.FC = () => {
     pushHistory = true
   ) => {
     playWhoosh();
-    setResumeTime(customResumeTime);
-    setResumeEpisodeId(customEpisodeId);
+    let effectiveEpId = customEpisodeId;
+    let effectiveResumeTime = customResumeTime;
+
+    // If opening a series without explicit episode, resume the last watched episode
+    if (media.type !== 'movie' && !effectiveEpId) {
+      const lastHistoryEp = historyItems.find((h) => h.mediaId === media.id && Boolean(h.episodeId));
+      if (lastHistoryEp?.episodeId) {
+        effectiveEpId = lastHistoryEp.episodeId;
+        if (effectiveResumeTime === undefined && lastHistoryEp.currentTime > 0) {
+          effectiveResumeTime = lastHistoryEp.currentTime;
+        }
+      } else {
+        const lastCwEp = continueWatching.find((c) => c.mediaId === media.id && Boolean(c.episodeId));
+        if (lastCwEp?.episodeId) {
+          effectiveEpId = lastCwEp.episodeId;
+          if (effectiveResumeTime === undefined && lastCwEp.currentTime > 0) {
+            effectiveResumeTime = lastCwEp.currentTime;
+          }
+        }
+      }
+    }
+
+    setResumeTime(effectiveResumeTime);
+    setResumeEpisodeId(effectiveEpId);
     setIsTheaterMode(false);
     setIsMiniPlayer(false);
     setIsFullscreen(false);
     setSelectedMedia(media);
 
     let targetEp: Episode | undefined;
-    if (customEpisodeId && media.seasons) {
+    if (effectiveEpId && media.seasons) {
       for (const s of media.seasons) {
-        const found = s.episodes?.find((ep) => ep.id === customEpisodeId);
+        const found = s.episodes?.find((ep) => ep.id === effectiveEpId);
         if (found) {
           targetEp = found;
           break;
@@ -288,17 +310,18 @@ const MainContent: React.FC = () => {
     }
 
     recordWatch(media, {
-      currentTime: customResumeTime,
-      episode: media.type === 'movie' ? undefined : (targetEp || (customEpisodeId ? ({ id: customEpisodeId } as any) : undefined)),
+      currentTime: effectiveResumeTime,
+      episode: media.type === 'movie' ? undefined : (targetEp || (effectiveEpId ? ({ id: effectiveEpId } as any) : undefined)),
+      seasonNumber: targetEp?.seasonNumber,
     });
 
     try {
       localStorage.setItem('cinestream_active_watch_id', media.id);
-      const targetUrl = getMediaWatchUrl(media.id, customEpisodeId);
+      const targetUrl = getMediaWatchUrl(media.id, effectiveEpId);
       if (pushHistory) {
-        window.history.pushState({ type: 'watch', mediaId: media.id, episodeId: customEpisodeId }, '', targetUrl);
+        window.history.pushState({ type: 'watch', mediaId: media.id, episodeId: effectiveEpId }, '', targetUrl);
       } else {
-        window.history.replaceState({ type: 'watch', mediaId: media.id, episodeId: customEpisodeId }, '', targetUrl);
+        window.history.replaceState({ type: 'watch', mediaId: media.id, episodeId: effectiveEpId }, '', targetUrl);
       }
     } catch {
       // ignore

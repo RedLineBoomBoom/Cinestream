@@ -241,6 +241,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   const initialTime = (() => {
     if (resumeTime !== undefined && resumeTime > 0) return resumeTime;
+    if (media.type !== 'movie' && currentEpisode?.id) {
+      const savedCwEp = continueWatching.find((p) => p.mediaId === media.id && p.episodeId === currentEpisode.id)?.currentTime;
+      if (savedCwEp && savedCwEp > 0) return savedCwEp;
+      const savedHistoryEp = historyItems.find((h) => h.mediaId === media.id && h.episodeId === currentEpisode.id)?.currentTime;
+      if (savedHistoryEp && savedHistoryEp > 0) return savedHistoryEp;
+      return 0;
+    }
     const savedCw = continueWatching.find((p) => p.mediaId === media.id)?.currentTime;
     if (savedCw && savedCw > 0) return savedCw;
     const savedHistory = historyItems.find((h) => h.mediaId === media.id)?.currentTime;
@@ -706,18 +713,44 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   // Menus
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
-  // Load last watched progress or explicit resumeTime for HTML5 video
+  // Automatically start active watch tracking once player is mounted on screen
   useEffect(() => {
-    const targetTime =
-      resumeTime !== undefined && resumeTime > 0
-        ? resumeTime
-        : continueWatching.find((p) => p.mediaId === media.id)?.currentTime;
+    const t = setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        setIsActivelyWatching(true);
+        setIsPlaying(true);
+        hasPlayedThisSession.current = true;
+      }
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []);
 
-    if (targetTime && videoRef.current && targetTime > 5) {
-      videoRef.current.currentTime = targetTime;
-      setCurrentTime(targetTime);
+  // Load last watched progress or explicit resumeTime when media or episode changes
+  useEffect(() => {
+    const epSavedTime = (() => {
+      if (resumeTime !== undefined && resumeTime > 0) return resumeTime;
+      if (media.type !== 'movie' && currentEpisode?.id) {
+        const epCw = continueWatching.find((p) => p.mediaId === media.id && p.episodeId === currentEpisode.id)?.currentTime;
+        if (epCw && epCw > 0) return epCw;
+        const epHist = historyItems.find((h) => h.mediaId === media.id && h.episodeId === currentEpisode.id)?.currentTime;
+        if (epHist && epHist > 0) return epHist;
+        return 0;
+      }
+      const savedCw = continueWatching.find((p) => p.mediaId === media.id)?.currentTime;
+      if (savedCw && savedCw > 0) return savedCw;
+      const savedHist = historyItems.find((h) => h.mediaId === media.id)?.currentTime;
+      if (savedHist && savedHist > 0) return savedHist;
+      return 0;
+    })();
+
+    currentTimeRef.current = epSavedTime;
+    setCurrentTime(epSavedTime);
+    setHasVerifiedTime(false);
+
+    if (videoRef.current && !isEmbedStream && epSavedTime > 5) {
+      videoRef.current.currentTime = epSavedTime;
     }
-  }, [media.id, resumeTime]);
+  }, [media.id, currentEpisode?.id, resumeTime]);
 
   const hasInteractedWithPlayer = useRef(false);
 
@@ -754,34 +787,43 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   // Register watch session in Watch History
   useEffect(() => {
-    const safeEpisode =
-      media.type === 'movie'
-        ? undefined
-        : currentEpisode && media.seasons
-        ? media.seasons.some((s) => s.episodes?.some((e) => e.id === currentEpisode.id))
-          ? currentEpisode
-          : undefined
-        : currentEpisode;
+    const safeEpisode = media.type === 'movie' ? undefined : currentEpisode;
 
     recordWatch(media, {
-      currentTime: initialTime,
+      currentTime: currentTimeRef.current || initialTime,
       duration: durationRef.current || initialDuration,
       episode: safeEpisode,
+      seasonNumber: safeEpisode?.seasonNumber,
     });
   }, [media.id, currentEpisode?.id]);
 
-  // Active watch heartbeat: sync watch session without mutating currentTime with fake tab runtime
+  // Active watch tracker & heartbeat: sync elapsed watch time
   useEffect(() => {
-    if (!isActivelyWatching) return;
+    if (!isActivelyWatching && !isPlaying) return;
 
-    const heartbeat = setInterval(() => {
+    // Tick every 1 second: track elapsed playback time
+    const timer = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
 
       const curDur = durationRef.current || initialDuration;
       if (curDur <= 0) return;
 
-      // Only sync progress to WatchlistContext when we have a verified playback position
-      if (currentTimeRef.current > 0 && hasVerifiedTime) {
+      // If we don't have a verified postMessage time, advance natural playback time
+      if (!hasVerifiedTime) {
+        hasPlayedThisSession.current = true;
+        currentTimeRef.current = Math.min(curDur * 0.98, currentTimeRef.current + 1);
+        setCurrentTime(currentTimeRef.current);
+      }
+    }, 1000);
+
+    // Sync to WatchlistContext every 4 seconds
+    const syncInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+
+      const curDur = durationRef.current || initialDuration;
+      if (curDur <= 0) return;
+
+      if (currentTimeRef.current > 0) {
         const safeEpId = media.type === 'movie' ? undefined : currentEpisode?.id;
         updateProgressRef.current(
           {
@@ -796,8 +838,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       }
     }, 4000);
 
-    return () => clearInterval(heartbeat);
-  }, [isActivelyWatching, hasVerifiedTime, media.id, currentEpisode?.id, initialDuration]);
+    return () => {
+      clearInterval(timer);
+      clearInterval(syncInterval);
+    };
+  }, [isActivelyWatching, isPlaying, hasVerifiedTime, media.id, currentEpisode?.id, initialDuration]);
 
   // Flush exact watched position on unmount / navigation
   useEffect(() => {

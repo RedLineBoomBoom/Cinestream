@@ -99,7 +99,11 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
           const itemKey = item.historyId || (item.episodeId ? `${item.mediaId}__ep_${item.episodeId}` : item.mediaId);
           const isSeriesEpisode = (item.media?.type !== 'movie') || Boolean(item.episodeId || item.episodeNumber);
           const rawPercent = item.duration > 0 ? (item.currentTime / item.duration) * 100 : 0;
-          const displayPercent = Math.min(100, Math.max(0, Math.round(rawPercent)));
+          const displayPercent = item.completed
+            ? 100
+            : item.currentTime > 0
+            ? Math.min(100, Math.max(1, Math.round(rawPercent)))
+            : 0;
           const barWidthPercent = item.completed
             ? 100
             : rawPercent > 0

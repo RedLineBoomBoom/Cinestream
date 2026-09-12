@@ -458,18 +458,34 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isMovie = media.type === 'movie';
     const rawEp = isMovie ? undefined : progress?.episode;
 
-    // Strict validation: verify episode belongs to media if media has seasons
+    // Check if episode can be enriched with full season data if available
     let validatedEp: Episode | undefined = rawEp;
     if (rawEp && media.seasons && media.seasons.length > 0) {
-      const belongs = media.seasons.some((s) => s.episodes?.some((e) => e.id === rawEp.id));
-      if (!belongs) {
-        validatedEp = undefined;
+      for (const s of media.seasons) {
+        const found = s.episodes?.find(
+          (e) =>
+            e.id === rawEp.id ||
+            (rawEp.episodeNumber &&
+              e.episodeNumber === rawEp.episodeNumber &&
+              s.seasonNumber === (rawEp.seasonNumber || progress?.seasonNumber))
+        );
+        if (found) {
+          validatedEp = found;
+          break;
+        }
       }
     }
 
     const epId = validatedEp?.id;
-    const epNum = validatedEp?.episodeNumber;
-    const sNum = isMovie ? undefined : (progress?.seasonNumber ?? validatedEp?.seasonNumber);
+    let epNum = validatedEp?.episodeNumber;
+    let sNum = isMovie ? undefined : (progress?.seasonNumber ?? validatedEp?.seasonNumber);
+    if (!isMovie && epId && (!sNum || !epNum)) {
+      const match = epId.match(/s(\d+)[-_eE]+(\d+)/i) || epId.match(/(\d+)x(\d+)/i);
+      if (match) {
+        if (!sNum) sNum = parseInt(match[1], 10);
+        if (!epNum) epNum = parseInt(match[2], 10);
+      }
+    }
     const targetKey = getHistoryItemKey(media.id, epId, epNum, sNum);
 
     setHistoryItems((prev) => {
@@ -653,6 +669,24 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             epObj = found;
             break;
           }
+        }
+      }
+
+      // If epObj wasn't found in targetMedia.seasons, preserve from existing history item
+      if (!epObj && newProgress.episodeId) {
+        const histItem = historyItems.find((h) => h.mediaId === targetMedia.id && h.episodeId === newProgress.episodeId);
+        if (histItem) {
+          epObj = {
+            id: newProgress.episodeId,
+            episodeNumber: histItem.episodeNumber || 1,
+            seasonNumber: histItem.seasonNumber || 1,
+            title: histItem.episodeTitle || `Episode ${histItem.episodeNumber || 1}`,
+            duration: `${Math.round((histItem.duration || newProgress.duration || 2700) / 60)} Menit`,
+            thumbnail: histItem.episodeThumbnail || targetMedia.backdrop,
+            synopsis: '',
+            videoUrl: '',
+            servers: [],
+          };
         }
       }
 

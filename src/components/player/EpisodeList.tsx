@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Season, Episode } from '../../types/media';
 import { Play, Tv, Clock, ExternalLink } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
@@ -25,7 +25,24 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   totalEpisodes,
   mediaId,
 }) => {
-  const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
+  const initialSeasonIdx = (() => {
+    if (activeEpisodeId && seasons && seasons.length > 0) {
+      const idx = seasons.findIndex((s) => s.episodes?.some((e) => e.id === activeEpisodeId));
+      if (idx >= 0) return idx;
+    }
+    return 0;
+  })();
+
+  const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(initialSeasonIdx);
+
+  useEffect(() => {
+    if (activeEpisodeId && seasons && seasons.length > 0) {
+      const idx = seasons.findIndex((s) => s.episodes?.some((e) => e.id === activeEpisodeId));
+      if (idx >= 0) {
+        setSelectedSeasonIdx(idx);
+      }
+    }
+  }, [activeEpisodeId, seasons]);
   const { playClick, playHover } = useSound();
   const { t, language } = useLanguage();
 

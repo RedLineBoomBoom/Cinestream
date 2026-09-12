@@ -836,6 +836,7 @@ export async function fetchFullMediaItem(
               episodes = sData.episodes.map((ep: any) => ({
                 id: `tmdb-tv-${tmdbId}-s${sNum}-e${ep.episode_number}`,
                 episodeNumber: ep.episode_number,
+                seasonNumber: sNum,
                 title: ep.name || `Episode ${ep.episode_number}`,
                 duration: ep.runtime ? `${ep.runtime} Menit` : '45 Menit',
                 thumbnail: ep.still_path
@@ -858,6 +859,7 @@ export async function fetchFullMediaItem(
             episodes.push({
               id: `tmdb-tv-${tmdbId}-s${sNum}-e${e}`,
               episodeNumber: e,
+              seasonNumber: sNum,
               title: `Episode ${e}`,
               duration: '45 Menit',
               thumbnail: data.backdrop_path

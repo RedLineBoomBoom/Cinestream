@@ -22,7 +22,7 @@ import {
   Clapperboard,
   ShieldAlert,
 } from 'lucide-react';
-import type { MediaItem, Server, Episode, Review } from '../../types/media';
+import type { MediaItem, Server, Episode, Season, Review } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
 import { type CurationTarget, splitMultipleNames } from '../../services/curation';
 import { CinematicPlayer, appendSubtitleParams } from '../player/CinematicPlayer';
@@ -45,8 +45,8 @@ import {
   type PortalReviewItem,
 } from '../../services/portalReviews';
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
-import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName } from '../../utils/formatters';
-import { getAbsoluteWatchUrl } from '../../utils/navigation';
+import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName, parseDurationToSeconds } from '../../utils/formatters';
+import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 
 interface WatchSectionProps {
   media: MediaItem;
@@ -79,67 +79,149 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   onFullscreenChange,
   onOpenVpnNotice,
 }) => {
-  const { isInWatchlist, toggleWatchlist, historyItems, toggleCompleted } = useWatchlist();
+  const { isInWatchlist, toggleWatchlist, historyItems, toggleCompleted, recordWatch, continueWatching } = useWatchlist();
   const isCompleted = Boolean(historyItems.find((h) => h.mediaId === media.id)?.completed);
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
   const displayTitle = getMediaTitle(media, language);
 
+  const [activeMedia, setActiveMedia] = useState<MediaItem>(media);
+
+  useEffect(() => {
+    setActiveMedia(media);
+  }, [media]);
+
+  // If TV series has missing/empty seasons or episodes, asynchronously load full details
+  useEffect(() => {
+    let isMounted = true;
+    if (
+      activeMedia.type !== 'movie' &&
+      activeMedia.tmdbId &&
+      (!activeMedia.seasons || !activeMedia.seasons.some((s) => s.episodes && s.episodes.length > 0))
+    ) {
+      fetchFullMediaItem(activeMedia.tmdbId, 'tv').then((full) => {
+        if (isMounted && full) {
+          setActiveMedia(full);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [activeMedia.id, activeMedia.type, activeMedia.tmdbId]);
+
+  // Helper to find an episode across seasons by id or season/episode numbers
+  const findEpisode = (seasons: Season[] | undefined, epId?: string, sNum?: number, epNum?: number): Episode | undefined => {
+    if (!seasons || seasons.length === 0) return undefined;
+    if (epId) {
+      for (const season of seasons) {
+        const found = season.episodes?.find((ep) => ep.id === epId || ep.id.toLowerCase() === epId.toLowerCase());
+        if (found) return found;
+      }
+      const match = epId.match(/s(\d+)[-_eE]+(\d+)/i) || epId.match(/(\d+)x(\d+)/i);
+      if (match) {
+        const parsedS = parseInt(match[1], 10);
+        const parsedE = parseInt(match[2], 10);
+        for (const season of seasons) {
+          if (season.seasonNumber === parsedS) {
+            const found = season.episodes?.find((ep) => ep.episodeNumber === parsedE);
+            if (found) return found;
+          }
+        }
+      }
+    }
+    if (sNum !== undefined && epNum !== undefined) {
+      for (const season of seasons) {
+        if (season.seasonNumber === sNum) {
+          const found = season.episodes?.find((ep) => ep.episodeNumber === epNum);
+          if (found) return found;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const getTargetEpisode = (targetMedia: MediaItem): Episode | undefined => {
+    if (targetMedia.type === 'movie') return undefined;
+    const seasons = targetMedia.seasons;
+    if (!seasons || seasons.length === 0) return undefined;
+
+    // 1. If explicit resumeEpisodeId was requested
+    if (resumeEpisodeId) {
+      const found = findEpisode(seasons, resumeEpisodeId);
+      if (found) return found;
+    }
+
+    // 2. Query last watched episode from historyItems
+    const lastHist = historyItems.find((h) => h.mediaId === targetMedia.id && Boolean(h.episodeId));
+    if (lastHist) {
+      const found = findEpisode(seasons, lastHist.episodeId, lastHist.seasonNumber, lastHist.episodeNumber);
+      if (found) {
+        if (lastHist.completed && found.seasonNumber !== undefined) {
+          const nextInSeason = findEpisode(seasons, undefined, found.seasonNumber, found.episodeNumber + 1);
+          if (nextInSeason) return nextInSeason;
+          const nextSeasonEp = findEpisode(seasons, undefined, found.seasonNumber + 1, 1);
+          if (nextSeasonEp) return nextSeasonEp;
+        }
+        return found;
+      }
+    }
+
+    // 3. Query continueWatching
+    const lastCw = continueWatching.find((c) => c.mediaId === targetMedia.id && Boolean(c.episodeId));
+    if (lastCw) {
+      const found = findEpisode(seasons, lastCw.episodeId);
+      if (found) return found;
+    }
+
+    // 4. Default to first episode
+    for (const season of seasons) {
+      if (season.episodes && season.episodes.length > 0) {
+        return season.episodes[0];
+      }
+    }
+    return undefined;
+  };
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<'episodes' | 'info' | 'trailer' | 'reviews'>('info');
   const [activeServer, setActiveServer] = useState<Server>(() => {
-    if (media.type !== 'movie' && resumeEpisodeId && media.seasons) {
-      for (const season of media.seasons) {
-        const found = season.episodes?.find((ep) => ep.id === resumeEpisodeId);
-        if (found?.servers?.length) return getDefaultServer(found.servers, media.servers);
-      }
-    }
-    if (media.type !== 'movie' && media.seasons?.[0]?.episodes?.[0]?.servers?.length) {
-      return getDefaultServer(media.seasons[0].episodes[0].servers, media.servers);
+    if (media.type !== 'movie') {
+      const targetEp = getTargetEpisode(media);
+      if (targetEp?.servers?.length) return getDefaultServer(targetEp.servers, media.servers);
     }
     return getDefaultServer(media.servers);
   });
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(() => {
-    if (media.type === 'movie') return undefined;
-    if (resumeEpisodeId && media.seasons) {
-      for (const season of media.seasons) {
-        const found = season.episodes?.find((ep) => ep.id === resumeEpisodeId);
-        if (found) return found;
-      }
-    }
-    return media.seasons?.[0]?.episodes?.[0];
+    return getTargetEpisode(media);
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
 
   // Synchronize target episode and server when resumeEpisodeId or media changes
   useEffect(() => {
-    if (media.type === 'movie') {
+    if (activeMedia.type === 'movie') {
       setCurrentEpisode(undefined);
-      setActiveServer(getDefaultServer(media.servers));
+      setActiveServer(getDefaultServer(activeMedia.servers));
       return;
     }
 
-    if (resumeEpisodeId && media.seasons) {
-      for (const season of media.seasons) {
-        const found = season.episodes?.find((ep) => ep.id === resumeEpisodeId);
-        if (found) {
-          setCurrentEpisode(found);
-          setActiveServer(getDefaultServer(found.servers, media.servers));
-          return;
-        }
-      }
-    }
-
-    if (media.seasons && media.seasons.length > 0) {
-      const firstEp = media.seasons[0].episodes?.[0];
-      setCurrentEpisode(firstEp);
-      setActiveServer(getDefaultServer(firstEp?.servers, media.servers));
+    const targetEp = getTargetEpisode(activeMedia);
+    setCurrentEpisode(targetEp);
+    if (targetEp) {
+      setActiveServer(getDefaultServer(targetEp.servers, activeMedia.servers));
+      try {
+        const targetUrl = getMediaWatchUrl(activeMedia.id, targetEp.id);
+        window.history.replaceState(
+          { type: 'watch', mediaId: activeMedia.id, episodeId: targetEp.id },
+          '',
+          targetUrl
+        );
+      } catch {}
     } else {
-      setCurrentEpisode(undefined);
-      setActiveServer(getDefaultServer(media.servers));
+      setActiveServer(getDefaultServer(activeMedia.servers));
     }
-  }, [resumeEpisodeId, media.id, media.seasons, media.type]);
+  }, [resumeEpisodeId, activeMedia.id, activeMedia.seasons, activeMedia.type]);
 
   // Sync theater mode to parent for full-page immersive effects
   useEffect(() => {
@@ -672,11 +754,11 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             }`}
           >
             <CinematicPlayer
-              key={`${media.id}-${currentEpisode?.id || 'main'}`}
-              media={media}
+              key={`${activeMedia.id}-${currentEpisode?.id || 'main'}`}
+              media={activeMedia}
               currentEpisode={currentEpisode}
               activeServer={activeServer}
-              servers={currentEpisode?.servers || media.servers}
+              servers={currentEpisode?.servers || activeMedia.servers}
               onSelectServer={(srv) => {
                 setActiveServer(srv);
               }}
@@ -1003,24 +1085,42 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
           </div>
 
           {/* Tab 1: Episode Hub */}
-          {activeTab === 'episodes' && media.seasons && (
+          {activeTab === 'episodes' && activeMedia.seasons && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <EpisodeList
-                seasons={media.seasons}
+                seasons={activeMedia.seasons}
                 activeEpisodeId={currentEpisode?.id}
-                mediaId={media.id}
-                status={media.status}
-                isOngoing={media.isOngoing}
-                totalEpisodes={media.totalEpisodes}
+                mediaId={activeMedia.id}
+                status={activeMedia.status}
+                isOngoing={activeMedia.isOngoing}
+                totalEpisodes={activeMedia.totalEpisodes}
                 onSelectEpisode={(ep) => {
-                  const currentServers = currentEpisode?.servers || media.servers;
+                  const currentServers = currentEpisode?.servers || activeMedia.servers;
                   const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
                   const targetServer =
                     activeIndex >= 0 && ep.servers[activeIndex]
                       ? ep.servers[activeIndex]
-                      : getDefaultServer(ep.servers, media.servers);
+                      : getDefaultServer(ep.servers, activeMedia.servers);
                   setCurrentEpisode(ep);
                   setActiveServer(targetServer);
+
+                  // Check saved progress for this episode
+                  const epHistory = historyItems.find((h) => h.mediaId === activeMedia.id && h.episodeId === ep.id);
+                  const epTime = epHistory?.currentTime || 0;
+                  const epDur = epHistory?.duration || parseDurationToSeconds(ep.duration);
+
+                  recordWatch(activeMedia, {
+                    currentTime: epTime,
+                    duration: epDur,
+                    episode: ep,
+                    seasonNumber: ep.seasonNumber,
+                  });
+
+                  try {
+                    const targetUrl = getMediaWatchUrl(activeMedia.id, ep.id);
+                    window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: ep.id }, '', targetUrl);
+                  } catch {}
+
                   window.scrollTo({ top: 120, behavior: 'smooth' });
                 }}
               />

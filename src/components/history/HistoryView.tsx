@@ -278,8 +278,16 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             const isExpanded = Boolean(expandedSeries[group.mediaId]);
 
             const rawPercent = activeItem.duration > 0 ? (activeItem.currentTime / activeItem.duration) * 100 : 0;
-            const displayPercent = Math.min(100, Math.max(0, Math.round(rawPercent)));
-            const barWidthPercent = Math.min(100, Math.max(1, rawPercent));
+            const displayPercent = activeItem.completed
+              ? 100
+              : activeItem.currentTime > 0
+              ? Math.min(100, Math.max(1, Math.round(rawPercent)))
+              : 0;
+            const barWidthPercent = activeItem.completed
+              ? 100
+              : activeItem.currentTime > 0
+              ? Math.min(100, Math.max(1, rawPercent))
+              : 0;
             const remainingText = formatRemainingTime(activeItem.currentTime, activeItem.duration, language);
             const relativeDate = formatRelativeDate(activeItem.lastWatched, language);
             const displayTitle = getMediaTitle(group.media, language);
@@ -498,7 +506,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5 custom-scrollbar">
                             {group.episodes.map((ep) => {
                               const epRawPercent = ep.duration > 0 ? (ep.currentTime / ep.duration) * 100 : 0;
-                              const epPercent = Math.min(100, Math.max(0, Math.round(epRawPercent)));
+                              const epPercent = ep.completed
+                                ? 100
+                                : ep.currentTime > 0
+                                ? Math.min(100, Math.max(1, Math.round(epRawPercent)))
+                                : 0;
                               const epRemaining = formatRemainingTime(ep.currentTime, ep.duration, language);
                               const isLatest = ep.episodeId === activeItem.episodeId;
 
