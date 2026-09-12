@@ -1040,17 +1040,35 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    if (isHoveringControlsRef.current || isPartyInteractingRef.current) return;
 
-    if (isFullscreen || isTheaterMode || isPlaying || isActivelyWatching) {
+    // Only skip timer if actively interacting with watch party modal,
+    // or desktop hovering controls while NOT in fullscreen / theater mode.
+    // On mobile touch devices or in fullscreen, controls should always auto-hide after inactivity.
+    const isDesktopMouseHover =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+      isHoveringControlsRef.current &&
+      !isFullscreen &&
+      !isPortraitFullscreen;
+
+    if (isPartyInteractingRef.current || isDesktopMouseHover) return;
+
+    if (isFullscreen || isPortraitFullscreen || isTheaterMode || isPlaying || isActivelyWatching) {
       controlsTimeoutRef.current = setTimeout(() => {
-        if (!isHoveringControlsRef.current && !isPartyInteractingRef.current) {
+        const stillDesktopHover =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+          isHoveringControlsRef.current &&
+          !isFullscreen &&
+          !isPortraitFullscreen;
+
+        if (!stillDesktopHover && !isPartyInteractingRef.current) {
           setShowControls(false);
           setShowSpeedMenu(false);
         }
       }, 3000);
     }
-  }, [isFullscreen, isTheaterMode, isPlaying, isActivelyWatching]);
+  }, [isFullscreen, isPortraitFullscreen, isTheaterMode, isPlaying, isActivelyWatching]);
 
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -1058,12 +1076,24 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   }, [resetHideTimer]);
 
   const handleControlsMouseEnter = useCallback(() => {
-    isHoveringControlsRef.current = true;
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+    // Only lock hover state if user has a real desktop mouse with hover support AND not in fullscreen.
+    // On touchscreens (mobile/tablet), mouseenter is simulated on tap and mouseleave never fires,
+    // which would otherwise permanently lock controls visible!
+    const isDesktopMouse =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (isDesktopMouse && !isFullscreen && !isPortraitFullscreen) {
+      isHoveringControlsRef.current = true;
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    } else {
+      isHoveringControlsRef.current = false;
     }
-  }, []);
+    setShowControls(true);
+    resetHideTimer();
+  }, [isFullscreen, isPortraitFullscreen, resetHideTimer]);
 
   const handleControlsMouseLeave = useCallback(() => {
     isHoveringControlsRef.current = false;
@@ -1072,7 +1102,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   // Auto-hide controls after entering fullscreen / theater mode or restore when exiting
   useEffect(() => {
-    if (isFullscreen || isTheaterMode) {
+    if (isFullscreen || isPortraitFullscreen || isTheaterMode) {
+      isHoveringControlsRef.current = false;
       setShowControls(true);
       resetHideTimer();
     } else {
@@ -1081,11 +1112,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         clearTimeout(controlsTimeoutRef.current);
       }
     }
-  }, [isFullscreen, isTheaterMode, resetHideTimer]);
+  }, [isFullscreen, isPortraitFullscreen, isTheaterMode, resetHideTimer]);
 
-  // Window-level mouse move and keydown listeners in fullscreen / theater mode for reliable cursor detection
+  // Window-level mouse move, pointer/touch, and keydown listeners in fullscreen / theater mode for reliable cursor and tap detection
   useEffect(() => {
-    if (!isFullscreen && !isTheaterMode) return;
+    if (!isFullscreen && !isPortraitFullscreen && !isTheaterMode) return;
 
     const handleWindowMouseMove = (e: MouseEvent) => {
       // If mouse is within or over Watch Party modal, preserve cursor and pause hide timer
@@ -1109,6 +1140,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       handleMouseMove();
     };
 
+    const handleWindowPointerDown = (e: Event) => {
+      // Avoid interrupting Watch Party modal interaction
+      const target = (e as PointerEvent).target as HTMLElement | null;
+      if (target && target.closest('[data-watch-party-modal]')) {
+        return;
+      }
+      isHoveringControlsRef.current = false;
+      handleMouseMove();
+    };
+
     const handleWindowKeyDown = (e: KeyboardEvent) => {
       // Prevent cursor from hiding while user is typing in Watch Party chat
       const target = e.target as HTMLElement | null;
@@ -1125,12 +1166,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     };
 
     window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('pointerdown', handleWindowPointerDown, { passive: true });
     window.addEventListener('keydown', handleWindowKeyDown, true);
     return () => {
       window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('pointerdown', handleWindowPointerDown);
       window.removeEventListener('keydown', handleWindowKeyDown, true);
     };
-  }, [isFullscreen, isTheaterMode, handleMouseMove]);
+  }, [isFullscreen, isPortraitFullscreen, isTheaterMode, handleMouseMove]);
 
 
   const togglePlay = useCallback(() => {
@@ -1335,6 +1378,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     );
 
     if (!isCurrentlyFs) {
+      isHoveringControlsRef.current = false;
       wasAutoRotatedFullscreen.current = false;
       userExitedFullscreenInLandscape.current = false;
 
@@ -1398,6 +1442,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     } else {
       // === EXIT FULLSCREEN ===
+      isHoveringControlsRef.current = false;
       userExitedFullscreenInLandscape.current = true;
       wasAutoRotatedFullscreen.current = false;
       setIsPortraitFullscreen(false);
@@ -1719,6 +1764,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           hasPlayedThisSession.current = true;
           setIsActivelyWatching(true);
           setIsPlaying(true);
+          handleMouseMove();
         }}
         onDoubleClick={isMiniPlayer ? onToggleMiniPlayer : toggleFullscreen}
         className={`overflow-hidden bg-black select-none group ${
@@ -1935,7 +1981,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               onMouseEnter={handleControlsMouseEnter}
               onMouseLeave={handleControlsMouseLeave}
               className={`absolute top-0 inset-x-0 z-40 flex items-center justify-between gap-2 pointer-events-none transition-all duration-300 pt-[max(env(safe-area-inset-top),0.625rem)] pl-[max(env(safe-area-inset-left),0.625rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-3 bg-gradient-to-b from-black/90 via-black/50 to-transparent ${
-                (isFullscreen || isTheaterMode) && !showControls
+                (isFullscreen || isPortraitFullscreen || isTheaterMode) && !showControls
                   ? 'opacity-0 -translate-y-3 pointer-events-none'
                   : 'opacity-100 translate-y-0'
               }`}
@@ -2084,12 +2130,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           {/* Fullscreen & Theater Inactivity Wake-up Detection Overlay for Embed Streams */}
           <div
             className={`absolute inset-0 z-30 bg-transparent transition-colors ${
-              (isFullscreen || isTheaterMode) && !showControls && !isPartyInteracting
+              (isFullscreen || isPortraitFullscreen || isTheaterMode) && !showControls && !isPartyInteracting
                 ? 'pointer-events-auto cursor-none'
                 : 'pointer-events-none'
             }`}
             onMouseMove={handleMouseMove}
             onPointerDown={handleMouseMove}
+            onTouchStart={handleMouseMove}
             onDoubleClick={toggleFullscreen}
           />
 
