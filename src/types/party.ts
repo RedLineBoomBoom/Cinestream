@@ -8,6 +8,7 @@ export interface PartyMember {
   isHost: boolean;
   joinedAt: number;
   isActive: boolean;
+  userId?: string;
 }
 
 export type PlaybackSignalType = 'play' | 'pause' | 'seek';

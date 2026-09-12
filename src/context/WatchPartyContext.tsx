@@ -22,8 +22,8 @@ interface WatchPartyContextValue {
   latestSignal: { signal: PlaybackSignal; senderName: string; senderId?: string; alertText?: string; id: string } | null;
 
   // Actions
-  createParty: (name: string, mediaInfo: PartyMediaInfo) => Promise<void>;
-  joinParty: (roomCode: string, name: string) => Promise<void>;
+  createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string) => Promise<void>;
+  joinParty: (roomCode: string, name: string, userId?: string) => Promise<void>;
   leaveParty: () => void;
   sendChat: (text: string) => void;
   sendSignal: (signal: PlaybackSignal, customAlertText?: string) => void;
@@ -74,26 +74,31 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     watchPartyService.setCallbacks({
       onRoomCreated: (r) => {
         setRoom({ ...r });
-        setMembers(Object.values(r.members));
+        setMembers(Object.values(r.members).filter((m) => m.isActive));
       },
       onJoined: (r, me) => {
         setRoom({ ...r });
-        setMembers(Object.values(r.members));
+        setMembers(Object.values(r.members).filter((m) => m.isActive));
         setMessages([...r.messages]);
         setMyId(me.id);
         setStatus('connected');
       },
       onMemberJoined: (member) => {
         setMembers((prev) => {
-          const exists = prev.find((m) => m.id === member.id);
-          if (exists) return prev.map((m) => m.id === member.id ? member : m);
-          return [...prev, member];
+          // Remove any duplicate member with the same id, or same userId/name
+          const filtered = prev.filter(
+            (m) =>
+              m.id !== member.id &&
+              !(
+                (member.userId && m.userId && member.userId === m.userId) ||
+                (m.name.trim().toLowerCase() === member.name.trim().toLowerCase() && !m.isHost)
+              )
+          );
+          return [...filtered, member];
         });
       },
       onMemberLeft: (memberId) => {
-        setMembers((prev) =>
-          prev.map((m) => m.id === memberId ? { ...m, isActive: false } : m)
-        );
+        setMembers((prev) => prev.filter((m) => m.id !== memberId));
       },
       onMessage: (msg) => {
         setMessages((prev) => {
@@ -127,15 +132,15 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ── Actions ───────────────────────────────────────────────
 
-  const createParty = useCallback(async (name: string, mediaInfo: PartyMediaInfo) => {
+  const createParty = useCallback(async (name: string, mediaInfo: PartyMediaInfo, userId?: string) => {
     setStatus('creating');
     setErrorMsg('');
     try {
-      const r = await watchPartyService.createRoom(name, mediaInfo);
+      const r = await watchPartyService.createRoom(name, mediaInfo, userId);
       setMyId(watchPartyService.getMyId());
       setIsHost(true);
       setRoom({ ...r });
-      setMembers(Object.values(r.members));
+      setMembers(Object.values(r.members).filter((m) => m.isActive));
       setMessages([]);
       setStatus('connected');
     } catch (err) {
@@ -144,11 +149,11 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
-  const joinParty = useCallback(async (roomCode: string, name: string) => {
+  const joinParty = useCallback(async (roomCode: string, name: string, userId?: string) => {
     setStatus('joining');
     setErrorMsg('');
     try {
-      await watchPartyService.joinRoom(roomCode, name);
+      await watchPartyService.joinRoom(roomCode, name, userId);
       setMyId(watchPartyService.getMyId());
       setIsHost(false);
     } catch (err) {

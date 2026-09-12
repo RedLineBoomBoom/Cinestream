@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Users, X, Copy, Check, Link2, QrCode, LogIn, Plus,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
+import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import type { PartyMediaInfo } from '../../types/party';
@@ -86,11 +87,20 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     createParty, joinParty, leaveParty, sendChat, sendSignal, clearError,
     inviteLink, roomCode,
   } = useWatchParty();
+  const { profile } = useUserProfile();
   const { t, language } = useLanguage();
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
   const [tab, setTab] = useState<'create' | 'join'>(autoJoinCode ? 'join' : 'create');
-  const [myName, setMyName] = useState(() => localStorage.getItem('party_display_name') ?? '');
+  const [myName, setMyName] = useState(() => {
+    try {
+      const saved = localStorage.getItem('party_display_name');
+      if (saved) return saved;
+    } catch {
+      // ignore
+    }
+    return profile?.name || '';
+  });
   const [joinCode, setJoinCode] = useState(autoJoinCode ?? '');
   const [chatInput, setChatInput] = useState('');
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
@@ -144,7 +154,18 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
   const isConnected = status === 'connected';
   const isLoading = status === 'creating' || status === 'joining';
-  const activeMembers = members.filter((m) => m.isActive);
+
+  // Strictly deduplicated active members list (prevents phantom participants on reconnect)
+  const activeMembers = useMemo(() => {
+    const seen = new Set<string>();
+    return members.filter((m) => {
+      if (!m.isActive) return false;
+      const key = (m.userId || m.name).trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [members]);
 
   useEffect(() => {
     if (!isMinimized) {
@@ -168,13 +189,13 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const handleCreate = async () => {
     if (!myName.trim() || !mediaInfo) return;
     playClick();
-    await createParty(myName.trim(), mediaInfo);
+    await createParty(myName.trim(), mediaInfo, profile?.id);
   };
 
   const handleJoin = async () => {
     if (!myName.trim() || !joinCode.trim()) return;
     playClick();
-    await joinParty(joinCode.trim().toUpperCase(), myName.trim());
+    await joinParty(joinCode.trim().toUpperCase(), myName.trim(), profile?.id);
   };
 
   const handleCopy = async (type: 'link' | 'code') => {
@@ -721,7 +742,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
             {membersExpanded ? (
               <div className="flex flex-wrap gap-1.5 mt-1.5 pb-1 max-h-24 overflow-y-auto">
-                {members.map((m) => (
+                {activeMembers.map((m) => (
                   <div key={m.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.05]">
                     <AvatarInitial name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
                     <span className={`text-[10px] truncate max-w-[100px] ${m.id === myId ? 'text-violet-400 font-semibold' : 'text-slate-300'}`}>
@@ -732,11 +753,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
               </div>
             ) : (
               <div className="flex items-center gap-1.5 mt-1">
-                {members.slice(0, 8).map((m) => (
+                {activeMembers.slice(0, 8).map((m) => (
                   <AvatarInitial key={m.id} name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
                 ))}
-                {members.length > 8 && (
-                  <span className="text-[9px] text-slate-500">+{members.length - 8}</span>
+                {activeMembers.length > 8 && (
+                  <span className="text-[9px] text-slate-500">+{activeMembers.length - 8}</span>
                 )}
               </div>
             )}

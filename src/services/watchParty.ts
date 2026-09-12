@@ -35,6 +35,7 @@ export class WatchPartyService {
   private peer: Peer | null = null;
   private myId = '';
   private myName = '';
+  private userId = '';
   private isHost = false;
   private room: PartyRoom | null = null;
   // host only: map of connected guest connections
@@ -42,6 +43,7 @@ export class WatchPartyService {
   // guest only: connection to host
   private hostConn: DataConnection | null = null;
   private cbs: WatchPartyCallbacks = {};
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   // ── Public API ────────────────────────────────────────────
 
@@ -50,10 +52,11 @@ export class WatchPartyService {
   }
 
   /** Host: create a new room */
-  createRoom(myName: string, mediaInfo: PartyMediaInfo): Promise<PartyRoom> {
+  createRoom(myName: string, mediaInfo: PartyMediaInfo, userId?: string): Promise<PartyRoom> {
     return new Promise((resolve, reject) => {
       const roomCode = nanoid(6);
       this.myName = myName;
+      this.userId = userId || '';
       this.isHost = true;
 
       // Peer ID = room code prefixed so it is globally unique
@@ -74,6 +77,7 @@ export class WatchPartyService {
           isHost: true,
           joinedAt: Date.now(),
           isActive: true,
+          userId: this.userId || undefined,
         };
         this.room = {
           roomCode,
@@ -83,6 +87,7 @@ export class WatchPartyService {
           mediaInfo,
           createdAt: Date.now(),
         };
+        this._startHostHeartbeat();
         this.cbs.onRoomCreated?.(this.room);
         resolve(this.room);
       });
@@ -98,9 +103,10 @@ export class WatchPartyService {
   }
 
   /** Guest: join an existing room */
-  joinRoom(roomCode: string, myName: string): Promise<PartyRoom> {
+  joinRoom(roomCode: string, myName: string, userId?: string): Promise<PartyRoom> {
     return new Promise((resolve, reject) => {
       this.myName = myName;
+      this.userId = userId || '';
       this.isHost = false;
 
       this.peer = new Peer({
@@ -127,6 +133,7 @@ export class WatchPartyService {
               isHost: false,
               joinedAt: Date.now(),
               isActive: true,
+              userId: this.userId || undefined,
             },
           });
         });
@@ -237,6 +244,7 @@ export class WatchPartyService {
 
   /** Leave / destroy the party */
   leave() {
+    this._stopHeartbeat();
     if (this.isHost) {
       this._broadcast({ event: 'host_left' });
     }
@@ -255,6 +263,56 @@ export class WatchPartyService {
 
   // ── Private: Host ─────────────────────────────────────────
 
+  private _startHostHeartbeat() {
+    this._stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (!this.room || !this.isHost) return;
+      this.guestConns.forEach((conn, peerId) => {
+        if (!conn.open) {
+          this._handleGuestDisconnect(peerId);
+        } else {
+          try {
+            conn.send({ event: 'ping' } satisfies PeerMessage);
+          } catch {
+            this._handleGuestDisconnect(peerId);
+          }
+        }
+      });
+    }, 7000);
+  }
+
+  private _stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  private _handleGuestDisconnect(peerId: string) {
+    const member = this.room?.members[peerId];
+    if (member) {
+      delete this.room!.members[peerId];
+      this.cbs.onMemberLeft?.(peerId, member.name);
+      this._broadcast({ event: 'member_left', memberId: peerId, memberName: member.name });
+      const sysMsg: PartyMessage = {
+        id: msgId(),
+        memberId: 'system',
+        memberName: 'System',
+        text: `${member.name} meninggalkan room`,
+        timestamp: Date.now(),
+        type: 'system',
+      };
+      this.room!.messages.push(sysMsg);
+      this._broadcast({ event: 'chat', message: sysMsg });
+      this.cbs.onMessage?.(sysMsg);
+    }
+    const existingConn = this.guestConns.get(peerId);
+    if (existingConn) {
+      try { existingConn.close(); } catch { /* ignore */ }
+      this.guestConns.delete(peerId);
+    }
+  }
+
   private _onGuestConnect(conn: DataConnection) {
     conn.on('open', () => {
       this.guestConns.set(conn.peer, conn);
@@ -264,24 +322,61 @@ export class WatchPartyService {
       const msg = raw as PeerMessage;
 
       if (msg.event === 'member_joined') {
-        // Register member
-        const member = msg.member;
-        this.room!.members[member.id] = member;
+        const newMember = msg.member;
 
-        // Send welcome with full room state to just this guest
+        // 1. Detect and clean up any previous stale/zombie connection for the same user
+        // (Happens when a user unexpectedly disconnects and reconnects before the old connection timed out)
+        let isReconnection = false;
+        const stalePeerIds: string[] = [];
+
+        if (this.room?.members) {
+          for (const [peerId, existingMember] of Object.entries(this.room.members)) {
+            if (peerId === newMember.id) continue;
+            const sameUser =
+              (newMember.userId && existingMember.userId && newMember.userId === existingMember.userId) ||
+              existingMember.name.trim().toLowerCase() === newMember.name.trim().toLowerCase();
+
+            if (sameUser) {
+              isReconnection = true;
+              stalePeerIds.push(peerId);
+            }
+          }
+        }
+
+        // Clean up stale connections immediately so duplicates don't linger
+        for (const oldPeerId of stalePeerIds) {
+          const oldMember = this.room!.members[oldPeerId];
+          delete this.room!.members[oldPeerId];
+          const oldConn = this.guestConns.get(oldPeerId);
+          if (oldConn) {
+            try { oldConn.close(); } catch { /* ignore */ }
+            this.guestConns.delete(oldPeerId);
+          }
+          this._broadcastExcept({ event: 'member_left', memberId: oldPeerId, memberName: oldMember?.name || '' }, conn.peer);
+          this.cbs.onMemberLeft?.(oldPeerId, oldMember?.name || '');
+        }
+
+        // 2. Register the new member in room
+        this.room!.members[newMember.id] = newMember;
+
+        // 3. Send welcome with clean room state to just this guest
         conn.send({ event: 'welcome', room: this.room! } satisfies PeerMessage);
 
-        // Broadcast join to all other guests
-        this._broadcastExcept({ event: 'member_joined', member }, conn.peer);
+        // 4. Broadcast join to all other active guests
+        this._broadcastExcept({ event: 'member_joined', member: newMember }, conn.peer);
 
-        this.cbs.onMemberJoined?.(member);
+        this.cbs.onMemberJoined?.(newMember);
 
-        // System message
+        // 5. System chat notification
+        const noticeText = isReconnection
+          ? `${newMember.name} terhubung kembali ke room 🔄`
+          : `${newMember.name} bergabung ke room 🎬`;
+
         const sysMsg: PartyMessage = {
           id: msgId(),
           memberId: 'system',
           memberName: 'System',
-          text: `${member.name} bergabung ke room 🎬`,
+          text: noticeText,
           timestamp: Date.now(),
           type: 'system',
         };
@@ -325,24 +420,7 @@ export class WatchPartyService {
     });
 
     conn.on('close', () => {
-      const member = this.room?.members[conn.peer];
-      if (member) {
-        member.isActive = false;
-        this.cbs.onMemberLeft?.(conn.peer, member.name);
-        this._broadcast({ event: 'member_left', memberId: conn.peer, memberName: member.name });
-        const sysMsg: PartyMessage = {
-          id: msgId(),
-          memberId: 'system',
-          memberName: 'System',
-          text: `${member.name} meninggalkan room`,
-          timestamp: Date.now(),
-          type: 'system',
-        };
-        this.room!.messages.push(sysMsg);
-        this._broadcast({ event: 'chat', message: sysMsg });
-        this.cbs.onMessage?.(sysMsg);
-      }
-      this.guestConns.delete(conn.peer);
+      this._handleGuestDisconnect(conn.peer);
     });
   }
 
@@ -351,12 +429,25 @@ export class WatchPartyService {
   private _handleIncoming(msg: PeerMessage) {
     switch (msg.event) {
       case 'member_joined':
-        if (this.room) this.room.members[msg.member.id] = msg.member;
+        if (this.room) {
+          // Remove any duplicate member with same userId or name
+          for (const [peerId, m] of Object.entries(this.room.members)) {
+            if (peerId !== msg.member.id) {
+              const same =
+                (msg.member.userId && m.userId && msg.member.userId === m.userId) ||
+                m.name.trim().toLowerCase() === msg.member.name.trim().toLowerCase();
+              if (same) {
+                delete this.room.members[peerId];
+              }
+            }
+          }
+          this.room.members[msg.member.id] = msg.member;
+        }
         this.cbs.onMemberJoined?.(msg.member);
         break;
       case 'member_left':
         if (this.room?.members[msg.memberId]) {
-          this.room.members[msg.memberId].isActive = false;
+          delete this.room.members[msg.memberId];
         }
         this.cbs.onMemberLeft?.(msg.memberId, msg.memberName);
         break;
@@ -369,6 +460,9 @@ export class WatchPartyService {
         break;
       case 'host_left':
         this.cbs.onHostLeft?.();
+        break;
+      case 'ping':
+        this.hostConn?.send({ event: 'pong' } satisfies PeerMessage);
         break;
     }
   }
