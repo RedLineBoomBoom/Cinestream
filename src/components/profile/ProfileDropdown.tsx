@@ -97,15 +97,15 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-3 w-80 sm:w-96 rounded-2xl bg-[#181818]/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 z-50 overflow-hidden text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200"
+      className="absolute right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-[380px] rounded-2xl bg-[#181818]/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 z-50 overflow-hidden text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200"
     >
       {/* Header Banner with Profile Palette Gradient */}
-      <div className={`relative h-24 bg-gradient-to-r ${activePalette.gradient} p-4 flex items-end justify-between overflow-hidden`}>
-        <div className="absolute inset-0 bg-black/20" />
+      <div className={`relative h-28 bg-gradient-to-r ${activePalette.gradient} p-4 pt-3.5 flex items-start justify-between overflow-hidden`}>
+        <div className="absolute inset-0 bg-black/25" />
         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-1.5 text-white/90 text-[11px] font-mono font-bold tracking-wider uppercase">
-          <Tv className="w-3.5 h-3.5" />
+        <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 backdrop-blur-md border border-white/10 text-white/90 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-sm">
+          <Tv className="w-3.5 h-3.5 text-white/80" />
           <span>{language === 'en' ? 'Device Profile' : 'Profil Perangkat Ini'}</span>
         </div>
 
@@ -114,20 +114,21 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             playClick();
             onClose();
           }}
-          className="relative z-10 p-1 rounded-full bg-black/30 hover:bg-black/50 text-white/80 hover:text-white transition-colors cursor-pointer"
+          className="relative z-10 p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/80 hover:text-white transition-all cursor-pointer border border-white/10 shadow-sm"
+          title={language === 'en' ? 'Close' : 'Tutup'}
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Main Profile Info */}
       <div className="p-5 pt-0 relative">
-        {/* Floating Avatar */}
-        <div className="flex items-end justify-between -mt-10 mb-4">
+        {/* Floating Avatar & Actions Row */}
+        <div className="flex items-end justify-between -mt-9 mb-4">
           <div
-            className={`w-18 h-18 rounded-2xl bg-gradient-to-br ${activePalette.gradient} p-0.5 border-2 border-[#181818] shadow-xl ${activePalette.shadow} flex items-center justify-center select-none`}
+            className={`w-18 h-18 rounded-2xl bg-gradient-to-br ${activePalette.gradient} p-0.5 border-4 border-[#181818] shadow-2xl ${activePalette.shadow} flex items-center justify-center select-none relative z-20`}
           >
-            <div className="w-full h-full rounded-[14px] flex items-center justify-center bg-black/15 backdrop-blur-xs">
+            <div className="w-full h-full rounded-[12px] flex items-center justify-center bg-black/20 backdrop-blur-xs">
               {profile.avatarType === 'monogram' ? (
                 <span className="font-display font-black text-2xl text-white tracking-wider drop-shadow-md">
                   {profile.initials}
@@ -144,7 +145,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           <button
             onClick={handleRandomize}
             onMouseEnter={playHover}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all cursor-pointer shadow-md active:scale-95 relative z-20"
             title={language === 'en' ? 'Randomize Avatar & Colors' : 'Acak Avatar & Warna'}
           >
             <Dices className="w-3.5 h-3.5 text-amber-400 animate-spin-once" />
