@@ -50,9 +50,23 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [watchlist, setWatchlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(WATCHLIST_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : ['dune-part-2', 'the-last-of-us'];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Clear mock defaults if left over from initial template
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === 2 &&
+          parsed.includes('dune-part-2') &&
+          parsed.includes('the-last-of-us')
+        ) {
+          localStorage.removeItem(WATCHLIST_STORAGE_KEY);
+          return [];
+        }
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
     } catch {
-      return ['dune-part-2', 'the-last-of-us'];
+      return [];
     }
   });
 
@@ -63,6 +77,17 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // If the only items in history are the old mock seeds (Dune 42% + Agak Laen completed), clean them up
+          const isOnlyMockPlaceholders =
+            parsed.length === 2 &&
+            parsed.some((it) => it.mediaId === 'dune-part-2' && it.currentTime === 4260) &&
+            parsed.some((it) => it.mediaId === 'agak-laen' && it.completed === true);
+
+          if (isOnlyMockPlaceholders) {
+            localStorage.removeItem(HISTORY_ITEMS_KEY);
+            return [];
+          }
+
           // Heal any items with missing historyId, duration, or cross-contamination
           const healedList = parsed.map((item: WatchHistoryItem) => {
             // Case 1: Reacher episode attached to Sore or wrong media title
@@ -164,55 +189,52 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // ignore
     }
 
-    // Default starter history items so user sees immediate progress
-    const dune = MOCK_CATALOG.find((m) => m.id === 'dune-part-2') || MOCK_CATALOG[0];
-    const agakLaen = MOCK_CATALOG.find((m) => m.id === 'agak-laen') || MOCK_CATALOG[1];
-
-    const defaults: WatchHistoryItem[] = [];
-    if (dune) {
-      defaults.push({
-        historyId: dune.id,
-        mediaId: dune.id,
-        media: dune,
-        currentTime: 4260, // ~1h 11m
-        duration: 9960, // 2h 46m (42% watched)
-        lastWatched: Date.now() - 3600000 * 2, // 2 hours ago
-        completed: false,
-      });
-    }
-    if (agakLaen) {
-      defaults.push({
-        historyId: agakLaen.id,
-        mediaId: agakLaen.id,
-        media: agakLaen,
-        currentTime: 7140, // 1h 59m (completed)
-        duration: 7140,
-        lastWatched: Date.now() - 86400000 * 2, // 2 days ago
-        completed: true,
-      });
-    }
-    return defaults;
+    // Default for fresh users: completely clean and empty history
+    return [];
   });
 
   // Continue watching progress for player synchronization
   const [continueWatching, setContinueWatching] = useState<PlayProgress[]>(() => {
     try {
       const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === 1 &&
+          parsed[0].mediaId === 'dune-part-2' &&
+          parsed[0].currentTime === 4260
+        ) {
+          localStorage.removeItem(PROGRESS_STORAGE_KEY);
+          return [];
+        }
+        return Array.isArray(parsed) ? parsed : [];
+      }
     } catch {
       // ignore
     }
-    return [
-      { mediaId: 'dune-part-2', currentTime: 4260, duration: 9960, lastWatched: Date.now() - 3600000 * 2 },
-    ];
+    return [];
   });
 
   const [history, setHistory] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : ['dune-part-2', 'agak-laen'];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === 2 &&
+          parsed.includes('dune-part-2') &&
+          parsed.includes('agak-laen')
+        ) {
+          localStorage.removeItem(HISTORY_STORAGE_KEY);
+          return [];
+        }
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
     } catch {
-      return ['dune-part-2', 'agak-laen'];
+      return [];
     }
   });
 
