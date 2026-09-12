@@ -25,7 +25,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getImdbUrl } from '../../services/imdb';
-import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis } from '../../utils/formatters';
+import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis, getDefaultServer } from '../../utils/formatters';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 
 interface DetailModalProps {
@@ -51,7 +51,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   const displaySynopsis = autoSynopsis || getMediaSynopsis(media, language);
 
   const [activeTab, setActiveTab] = useState<'info' | 'episodes' | 'reviews'>('info');
-  const [activeServer, setActiveServer] = useState<Server>(media.servers[0]);
+  const [activeServer, setActiveServer] = useState<Server>(() => getDefaultServer(media.servers));
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(
     media.seasons?.[0]?.episodes?.[0]
   );
@@ -79,10 +79,10 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     if (media.seasons && media.seasons.length > 0) {
       const firstEp = media.seasons[0].episodes[0];
       setCurrentEpisode(firstEp);
-      setActiveServer(firstEp?.servers?.[0] || media.servers[0]);
+      setActiveServer(getDefaultServer(firstEp?.servers, media.servers));
       setActiveTab('episodes');
     } else {
-      setActiveServer(media.servers[0]);
+      setActiveServer(getDefaultServer(media.servers));
       setCurrentEpisode(undefined);
       setActiveTab('info');
     }
@@ -419,7 +419,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 const targetServer =
                   activeIndex >= 0 && ep.servers[activeIndex]
                     ? ep.servers[activeIndex]
-                    : ep.servers[0] || media.servers[0];
+                    : getDefaultServer(ep.servers, media.servers);
                 setCurrentEpisode(ep);
                 setActiveServer(targetServer);
               }}

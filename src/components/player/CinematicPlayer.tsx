@@ -23,7 +23,7 @@ import {
   MoveDiagonal2,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
-import { formatTime, parseDurationToSeconds, formatServerName } from '../../utils/formatters';
+import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -171,7 +171,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const availableServers = servers || currentEpisode?.servers || media.servers || [activeServer];
 
   // Always prioritize the selected active server's URL with automatic subtitle language selection
-  const rawSource = activeServer?.url || (currentEpisode ? currentEpisode.videoUrl : media.servers[0]?.url);
+  const rawSource = activeServer?.url || (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
   const videoSource = activeServer?.isEmbed ? appendSubtitleParams(rawSource, language) : rawSource;
   const isEmbedStream =
     Boolean(activeServer.isEmbed) ||

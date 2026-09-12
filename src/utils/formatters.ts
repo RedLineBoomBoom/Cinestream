@@ -1,4 +1,4 @@
-import type { MediaItem } from '../types/media';
+import type { MediaItem, Server } from '../types/media';
 
 export function formatTime(seconds: number): string {
   if (isNaN(seconds)) return "00:00";
@@ -372,6 +372,36 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
     .replace(/\(Multi-Sub Host\)/gi, '(Sub Indo Multi-Host)')
     .replace(/\(Instant Backup\)/gi, '(Cadangan Siap Saji)')
     .replace(/\(Backup\)/gi, '(Cadangan)');
+}
+
+/**
+ * Resolves the default server for watching movies or TV series.
+ * Prioritizes Server 2 (AutoEmbed Ultra / index 1), with graceful fallback to index 0.
+ */
+export function getDefaultServer(servers?: Server[], fallback?: Server[]): Server {
+  const list = servers && servers.length > 0 ? servers : (fallback && fallback.length > 0 ? fallback : []);
+  if (list.length === 0) {
+    return {
+      id: 'srv-autoembed',
+      name: 'Server 2 • AutoEmbed Ultra (Anti-Macet HD)',
+      speed: '8 ms',
+      quality: '1080p / 60fps HD',
+      url: '',
+      status: 'online',
+      isEmbed: true,
+    };
+  }
+
+  // 1. Explicitly prioritize Server 2 (AutoEmbed Ultra)
+  const server2 = list.find((s) => {
+    const id = (s.id || '').toLowerCase();
+    const name = (s.name || '').toLowerCase();
+    return id.includes('autoembed') || name.includes('server 2') || name.includes('server-2');
+  });
+  if (server2) return server2;
+
+  // 2. Return index 1 (Server 2 in 0-indexed list) if present, else fallback to index 0
+  return list[1] || list[0];
 }
 
 /**

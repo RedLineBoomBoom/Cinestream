@@ -4,7 +4,7 @@ import { Server as ServerIcon, ShieldCheck, Loader2 } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { resolveBestServer } from '../../services/serverResolver';
-import { formatServerName, getServerBadgeInfo } from '../../utils/formatters';
+import { formatServerName, getServerBadgeInfo, getDefaultServer } from '../../utils/formatters';
 
 interface ServerSelectorProps {
   servers: Server[];
@@ -26,7 +26,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   const [isResolving, setIsResolving] = useState(false);
   const failedServerIdsRef = useRef<Set<string>>(new Set());
 
-  const activeServer = servers.find((s) => s.id === activeServerId) || servers[0];
+  const activeServer = servers.find((s) => s.id === activeServerId) || getDefaultServer(servers);
 
   const handleSmartFailover = async () => {
     if (servers.length <= 1 || isResolving) return;

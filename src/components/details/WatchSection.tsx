@@ -44,7 +44,7 @@ import {
   type PortalReviewItem,
 } from '../../services/portalReviews';
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
-import { getSeriesStatus, formatGenre, getMediaTitle } from '../../utils/formatters';
+import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer } from '../../utils/formatters';
 
 interface WatchSectionProps {
   media: MediaItem;
@@ -87,13 +87,13 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     if (media.type !== 'movie' && resumeEpisodeId && media.seasons) {
       for (const season of media.seasons) {
         const found = season.episodes?.find((ep) => ep.id === resumeEpisodeId);
-        if (found?.servers?.[0]) return found.servers[0];
+        if (found?.servers?.length) return getDefaultServer(found.servers, media.servers);
       }
     }
-    if (media.type !== 'movie' && media.seasons?.[0]?.episodes?.[0]?.servers?.[0]) {
-      return media.seasons[0].episodes[0].servers[0];
+    if (media.type !== 'movie' && media.seasons?.[0]?.episodes?.[0]?.servers?.length) {
+      return getDefaultServer(media.seasons[0].episodes[0].servers, media.servers);
     }
-    return media.servers[0];
+    return getDefaultServer(media.servers);
   });
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(() => {
     if (media.type === 'movie') return undefined;
@@ -112,7 +112,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   useEffect(() => {
     if (media.type === 'movie') {
       setCurrentEpisode(undefined);
-      setActiveServer(media.servers[0]);
+      setActiveServer(getDefaultServer(media.servers));
       return;
     }
 
@@ -121,7 +121,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         const found = season.episodes?.find((ep) => ep.id === resumeEpisodeId);
         if (found) {
           setCurrentEpisode(found);
-          setActiveServer(found.servers?.[0] || media.servers[0]);
+          setActiveServer(getDefaultServer(found.servers, media.servers));
           return;
         }
       }
@@ -130,10 +130,10 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     if (media.seasons && media.seasons.length > 0) {
       const firstEp = media.seasons[0].episodes?.[0];
       setCurrentEpisode(firstEp);
-      setActiveServer(firstEp?.servers?.[0] || media.servers[0]);
+      setActiveServer(getDefaultServer(firstEp?.servers, media.servers));
     } else {
       setCurrentEpisode(undefined);
-      setActiveServer(media.servers[0]);
+      setActiveServer(getDefaultServer(media.servers));
     }
   }, [resumeEpisodeId, media.id, media.seasons, media.type]);
 
@@ -956,7 +956,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   const targetServer =
                     activeIndex >= 0 && ep.servers[activeIndex]
                       ? ep.servers[activeIndex]
-                      : ep.servers[0] || media.servers[0];
+                      : getDefaultServer(ep.servers, media.servers);
                   setCurrentEpisode(ep);
                   setActiveServer(targetServer);
                   window.scrollTo({ top: 120, behavior: 'smooth' });
