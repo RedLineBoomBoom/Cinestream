@@ -58,6 +58,7 @@ interface WatchSectionProps {
   isMiniPlayer?: boolean;
   onToggleMiniPlayer?: () => void;
   onCloseMiniPlayer?: () => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 export const WatchSection: React.FC<WatchSectionProps> = ({
@@ -72,6 +73,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   isMiniPlayer = false,
   onToggleMiniPlayer,
   onCloseMiniPlayer,
+  onFullscreenChange,
 }) => {
   const { isInWatchlist, toggleWatchlist, historyItems, toggleCompleted } = useWatchlist();
   const isCompleted = Boolean(historyItems.find((h) => h.mediaId === media.id)?.completed);
@@ -79,6 +81,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const { t, language } = useLanguage();
   const displayTitle = getMediaTitle(media, language);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<'episodes' | 'info' | 'trailer' | 'reviews'>('info');
   const [activeServer, setActiveServer] = useState<Server>(() => {
     if (media.type !== 'movie' && resumeEpisodeId && media.seasons) {
@@ -507,9 +510,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   };
 
   return (
-    <div className={isMiniPlayer ? 'contents' : 'min-h-screen bg-cinema-950 text-white pb-20 pt-20 sm:pt-24 animate-in fade-in duration-500 relative'}>
+    <div className={isMiniPlayer || isFullscreen ? 'contents' : 'min-h-screen bg-cinema-950 text-white pb-20 pt-16 sm:pt-20 lg:pt-24 animate-in fade-in duration-500 relative'}>
       {/* Dynamic Ambient Glow from Media Backdrop */}
-      {!isMiniPlayer && (
+      {!isMiniPlayer && !isFullscreen && (
         <div
           className={`fixed top-0 inset-x-0 pointer-events-none transition-all duration-1000 -z-10 ${
             isTheaterMode
@@ -521,7 +524,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       )}
 
       {/* Cinema Lights-Out Backdrop Dimmer for Theater Mode */}
-      {!isMiniPlayer && (
+      {!isMiniPlayer && !isFullscreen && (
         <div
           onClick={() => {
             playClick();
@@ -536,10 +539,10 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         />
       )}
 
-      <div className={isMiniPlayer ? 'contents' : 'max-w-[1560px] 2xl:max-w-[1760px] 3xl:max-w-[2100px] 4xl:max-w-[2500px] mx-auto px-4 sm:px-6 lg:px-10 3xl:px-14 space-y-6 sm:space-y-8'}>
+      <div className={isMiniPlayer || isFullscreen ? 'contents' : 'max-w-[1560px] 2xl:max-w-[1760px] 3xl:max-w-[2100px] 4xl:max-w-[2500px] mx-auto px-4 sm:px-6 lg:px-10 3xl:px-14 space-y-6 sm:space-y-8'}>
         
         {/* Navigation Breadcrumbs & Back Button */}
-        {!isMiniPlayer && (
+        {!isMiniPlayer && !isFullscreen && (
           <div className={`flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-4 transition-all duration-500 relative z-10 ${
             isTheaterMode
               ? 'opacity-20 blur-[2px] filter brightness-[0.4] hover:opacity-100 hover:blur-none hover:brightness-100'
@@ -686,11 +689,15 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               isMiniPlayer={isMiniPlayer}
               onToggleMiniPlayer={onToggleMiniPlayer}
               onCloseMiniPlayer={onCloseMiniPlayer}
+              onFullscreenChange={(isFs) => {
+                setIsFullscreen(isFs);
+                onFullscreenChange?.(isFs);
+              }}
             />
           </div>
 
           {/* Real Streaming Server Selector */}
-          {!isMiniPlayer && (
+          {!isMiniPlayer && !isFullscreen && (
             <div
               id="theatrical-server-selector"
               className={`transition-all duration-300 ${
@@ -712,7 +719,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         </section>
 
         {/* Surrounding Background Content (Dimmed and Blurred in Theater Mode) */}
-        {!isMiniPlayer && (
+        {!isMiniPlayer && !isFullscreen && (
         <div className={`space-y-6 sm:space-y-8 transition-all duration-700 relative z-10 ${
           isTheaterMode
             ? 'opacity-20 blur-[3px] filter brightness-[0.4] hover:opacity-95 hover:blur-none hover:brightness-100 transition-all duration-500 pointer-events-none hover:pointer-events-auto'

@@ -100,6 +100,7 @@ const MainContent: React.FC = () => {
 
   // Theater Mode global dimming state
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // CineStream Netflix-style Intro Animation
   const [showIntro, setShowIntro] = useState(true);
@@ -238,6 +239,7 @@ const MainContent: React.FC = () => {
     setResumeEpisodeId(customEpisodeId);
     setIsTheaterMode(false);
     setIsMiniPlayer(false);
+    setIsFullscreen(false);
     setSelectedMedia(media);
 
     let targetEp: Episode | undefined;
@@ -269,6 +271,7 @@ const MainContent: React.FC = () => {
   const handleBackFromWatch = () => {
     setIsMiniPlayer(true);
     setIsTheaterMode(false);
+    setIsFullscreen(false);
     try {
       window.history.replaceState(null, '', `#/${activeTab}`);
     } catch {
@@ -281,6 +284,7 @@ const MainContent: React.FC = () => {
   const handleClosePlayer = () => {
     setSelectedMedia(null);
     setIsMiniPlayer(false);
+    setIsFullscreen(false);
     setResumeTime(undefined);
     setResumeEpisodeId(undefined);
     setIsTheaterMode(false);
@@ -731,10 +735,11 @@ const MainContent: React.FC = () => {
         onOpenSearch={handleOpenSearch}
         isTheaterMode={isTheaterMode}
         watchlistCount={watchlistItems.length}
+        isHidden={isFullscreen}
       />
 
       {/* Main Body */}
-      <main className="flex-1 relative z-10">
+      <main className="flex-1 relative">
         {/* Cinema Loading Spinner when direct /watch/... is loaded in a new tab */}
         {isMediaLoading && !selectedMedia && (
           <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-4 px-4 pt-20">
@@ -916,6 +921,7 @@ const MainContent: React.FC = () => {
             onOpenWatchParty={togglePartyOpen}
             onTheaterModeChange={setIsTheaterMode}
             isMiniPlayer={isMiniPlayer}
+            onFullscreenChange={setIsFullscreen}
             onToggleMiniPlayer={() => {
               playClick();
               setIsTheaterMode(false);
@@ -947,12 +953,14 @@ const MainContent: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <MobileNav
-        activeTab={activeTab}
-        onSelectTab={handleSelectTab}
-        isTheaterMode={isTheaterMode}
-        watchlistCount={watchlistItems.length}
-      />
+      {(!selectedMedia || isMiniPlayer) && !isFullscreen && (
+        <MobileNav
+          activeTab={activeTab}
+          onSelectTab={handleSelectTab}
+          isTheaterMode={isTheaterMode}
+          watchlistCount={watchlistItems.length}
+        />
+      )}
 
       {/* Search Modal */}
       <SearchModal
@@ -1005,7 +1013,7 @@ const MainContent: React.FC = () => {
       <PartySyncToast />
 
       {/* ── Watch Party FAB (floating button) ──────────── */}
-      {!isPartyOpen && (
+      {!isPartyOpen && (!selectedMedia || isMiniPlayer) && !isFullscreen && (
         <button
           onClick={() => { playClick(); setAutoJoinCode(''); setIsPartyOpen(true); }}
           onMouseEnter={playHover}

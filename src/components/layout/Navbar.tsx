@@ -19,6 +19,7 @@ interface NavbarProps {
   onOpenSearch: () => void;
   isTheaterMode?: boolean;
   watchlistCount?: number;
+  isHidden?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSearch,
   isTheaterMode = false,
   watchlistCount,
+  isHidden = false,
 }) => {
   const { watchlist, historyItems } = useWatchlist();
   const { profile, activePalette } = useUserProfile();
@@ -62,7 +64,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           ? 'bg-[#141414]/95 backdrop-blur-xl border-b border-white/[0.08] py-3 shadow-2xl'
           : 'bg-gradient-to-b from-black/95 via-black/60 to-transparent py-4 sm:py-5'
       } ${
-        isTheaterMode
+        isHidden
+          ? 'opacity-0 -translate-y-full pointer-events-none'
+          : isTheaterMode
           ? 'opacity-20 blur-sm hover:opacity-100 hover:blur-none pointer-events-none hover:pointer-events-auto'
           : 'opacity-100 blur-none'
       }`}

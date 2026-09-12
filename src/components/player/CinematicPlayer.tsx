@@ -49,6 +49,7 @@ interface CinematicPlayerProps {
   isMiniPlayer?: boolean;
   onToggleMiniPlayer?: () => void;
   onCloseMiniPlayer?: () => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string {
@@ -153,6 +154,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   isMiniPlayer = false,
   onToggleMiniPlayer,
   onCloseMiniPlayer,
+  onFullscreenChange,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1221,10 +1223,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     }
   };
 
+  const wasAutoRotatedFullscreen = useRef(false);
+  const userExitedFullscreenInLandscape = useRef(false);
+
   const toggleFullscreen = () => {
     playClick();
     const elem = containerRef.current;
     if (!elem) return;
+
+    if (isMiniPlayer) {
+      onToggleMiniPlayer?.();
+    }
 
     const isCurrentlyFs = Boolean(
       document.fullscreenElement ||
@@ -1235,9 +1244,20 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     );
 
     if (!isCurrentlyFs) {
+      wasAutoRotatedFullscreen.current = false;
+      userExitedFullscreenInLandscape.current = false;
+
+      // Attempt screen orientation lock to landscape on mobile devices
+      try {
+        if (window.innerWidth <= 1024 && (screen.orientation as any)?.lock) {
+          (screen.orientation as any).lock('landscape').catch(() => {});
+        }
+      } catch {}
+
       if (elem.requestFullscreen) {
         elem.requestFullscreen().catch(() => {
           setIsFullscreen(true);
+          onFullscreenChange?.(true);
         });
       } else if ((elem as any).webkitRequestFullscreen) {
         (elem as any).webkitRequestFullscreen();
@@ -1247,8 +1267,19 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         (elem as any).msRequestFullscreen();
       } else {
         setIsFullscreen(true);
+        onFullscreenChange?.(true);
       }
     } else {
+      userExitedFullscreenInLandscape.current = true;
+      wasAutoRotatedFullscreen.current = false;
+
+      // Unlock orientation if locked
+      try {
+        if ((screen.orientation as any)?.unlock) {
+          (screen.orientation as any).unlock();
+        }
+      } catch {}
+
       if (
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
@@ -1266,6 +1297,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }
       }
       setIsFullscreen(false);
+      onFullscreenChange?.(false);
     }
   };
 
@@ -1279,6 +1311,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         (document as any).msFullscreenElement
       );
       setIsFullscreen(isFs);
+      onFullscreenChange?.(isFs);
+      if (!isFs) {
+        try {
+          if ((screen.orientation as any)?.unlock) {
+            (screen.orientation as any).unlock();
+          }
+        } catch {}
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -1292,7 +1332,72 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, []);
+  }, [onFullscreenChange]);
+
+  // Mobile Device Auto-Rotate Listener (Landscape <-> Portrait)
+  useEffect(() => {
+    if (isMiniPlayer) return;
+
+    const checkOrientation = () => {
+      const isMobile = window.innerWidth <= 1024 || window.innerHeight <= 600;
+      if (!isMobile) return;
+
+      const isLandscape =
+        window.matchMedia('(orientation: landscape)').matches ||
+        (typeof window.orientation !== 'undefined' && Math.abs(Number(window.orientation)) === 90) ||
+        (screen.orientation && screen.orientation.type?.startsWith('landscape'));
+
+      if (isLandscape) {
+        // User rotated device to landscape while watching on mobile
+        if (!isFullscreen && !userExitedFullscreenInLandscape.current) {
+          wasAutoRotatedFullscreen.current = true;
+          setIsFullscreen(true);
+          onFullscreenChange?.(true);
+        }
+      } else {
+        // User rotated back to portrait
+        userExitedFullscreenInLandscape.current = false;
+        if (wasAutoRotatedFullscreen.current) {
+          wasAutoRotatedFullscreen.current = false;
+          setIsFullscreen(false);
+          onFullscreenChange?.(false);
+        }
+      }
+    };
+
+    const mql = window.matchMedia('(orientation: landscape)');
+    const handleMqlChange = () => checkOrientation();
+
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handleMqlChange);
+    } else {
+      mql.addListener(handleMqlChange);
+    }
+
+    window.addEventListener('orientationchange', checkOrientation);
+    window.addEventListener('resize', checkOrientation);
+
+    return () => {
+      if (mql.removeEventListener) {
+        mql.removeEventListener('change', handleMqlChange);
+      } else {
+        mql.removeListener(handleMqlChange);
+      }
+      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener('resize', checkOrientation);
+    };
+  }, [isMiniPlayer, isFullscreen, onFullscreenChange]);
+
+  // Lock body scroll when fullscreen is active (crucial for iOS Safari CSS fullscreen)
+  useEffect(() => {
+    if (isFullscreen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isFullscreen]);
 
   const toggleMute = () => {
     playClick();
@@ -1474,7 +1579,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           isResizing || isDraggingPlayer ? 'transition-none select-none' : 'transition-all duration-300'
         } ${
           isFullscreen
-            ? `fixed inset-0 z-50 w-screen h-screen rounded-none border-none aspect-auto ${!showControls && !isPartyInteracting ? 'cursor-none' : 'cursor-default'}`
+            ? `fixed inset-0 z-[9999] w-screen h-screen w-[100dvw] h-[100dvh] rounded-none border-none aspect-auto ${!showControls && !isPartyInteracting ? 'cursor-none' : 'cursor-default'}`
             : isMiniPlayer
             ? `fixed z-[280] aspect-video rounded-2xl shadow-2xl border-2 ${
                 activeSnapCorner ? 'border-brand-gold shadow-glow-gold' : 'border-brand-gold/60 shadow-black/95'
@@ -1485,7 +1590,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }`}
         style={
           isFullscreen
-            ? { position: 'fixed' }
+            ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', zIndex: 9999 }
             : isMiniPlayer
             ? {
                 position: 'fixed',
@@ -1513,7 +1618,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }
       >
       {/* Floating Mini Player Header Overlay (Draggable Bar) */}
-      {isMiniPlayer && (
+      {isMiniPlayer && !isFullscreen && (
         <div
           onPointerDown={handleDragPointerDown}
           onPointerMove={handleDragPointerMove}
@@ -1593,7 +1698,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       )}
 
       {/* Interactive Drag-to-Resize Corner Handle (Locked to 16:9 Aspect Ratio) */}
-      {isMiniPlayer && (
+      {isMiniPlayer && !isFullscreen && (
         <div
           onPointerDown={handleResizePointerDown}
           onPointerMove={handleResizePointerMove}
@@ -1615,7 +1720,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       )}
 
       {/* Real-time Resolution Overlay HUD during Drag */}
-      {isMiniPlayer && isResizing && (
+      {isMiniPlayer && !isFullscreen && isResizing && (
         <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center pointer-events-none animate-fade-in gap-1.5">
           <div className="px-3.5 py-1.5 rounded-xl bg-black/90 border border-brand-gold/70 text-brand-champagne shadow-2xl flex items-center gap-2">
             <Scaling className="w-4 h-4 text-brand-gold animate-pulse" />
@@ -1669,7 +1774,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             <div
               onMouseEnter={handleControlsMouseEnter}
               onMouseLeave={handleControlsMouseLeave}
-              className={`absolute top-2.5 left-2.5 right-2.5 z-40 flex items-center justify-between gap-2 pointer-events-none transition-all duration-300 ${
+              className={`absolute top-0 inset-x-0 z-40 flex items-center justify-between gap-2 pointer-events-none transition-all duration-300 pt-[max(env(safe-area-inset-top),0.625rem)] pl-[max(env(safe-area-inset-left),0.625rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-3 bg-gradient-to-b from-black/90 via-black/50 to-transparent ${
                 (isFullscreen || isTheaterMode) && !showControls
                   ? 'opacity-0 -translate-y-3 pointer-events-none'
                   : 'opacity-100 translate-y-0'
@@ -1750,8 +1855,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
                 )}
 
-                {/* Floating Mini Player Button */}
-                {onToggleMiniPlayer && (
+                {/* Floating Mini Player Button (Only in normal player view) */}
+                {onToggleMiniPlayer && !isFullscreen && (
                   <button
                     onClick={onToggleMiniPlayer}
                     className="flex items-center gap-1.5 bg-cinema-950/85 hover:bg-white/20 text-slate-300 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border border-white/10 text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer"
@@ -1763,40 +1868,41 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   </button>
                 )}
 
-                {/* Theater Mode Toggle */}
-                <button
-                  onClick={toggleTheaterMode}
-                  className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer ${
-                    isTheaterMode
-                      ? 'bg-brand-gold text-cinema-950 border-brand-gold shadow-glow-gold font-semibold'
-                      : 'bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10'
-                  }`}
-                  title={isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}
-                >
-                  <Tv className={`w-3 h-3 ${isTheaterMode ? 'text-cinema-950 stroke-[2.5]' : 'text-brand-champagne'}`} />
-                  <span className="hidden md:inline">{isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}</span>
-                  {isTheaterMode && <span className="w-1.5 h-1.5 rounded-full bg-cinema-950" />}
-                </button>
+                {/* Theater Mode Toggle (Only in normal player view) */}
+                {!isFullscreen && (
+                  <button
+                    onClick={toggleTheaterMode}
+                    className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer ${
+                      isTheaterMode
+                        ? 'bg-brand-gold text-cinema-950 border-brand-gold shadow-glow-gold font-semibold'
+                        : 'bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10'
+                    }`}
+                    title={isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}
+                  >
+                    <Tv className={`w-3 h-3 ${isTheaterMode ? 'text-cinema-950 stroke-[2.5]' : 'text-brand-champagne'}`} />
+                    <span className="hidden md:inline">{isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}</span>
+                    {isTheaterMode && <span className="w-1.5 h-1.5 rounded-full bg-cinema-950" />}
+                  </button>
+                )}
 
                 {/* Native Fullscreen Toggle Button */}
                 <button
                   onClick={toggleFullscreen}
-                  className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer ${
+                  className={`flex items-center gap-1.5 backdrop-blur-md px-3 py-1 sm:py-1.5 rounded-full border text-[11px] font-semibold transition-all shadow-lg cursor-pointer ${
                     isFullscreen
-                      ? 'bg-brand-gold text-cinema-950 border-brand-gold shadow-glow-gold font-semibold'
+                      ? 'bg-[#E50914] hover:bg-[#F40612] text-white border-[#E50914] shadow-glow-red'
                       : 'bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10'
                   }`}
                   title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
                 >
                   {isFullscreen ? (
                     <>
-                      <Minimize2 className="w-3 h-3 text-cinema-950 stroke-[2.5]" />
-                      <span className="hidden md:inline">{t('exitFullscreen')}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-cinema-950" />
+                      <Minimize2 className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                      <span className="font-sans text-xs">{t('exitFullscreen')}</span>
                     </>
                   ) : (
                     <>
-                      <Maximize2 className="w-3 h-3 text-brand-champagne" />
+                      <Maximize2 className="w-3.5 h-3.5 text-brand-champagne" />
                       <span className="hidden md:inline">{t('fullscreen')}</span>
                     </>
                   )}
@@ -1986,7 +2092,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         <div
           onMouseEnter={handleControlsMouseEnter}
           onMouseLeave={handleControlsMouseLeave}
-          className={`absolute bottom-0 inset-x-0 p-3 sm:p-5 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 ${
+          className={`absolute bottom-0 inset-x-0 p-3 sm:p-5 pb-[max(env(safe-area-inset-bottom),0.875rem)] pl-[max(env(safe-area-inset-left),0.875rem)] pr-[max(env(safe-area-inset-right),0.875rem)] bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 ${
             showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'
           }`}
         >
@@ -2098,8 +2204,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
             )}
 
-            {/* Floating Mini Player Button */}
-            {onToggleMiniPlayer && (
+            {/* Floating Mini Player Button (Only in normal player view) */}
+            {onToggleMiniPlayer && !isFullscreen && (
               <button
                 onClick={onToggleMiniPlayer}
                 onMouseEnter={playHover}
@@ -2110,33 +2216,46 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               </button>
             )}
 
-            {/* Theater Mode Button */}
-            <button
-              onClick={toggleTheaterMode}
-              onMouseEnter={playHover}
-              className={`p-1.5 rounded-lg transition-all hidden md:flex items-center justify-center cursor-pointer ${
-                isTheaterMode
-                  ? 'text-brand-gold bg-brand-gold/20 shadow-glow-gold'
-                  : 'text-slate-400 hover:text-white hover:bg-white/10'
-              }`}
-              title={isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}
-            >
-              <div
-                className={`relative w-4 h-3 rounded-[3px] border transition-all flex items-center justify-center ${
-                  isTheaterMode ? 'border-brand-gold bg-brand-gold/30' : 'border-current'
+            {/* Theater Mode Button (Only in normal player view) */}
+            {!isFullscreen && (
+              <button
+                onClick={toggleTheaterMode}
+                onMouseEnter={playHover}
+                className={`p-1.5 rounded-lg transition-all hidden md:flex items-center justify-center cursor-pointer ${
+                  isTheaterMode
+                    ? 'text-brand-gold bg-brand-gold/20 shadow-glow-gold'
+                    : 'text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
+                title={isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}
               >
-                {isTheaterMode && <div className="w-1.5 h-1 rounded-[1px] bg-brand-gold" />}
-              </div>
-            </button>
+                <div
+                  className={`relative w-4 h-3 rounded-[3px] border transition-all flex items-center justify-center ${
+                    isTheaterMode ? 'border-brand-gold bg-brand-gold/30' : 'border-current'
+                  }`}
+                >
+                  {isTheaterMode && <div className="w-1.5 h-1 rounded-[1px] bg-brand-gold" />}
+                </div>
+              </button>
+            )}
 
             <button
               onClick={toggleFullscreen}
               onMouseEnter={playHover}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
+              className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                isFullscreen
+                  ? 'bg-[#E50914] hover:bg-[#F40612] text-white px-3 py-1 sm:py-1.5 rounded-full shadow-glow-red'
+                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+              }`}
               title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                  <span className="font-sans text-xs font-semibold">{t('exitFullscreen')}</span>
+                </>
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
             </button>
           </div>
           </div>
