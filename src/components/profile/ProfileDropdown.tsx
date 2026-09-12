@@ -46,8 +46,17 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile.name);
   const [activeTab, setActiveTab] = useState<'overview' | 'customize'>('overview');
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track viewport size to switch positioning strategy
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -97,8 +106,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-screen sm:w-96 max-w-[min(380px,calc(100vw-1rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto no-scrollbar rounded-2xl bg-[#181818]/98 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 z-50 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200"
-      style={{ right: 'max(0px, env(safe-area-inset-right))' }}
+      className={`z-[9990] rounded-2xl bg-[#181818]/98 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto no-scrollbar ${
+        isMobile
+          // Mobile: fixed to viewport — never goes off-screen
+          ? 'fixed left-2 right-2 top-[4.25rem] max-h-[calc(100dvh-5rem)]'
+          // Desktop: absolute below the avatar button
+          : 'absolute right-0 top-full mt-2 w-96 max-w-[380px] max-h-[calc(100dvh-5rem)]'
+      }`}
     >
       {/* Header Banner with Profile Palette Gradient */}
       <div className={`relative h-28 bg-gradient-to-r ${activePalette.gradient} p-4 pt-3.5 flex items-start justify-between overflow-hidden`}>
