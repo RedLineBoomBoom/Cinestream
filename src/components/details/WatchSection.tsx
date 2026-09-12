@@ -982,16 +982,6 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               <span>{t('tabReviewsOfficial')} ({portalReviews.length + reviewsList.length})</span>
             </button>
 
-            {/* 🚀 Fitur Utama Button on Tab Bar */}
-            <button
-              onClick={handleOpenDirectStream}
-              onMouseEnter={playHover}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black tracking-wide transition-all bg-gradient-to-r from-[#E50914] via-orange-600 to-amber-500 hover:from-red-600 hover:to-amber-400 text-white shadow-glow-red hover:scale-105 active:scale-95 ml-auto shrink-0 cursor-pointer border border-amber-400/40"
-              title={t('openInFullTabTooltip')}
-            >
-              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>{t('openInFullTab')} ↗</span>
-            </button>
           </div>
 
           {/* Tab 1: Episode Hub */}
