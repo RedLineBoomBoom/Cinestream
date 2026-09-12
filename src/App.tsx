@@ -15,6 +15,7 @@ import { HistoryView } from './components/history/HistoryView';
 import { WatchedView } from './components/history/WatchedView';
 import { AdvancedSearchView } from './components/search/AdvancedSearchView';
 import { WatchlistProvider, useWatchlist } from './context/WatchlistContext';
+import { UserProfileProvider } from './context/UserProfileContext';
 import { SoundProvider, useSound } from './context/SoundContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { WatchPartyProvider, useWatchParty } from './context/WatchPartyContext';
@@ -1026,13 +1027,15 @@ const MainContent: React.FC = () => {
 export function App() {
   return (
     <LanguageProvider>
-      <WatchlistProvider>
-        <SoundProvider>
-          <WatchPartyProvider>
-            <MainContent />
-          </WatchPartyProvider>
-        </SoundProvider>
-      </WatchlistProvider>
+      <UserProfileProvider>
+        <WatchlistProvider>
+          <SoundProvider>
+            <WatchPartyProvider>
+              <MainContent />
+            </WatchPartyProvider>
+          </SoundProvider>
+        </WatchlistProvider>
+      </UserProfileProvider>
     </LanguageProvider>
   );
 }

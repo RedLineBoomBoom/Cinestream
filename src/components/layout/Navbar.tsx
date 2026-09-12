@@ -8,8 +8,10 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
+import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { ProfileDropdown } from '../profile/ProfileDropdown';
 
 interface NavbarProps {
   activeTab: string;
@@ -27,10 +29,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   watchlistCount,
 }) => {
   const { watchlist, historyItems } = useWatchlist();
+  const { profile, activePalette } = useUserProfile();
   const { playClick, playHover } = useSound();
   const { language, toggleLanguage, t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -156,15 +160,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </button>
 
-          {/* Profile Monogram - Netflix Style Red Square Avatar */}
-          <div className="w-8 h-8 rounded bg-[#E50914] flex items-center justify-center text-white text-xs font-black shadow-md select-none">
-            CN
+          {/* Unique Per-Device Profile Avatar Button */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                playClick();
+                setIsProfileOpen((prev) => !prev);
+              }}
+              onMouseEnter={playHover}
+              className={`w-8 h-8 rounded-lg bg-gradient-to-br ${activePalette.gradient} p-0.5 shadow-md ${activePalette.shadow} hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center select-none border ${activePalette.border}`}
+              title={`${profile.name} (${language === 'en' ? 'Click to customize profile' : 'Klik untuk kelola profil'})`}
+            >
+              <div className="w-full h-full rounded-[6px] flex items-center justify-center bg-black/15 backdrop-blur-xs text-white">
+                {profile.avatarType === 'monogram' ? (
+                  <span className="font-display font-black text-[11px] tracking-wider drop-shadow-xs">
+                    {profile.initials}
+                  </span>
+                ) : (
+                  <span className="text-sm leading-none drop-shadow-xs">
+                    {profile.emoji}
+                  </span>
+                )}
+              </div>
+            </button>
+
+            {/* Profile Dropdown Card */}
+            <ProfileDropdown
+              isOpen={isProfileOpen}
+              onClose={() => setIsProfileOpen(false)}
+              onSelectTab={onSelectTab}
+            />
           </div>
 
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="lg:hidden p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300"
+            className="lg:hidden p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -174,6 +205,41 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-white/[0.08] bg-[#141414]/98 backdrop-blur-3xl px-6 py-5 space-y-2 mt-2">
+          {/* Mobile Profile Card Header */}
+          <div
+            onClick={() => {
+              playClick();
+              setIsProfileOpen(true);
+            }}
+            className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] cursor-pointer transition-all mb-3"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${activePalette.gradient} p-0.5 shadow-md ${activePalette.shadow} flex items-center justify-center shrink-0 border ${activePalette.border}`}
+              >
+                <div className="w-full h-full rounded-[10px] flex items-center justify-center bg-black/20 text-white">
+                  {profile.avatarType === 'monogram' ? (
+                    <span className="font-display font-black text-xs tracking-wider">
+                      {profile.initials}
+                    </span>
+                  ) : (
+                    <span className="text-base leading-none">
+                      {profile.emoji}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-white truncate max-w-[180px]">{profile.name}</div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {language === 'en' ? 'Device Profile' : 'Profil Perangkat Ini'}
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-white/80 bg-white/10 px-2.5 py-1 rounded-full border border-white/10">
+              {language === 'en' ? 'Manage' : 'Kelola'}
+            </span>
+          </div>
           {navLinks.map((link) => (
             <button
               key={link.id}
