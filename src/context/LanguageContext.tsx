@@ -100,8 +100,19 @@ export const translations = {
     miniPlayerTooltip: 'Buka Pemutar Mini Mengambang',
     restorePlayer: 'Perbesar ke Layar Penuh',
     closeMiniPlayer: 'Tutup Pemutar',
-    miniPlayerSizeTooltip: 'Ubah Ukuran (S / M / L / XL)',
     miniPlayerDragResize: 'Tarik sudut untuk mengubah ukuran (rasio 16:9)',
+
+    // Audio Booster
+    audioBooster: 'Penguat Suara',
+    audioBoosterTitle: 'Audio Booster & Penjernih Suara',
+    audioBoosterDesc: 'Perbesar volume hingga 300% dan perjelas vokal dialog film.',
+    audioMaxFull: 'Maksimalkan Volume (100% Full + Unmute)',
+    audioMaxSuccess: 'Volume dimaksimalkan ke level tertinggi! 🔊',
+    dialogueClarity: 'Tingkatkan Dialog & Vokal (Night Mode)',
+    dialogueClarityDesc: 'Membuat suara percakapan terdengar jelas dan tajam di speaker HP.',
+    audioBoostLevel: 'Tingkat Penguatan Audio:',
+    recommendedAudioServers: 'Rekomendasi Server dengan Audio Kencang:',
+    audioTipIframe: 'Sebagian besar film memiliki format audio 5.1 bioskop di mana vokal aktor berada di channel tengah yang sering terdengar pelan di speaker HP/laptop. Pastikan volume slider di pojok kanan bawah pemutar video ditarik ke 100%, atau ganti ke Server 6 / Server 4 yang memiliki audio stereo kencang.',
 
     // Hero Banner
     trendingSpotlight: 'Sedang Populer & Trending',
@@ -403,8 +414,19 @@ export const translations = {
     miniPlayerTooltip: 'Floating Mini Player',
     restorePlayer: 'Expand to Full Player',
     closeMiniPlayer: 'Close Player',
-    miniPlayerSizeTooltip: 'Change Size (S / M / L / XL)',
     miniPlayerDragResize: 'Drag corner to resize (16:9 ratio)',
+
+    // Audio Booster
+    audioBooster: 'Audio Booster',
+    audioBoosterTitle: 'Audio Booster & Voice Clarity',
+    audioBoosterDesc: 'Boost volume up to 300% and enhance dialogue clarity.',
+    audioMaxFull: 'Maximize Volume (100% Full + Unmute)',
+    audioMaxSuccess: 'Volume maximized to peak level! 🔊',
+    dialogueClarity: 'Enhance Dialogue & Vocals (Night Mode)',
+    dialogueClarityDesc: 'Makes character speech crisp and intelligible on mobile speakers.',
+    audioBoostLevel: 'Audio Boost Multiplier:',
+    recommendedAudioServers: 'Recommended Loud Audio Servers:',
+    audioTipIframe: 'Most cinema movies use 5.1 surround mixes where dialogue is in the center channel, which can sound quiet on stereo speakers. Set the player volume slider in the bottom-right corner to 100%, or switch to Server 6 / Server 4 for louder stereo mastering.',
 
     // Hero Banner
     trendingSpotlight: 'Trending & Popular Now',

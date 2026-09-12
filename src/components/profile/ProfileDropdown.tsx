@@ -97,7 +97,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-[380px] rounded-2xl bg-[#181818]/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 z-50 overflow-hidden text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200"
+      className="absolute right-0 top-full mt-2 w-screen sm:w-96 max-w-[min(380px,calc(100vw-1rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto no-scrollbar rounded-2xl bg-[#181818]/98 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 z-50 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200"
+      style={{ right: 'max(0px, env(safe-area-inset-right))' }}
     >
       {/* Header Banner with Profile Palette Gradient */}
       <div className={`relative h-28 bg-gradient-to-r ${activePalette.gradient} p-4 pt-3.5 flex items-start justify-between overflow-hidden`}>
@@ -292,7 +293,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
         {/* TAB 2: CUSTOMIZE AVATAR & COLORS */}
         {activeTab === 'customize' && (
-          <div className="space-y-4 max-h-[280px] overflow-y-auto pr-1 no-scrollbar">
+          <div className="space-y-4 pr-1 no-scrollbar">
             {/* Avatar Style Choice (Monogram vs Emoji) */}
             <div>
               <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-2">

@@ -210,6 +210,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const [volume, setVolume] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPortraitFullscreen, setIsPortraitFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -1226,6 +1227,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const wasAutoRotatedFullscreen = useRef(false);
   const userExitedFullscreenInLandscape = useRef(false);
 
+  // Helper: detect if currently in portrait mode on a mobile device
+  const isMobilePortrait = () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const isMobile = w <= 1024;
+    const isPortrait = h > w ||
+      window.matchMedia('(orientation: portrait)').matches ||
+      (typeof window.orientation !== 'undefined' && (Number(window.orientation) === 0 || Number(window.orientation) === 180));
+    return isMobile && isPortrait;
+  };
+
   const toggleFullscreen = () => {
     playClick();
     const elem = containerRef.current;
@@ -1247,31 +1259,46 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       wasAutoRotatedFullscreen.current = false;
       userExitedFullscreenInLandscape.current = false;
 
-      // Attempt screen orientation lock to landscape on mobile devices
-      try {
-        if (window.innerWidth <= 1024 && (screen.orientation as any)?.lock) {
-          (screen.orientation as any).lock('landscape').catch(() => {});
+      const enterFullscreen = () => {
+        if (elem.requestFullscreen) {
+          return elem.requestFullscreen().catch(() => {
+            setIsFullscreen(true);
+            onFullscreenChange?.(true);
+          });
+        } else if ((elem as any).webkitRequestFullscreen) {
+          (elem as any).webkitRequestFullscreen();
+        } else if ((elem as any).mozRequestFullScreen) {
+          (elem as any).mozRequestFullScreen();
+        } else if ((elem as any).msRequestFullscreen) {
+          (elem as any).msRequestFullscreen();
+        } else {
+          setIsFullscreen(true);
+          onFullscreenChange?.(true);
         }
-      } catch {}
+        return Promise.resolve();
+      };
 
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(() => {
+      // Check if currently portrait on mobile — try orientation lock first
+      if (isMobilePortrait() && (screen.orientation as any)?.lock) {
+        (screen.orientation as any).lock('landscape').then(() => {
+          // Lock succeeded — device will auto-rotate, enter fullscreen normally
+          setIsPortraitFullscreen(false);
+          enterFullscreen();
+        }).catch(() => {
+          // Lock rejected (iOS Safari, some Androids) — use CSS rotation fallback
+          setIsPortraitFullscreen(true);
           setIsFullscreen(true);
           onFullscreenChange?.(true);
         });
-      } else if ((elem as any).webkitRequestFullscreen) {
-        (elem as any).webkitRequestFullscreen();
-      } else if ((elem as any).mozRequestFullScreen) {
-        (elem as any).mozRequestFullScreen();
-      } else if ((elem as any).msRequestFullscreen) {
-        (elem as any).msRequestFullscreen();
       } else {
-        setIsFullscreen(true);
-        onFullscreenChange?.(true);
+        setIsPortraitFullscreen(false);
+        enterFullscreen();
       }
+
     } else {
       userExitedFullscreenInLandscape.current = true;
       wasAutoRotatedFullscreen.current = false;
+      setIsPortraitFullscreen(false);
 
       // Unlock orientation if locked
       try {
@@ -1301,6 +1328,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     }
   };
 
+
   // Sync fullscreen state with native document fullscreen events
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1313,6 +1341,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       setIsFullscreen(isFs);
       onFullscreenChange?.(isFs);
       if (!isFs) {
+        setIsPortraitFullscreen(false);
         try {
           if ((screen.orientation as any)?.unlock) {
             (screen.orientation as any).unlock();
@@ -1348,7 +1377,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         (screen.orientation && screen.orientation.type?.startsWith('landscape'));
 
       if (isLandscape) {
-        // User rotated device to landscape while watching on mobile
+        // Device physically rotated to landscape — clear CSS portrait rotation if any
+        setIsPortraitFullscreen(false);
+        // Auto-enter fullscreen on landscape rotation if not already
         if (!isFullscreen && !userExitedFullscreenInLandscape.current) {
           wasAutoRotatedFullscreen.current = true;
           setIsFullscreen(true);
@@ -1360,6 +1391,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         if (wasAutoRotatedFullscreen.current) {
           wasAutoRotatedFullscreen.current = false;
           setIsFullscreen(false);
+          setIsPortraitFullscreen(false);
           onFullscreenChange?.(false);
         }
       }
@@ -1562,6 +1594,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   return (
     <div className={isMiniPlayer ? 'contents' : 'space-y-3 w-full'}>
+      {/* Black backdrop for CSS-rotated portrait fullscreen */}
+      {isPortraitFullscreen && isFullscreen && (
+        <div
+          className="fixed inset-0 z-[9998] bg-black"
+          onClick={() => {
+            setIsPortraitFullscreen(false);
+            setIsFullscreen(false);
+            onFullscreenChange?.(false);
+          }}
+        />
+      )}
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
@@ -1579,7 +1622,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           isResizing || isDraggingPlayer ? 'transition-none select-none' : 'transition-all duration-300'
         } ${
           isFullscreen
-            ? `fixed inset-0 z-[9999] w-screen h-screen w-[100dvw] h-[100dvh] rounded-none border-none aspect-auto ${!showControls && !isPartyInteracting ? 'cursor-none' : 'cursor-default'}`
+            ? `fixed inset-0 z-[9999] rounded-none border-none ${isPortraitFullscreen ? '' : 'w-screen h-screen w-[100dvw] h-[100dvh] aspect-auto'} ${!showControls && !isPartyInteracting ? 'cursor-none' : 'cursor-default'}`
             : isMiniPlayer
             ? `fixed z-[280] aspect-video rounded-2xl shadow-2xl border-2 ${
                 activeSnapCorner ? 'border-brand-gold shadow-glow-gold' : 'border-brand-gold/60 shadow-black/95'
@@ -1589,7 +1632,21 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             : 'relative w-full rounded-2xl sm:rounded-3xl shadow-2xl border border-white/[0.08] aspect-video'
         }`}
         style={
-          isFullscreen
+          isFullscreen && isPortraitFullscreen
+            ? {
+                // CSS rotation fallback: rotate player 90° to simulate landscape on portrait mobile
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                width: '100vh',
+                height: '100vw',
+                maxWidth: '100vh',
+                maxHeight: '100vw',
+                transform: 'translate(-50%, -50%) rotate(90deg)',
+                transformOrigin: 'center center',
+                zIndex: 9999,
+              }
+            : isFullscreen
             ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', zIndex: 9999 }
             : isMiniPlayer
             ? {
@@ -1663,7 +1720,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               type="button"
               onClick={cycleMiniPlayerSize}
               className="px-2 py-1 rounded-md bg-black/60 hover:bg-brand-gold hover:text-cinema-950 text-slate-300 transition-all cursor-pointer flex items-center gap-1 text-[10px] font-mono border border-white/10 hover:border-brand-gold/50 group/size"
-              title={t('miniPlayerSizeTooltip')}
+              title={language === 'en' ? 'Change Size (S / M / L / XL)' : 'Ubah Ukuran (S / M / L / XL)'}
             >
               <Scaling className="w-3 h-3 text-brand-champagne group-hover/size:text-cinema-950 transition-colors" />
               <span className="font-semibold text-white group-hover/size:text-cinema-950 transition-colors">{getSizeLabel(miniPlayerWidth)}</span>
