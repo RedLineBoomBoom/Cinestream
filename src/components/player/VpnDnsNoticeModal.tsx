@@ -28,6 +28,11 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleDismiss();
@@ -35,7 +40,11 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -53,14 +62,14 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto overscroll-contain"
       onClick={handleDismiss}
       role="dialog"
       aria-modal="true"
       aria-labelledby="vpn-dns-notice-title"
     >
       <div
-        className="relative w-full max-w-xl rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#1c120c] via-cinema-950 to-black border border-amber-500/40 p-5 sm:p-7 shadow-2xl shadow-amber-950/40 overflow-hidden"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#1c120c] via-cinema-950 to-black border border-amber-500/40 p-5 sm:p-7 shadow-2xl shadow-amber-950/40 overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Subtle Ambient Radial Glow */}
