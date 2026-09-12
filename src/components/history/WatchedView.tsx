@@ -39,7 +39,7 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
     const itemKey = item.historyId || (item.episodeId ? `${item.mediaId}__ep_${item.episodeId}` : item.mediaId);
     setRevertingId(itemKey);
     setTimeout(() => {
-      toggleCompleted(item.historyId || item.mediaId, item.episodeId);
+      toggleCompleted(item.historyId || item.mediaId, item.episodeId, item.media);
       setRevertingId(null);
     }, 300);
   };

@@ -800,7 +800,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   type="button"
                   onClick={() => {
                     playSuccess();
-                    toggleCompleted(media.id);
+                    toggleCompleted(media.id, undefined, media);
                   }}
                   className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm ${
                     isCompleted

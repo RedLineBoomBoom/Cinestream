@@ -16,6 +16,7 @@ export const getHistoryItemKey = (
 
 interface WatchlistContextType {
   watchlist: string[];
+  watchlistMediaMap: Record<string, MediaItem>;
   toggleWatchlist: (id: string, mediaItem?: MediaItem) => boolean;
   isInWatchlist: (id: string) => boolean;
   continueWatching: PlayProgress[];
@@ -34,7 +35,7 @@ interface WatchlistContextType {
       seasonNumber?: number;
     }
   ) => void;
-  toggleCompleted: (targetId: string, episodeId?: string) => void;
+  toggleCompleted: (targetId: string, episodeId?: string, mediaItem?: MediaItem) => void;
   removeHistoryItem: (targetId: string, episodeId?: string) => void;
   clearAllHistory: () => void;
 }
@@ -42,6 +43,7 @@ interface WatchlistContextType {
 const WatchlistContext = createContext<WatchlistContextType | undefined>(undefined);
 
 const WATCHLIST_STORAGE_KEY = 'cinestream_watchlist';
+const WATCHLIST_MEDIA_MAP_KEY = 'cinestream_watchlist_media_map_v1';
 const PROGRESS_STORAGE_KEY = 'cinestream_continue_watching';
 const HISTORY_STORAGE_KEY = 'cinestream_history';
 const HISTORY_ITEMS_KEY = 'cinestream_watch_history_v3';
@@ -68,6 +70,22 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch {
       return [];
     }
+  });
+
+  // Full media snapshots for items in watchlist so they load synchronously on refresh
+  const [watchlistMediaMap, setWatchlistMediaMap] = useState<Record<string, MediaItem>>(() => {
+    try {
+      const saved = localStorage.getItem(WATCHLIST_MEDIA_MAP_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return {};
   });
 
   // Comprehensive Watch History items with full media snapshots
@@ -238,6 +256,80 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   });
 
+  // Auto backfill watchlistMediaMap for any items missing from local map
+  useEffect(() => {
+    if (watchlist.length === 0) return;
+    setWatchlistMediaMap((prev) => {
+      let changed = false;
+      const nextMap = { ...prev };
+
+      let customCatalog: MediaItem[] = [];
+      try {
+        const raw = localStorage.getItem('cinestream_custom_catalog');
+        if (raw) customCatalog = JSON.parse(raw);
+      } catch {}
+
+      for (const id of watchlist) {
+        const lower = id.toLowerCase();
+        if (!nextMap[lower]) {
+          const found =
+            MOCK_CATALOG.find((m) => m.id.toLowerCase() === lower) ||
+            customCatalog.find((m) => m.id.toLowerCase() === lower) ||
+            historyItems.find((h) => h.mediaId.toLowerCase() === lower)?.media;
+          if (found) {
+            nextMap[lower] = found;
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        try {
+          localStorage.setItem(WATCHLIST_MEDIA_MAP_KEY, JSON.stringify(nextMap));
+        } catch {}
+        return nextMap;
+      }
+      return prev;
+    });
+  }, [watchlist, historyItems]);
+
+  // Real-time multi-tab / multi-window synchronization on the same device
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === WATCHLIST_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setWatchlist(parsed);
+        } catch {}
+      } else if (e.key === WATCHLIST_MEDIA_MAP_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') setWatchlistMediaMap(parsed);
+        } catch {}
+      } else if (e.key === HISTORY_ITEMS_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setHistoryItems(parsed);
+        } catch {}
+      } else if (e.key === PROGRESS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setContinueWatching(parsed);
+        } catch {}
+      } else if (e.key === HISTORY_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setHistory(parsed);
+        } catch {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(watchlist));
@@ -245,6 +337,14 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // ignore
     }
   }, [watchlist]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WATCHLIST_MEDIA_MAP_KEY, JSON.stringify(watchlistMediaMap));
+    } catch {
+      // ignore
+    }
+  }, [watchlistMediaMap]);
 
   useEffect(() => {
     try {
@@ -274,28 +374,55 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     let isAdded = false;
     const lowerId = id.toLowerCase();
 
-    setWatchlist((prev) => {
-      const exists = prev.some((item) => item.toLowerCase() === lowerId);
-      if (exists) {
-        isAdded = false;
-        return prev.filter((item) => item.toLowerCase() !== lowerId);
-      } else {
-        isAdded = true;
-        return [...prev, id];
-      }
-    });
-
+    // 1. Resolve media item if adding
     const targetMedia =
       mediaItem ||
       MOCK_CATALOG.find((m) => m.id.toLowerCase() === lowerId) ||
+      watchlistMediaMap[lowerId] ||
       historyItems.find((h) => h.mediaId.toLowerCase() === lowerId)?.media;
 
-    if (targetMedia) {
+    // 2. Compute next watchlist array
+    let nextWatchlist: string[];
+    const exists = watchlist.some((item) => item.toLowerCase() === lowerId);
+    if (exists) {
+      isAdded = false;
+      nextWatchlist = watchlist.filter((item) => item.toLowerCase() !== lowerId);
+    } else {
+      isAdded = true;
+      nextWatchlist = [...watchlist, id];
+    }
+
+    // Synchronous write to localStorage so refresh never loses it
+    try {
+      localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(nextWatchlist));
+    } catch (err) {
+      console.warn('Failed to persist watchlist to localStorage:', err);
+    }
+    setWatchlist(nextWatchlist);
+
+    // 3. Synchronous update for watchlistMediaMap
+    setWatchlistMediaMap((prevMap) => {
+      const nextMap = { ...prevMap };
+      if (!isAdded) {
+        delete nextMap[lowerId];
+      } else if (targetMedia) {
+        nextMap[lowerId] = targetMedia;
+      }
+      try {
+        localStorage.setItem(WATCHLIST_MEDIA_MAP_KEY, JSON.stringify(nextMap));
+      } catch (err) {
+        console.warn('Failed to persist watchlist media map:', err);
+      }
+      return nextMap;
+    });
+
+    // 4. Ensure targetMedia is in cinestream_custom_catalog
+    if (targetMedia && isAdded) {
       try {
         const saved = localStorage.getItem('cinestream_custom_catalog');
         const list: MediaItem[] = saved ? JSON.parse(saved) : [];
         if (!list.some((m) => m.id.toLowerCase() === targetMedia.id.toLowerCase())) {
-          const updated = [targetMedia, ...list];
+          const updated = [targetMedia, ...list].slice(0, 100);
           localStorage.setItem('cinestream_custom_catalog', JSON.stringify(updated));
           window.dispatchEvent(new Event('custom-catalog-updated'));
         }
@@ -304,6 +431,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     }
 
+    window.dispatchEvent(new Event('cinestream-watchlist-updated'));
     return isAdded;
   };
 
@@ -388,10 +516,16 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return itemKey !== targetKey;
       });
 
-      return [updatedItem, ...filtered].slice(0, 100);
+      const nextList = [updatedItem, ...filtered].slice(0, 100);
+      try {
+        localStorage.setItem(HISTORY_ITEMS_KEY, JSON.stringify(nextList));
+      } catch (err) {
+        console.warn('Failed to persist historyItems synchronously:', err);
+      }
+      return nextList;
     });
 
-    // Sync continueWatching
+    // Sync continueWatching synchronously
     setContinueWatching((prev) => {
       const existingCw = prev.find((item) => {
         if (!isMovie && epId && item.episodeId) return item.mediaId === media.id && item.episodeId === epId;
@@ -416,7 +550,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return item.mediaId !== media.id;
       });
 
-      return [
+      const nextCw = [
         {
           mediaId: media.id,
           episodeId: isMovie ? undefined : epId,
@@ -426,40 +560,86 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         },
         ...filtered,
       ].slice(0, 30);
+
+      try {
+        localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(nextCw));
+      } catch {}
+      return nextCw;
     });
 
     // Sync history IDs
-    setHistory((prev) => [media.id, ...prev.filter((id) => id !== media.id)].slice(0, 50));
+    setHistory((prev) => {
+      const nextH = [media.id, ...prev.filter((id) => id !== media.id)].slice(0, 50);
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(nextH));
+      } catch {}
+      return nextH;
+    });
+
+    // Save to custom catalog
+    try {
+      const saved = localStorage.getItem('cinestream_custom_catalog');
+      const list: MediaItem[] = saved ? JSON.parse(saved) : [];
+      if (!list.some((m) => m.id.toLowerCase() === media.id.toLowerCase())) {
+        const updated = [media, ...list].slice(0, 100);
+        localStorage.setItem('cinestream_custom_catalog', JSON.stringify(updated));
+        window.dispatchEvent(new Event('custom-catalog-updated'));
+      }
+    } catch {}
+
+    window.dispatchEvent(new Event('cinestream-history-updated'));
   };
 
   const removeHistoryItem = (targetId: string, episodeId?: string) => {
-    setHistoryItems((prev) =>
-      prev.filter((item) => {
+    setHistoryItems((prev) => {
+      const nextList = prev.filter((item) => {
         const itemKey = item.historyId || getHistoryItemKey(item.mediaId, item.episodeId, item.episodeNumber, item.seasonNumber);
         const isMatch =
           itemKey === targetId ||
           item.historyId === targetId ||
           (item.mediaId === targetId && (!episodeId || item.episodeId === episodeId));
         return !isMatch;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(HISTORY_ITEMS_KEY, JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
-    setContinueWatching((prev) =>
-      prev.filter((p) => {
+    setContinueWatching((prev) => {
+      const nextCw = prev.filter((p) => {
         if (episodeId && p.episodeId) {
           return !(p.mediaId === targetId && p.episodeId === episodeId);
         }
         return p.mediaId !== targetId;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(nextCw));
+      } catch {}
+      return nextCw;
+    });
 
-    setHistory((prev) => prev.filter((id) => id !== targetId));
+    setHistory((prev) => {
+      const nextH = prev.filter((id) => id !== targetId);
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(nextH));
+      } catch {}
+      return nextH;
+    });
+
+    window.dispatchEvent(new Event('cinestream-history-updated'));
   };
 
   const clearAllHistory = () => {
     setHistoryItems([]);
     setContinueWatching([]);
     setHistory([]);
+    try {
+      localStorage.removeItem(HISTORY_ITEMS_KEY);
+      localStorage.removeItem(PROGRESS_STORAGE_KEY);
+      localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch {}
+    window.dispatchEvent(new Event('cinestream-history-updated'));
   };
 
   const updateProgress = (newProgress: PlayProgress, media?: MediaItem) => {
@@ -489,7 +669,11 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
           return item.mediaId !== newProgress.mediaId;
         });
-        return [newProgress, ...filtered].slice(0, 30);
+        const nextCw = [newProgress, ...filtered].slice(0, 30);
+        try {
+          localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(nextCw));
+        } catch {}
+        return nextCw;
       });
     }
   };
@@ -502,47 +686,108 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (media) {
       recordWatch(media);
     } else {
-      setHistory((prev) => [id, ...prev.filter((item) => item !== id)].slice(0, 50));
+      setHistory((prev) => {
+        const nextH = [id, ...prev.filter((item) => item !== id)].slice(0, 50);
+        try {
+          localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(nextH));
+        } catch {}
+        return nextH;
+      });
     }
   };
 
-  const toggleCompleted = (targetId: string, episodeId?: string) => {
-    setHistoryItems((prev) =>
-      prev.map((item) => {
+  const toggleCompleted = (targetId: string, episodeId?: string, mediaItem?: MediaItem) => {
+    setHistoryItems((prev) => {
+      const existingIndex = prev.findIndex((item) => {
         const itemKey = item.historyId || getHistoryItemKey(item.mediaId, item.episodeId, item.episodeNumber, item.seasonNumber);
-        const isMatch =
+        return (
           itemKey === targetId ||
           item.historyId === targetId ||
-          (item.mediaId === targetId && (!episodeId || item.episodeId === episodeId));
+          (item.mediaId === targetId && (!episodeId || item.episodeId === episodeId))
+        );
+      });
 
-        if (isMatch) {
-          const nextCompleted = !item.completed;
-          return {
-            ...item,
-            completed: nextCompleted,
-            currentTime: nextCompleted ? item.duration : 0,
-            lastWatched: Date.now(),
-          };
+      let nextList: WatchHistoryItem[];
+
+      if (existingIndex >= 0) {
+        nextList = prev.map((item, idx) => {
+          if (idx === existingIndex) {
+            const nextCompleted = !item.completed;
+            return {
+              ...item,
+              completed: nextCompleted,
+              currentTime: nextCompleted ? item.duration : 0,
+              lastWatched: Date.now(),
+            };
+          }
+          return item;
+        });
+      } else {
+        // Item is not yet in historyItems: auto create it with completed: true
+        let targetMedia = mediaItem;
+        if (!targetMedia) {
+          targetMedia =
+            MOCK_CATALOG.find((m) => m.id.toLowerCase() === targetId.toLowerCase()) ||
+            watchlistMediaMap[targetId.toLowerCase()];
         }
-        return item;
-      })
-    );
+        if (!targetMedia) {
+          try {
+            const raw = localStorage.getItem('cinestream_custom_catalog');
+            if (raw) {
+              const list: MediaItem[] = JSON.parse(raw);
+              targetMedia = list.find((m) => m.id.toLowerCase() === targetId.toLowerCase());
+            }
+          } catch {}
+        }
+
+        if (targetMedia) {
+          const totalDur = parseDurationToSeconds(targetMedia.duration) || 5400;
+          const newItem: WatchHistoryItem = {
+            historyId: targetId,
+            mediaId: targetMedia.id,
+            media: targetMedia,
+            currentTime: totalDur,
+            duration: totalDur,
+            lastWatched: Date.now(),
+            completed: true,
+          };
+          nextList = [newItem, ...prev].slice(0, 100);
+        } else {
+          nextList = prev;
+        }
+      }
+
+      try {
+        localStorage.setItem(HISTORY_ITEMS_KEY, JSON.stringify(nextList));
+      } catch (err) {
+        console.warn('Failed to persist historyItems synchronously:', err);
+      }
+
+      return nextList;
+    });
 
     // If completed, remove from continueWatching row
-    setContinueWatching((prev) =>
-      prev.filter((p) => {
+    setContinueWatching((prev) => {
+      const nextCw = prev.filter((p) => {
         if (episodeId && p.episodeId) {
           return !(p.mediaId === targetId && p.episodeId === episodeId);
         }
         return p.mediaId !== targetId;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(nextCw));
+      } catch {}
+      return nextCw;
+    });
+
+    window.dispatchEvent(new Event('cinestream-history-updated'));
   };
 
   return (
     <WatchlistContext.Provider
       value={{
         watchlist,
+        watchlistMediaMap,
         toggleWatchlist,
         isInWatchlist,
         continueWatching,

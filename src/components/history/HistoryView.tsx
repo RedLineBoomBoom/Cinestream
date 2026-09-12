@@ -47,7 +47,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const { t, language } = useLanguage();
 
   // Watch History only displays titles/episodes currently in progress
-  const inProgressItems = historyItems.filter((h) => !h.completed);
+  const inProgressItems = historyItems.filter((h) => !h.completed && Boolean(h.media || h.mediaId));
 
   const [filter, setFilter] = useState<'all' | 'movie' | 'series'>('all');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -66,7 +66,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     const map = new Map<string, GroupedHistoryItem>();
 
     for (const item of inProgressItems) {
-      const isSeries = item.media.type !== 'movie' || Boolean(item.episodeId || item.episodeNumber);
+      const isSeries = (item.media?.type !== 'movie') || Boolean(item.episodeId || item.episodeNumber);
       const key = isSeries ? `series_${item.mediaId}` : `movie_${item.mediaId}`;
 
       const existing = map.get(key);
@@ -428,7 +428,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       type="button"
                       onClick={() => {
                         playClick();
-                        toggleCompleted(activeItem.historyId || activeItem.mediaId, activeItem.episodeId);
+                        toggleCompleted(activeItem.historyId || activeItem.mediaId, activeItem.episodeId, activeItem.media);
                       }}
                       title={language === 'en' ? 'Mark as Completed (Move to Watched)' : 'Tandai Selesai (Pindahkan ke Watched)'}
                       className="p-2 rounded-xl border transition-all bg-white/[0.03] hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/40 text-slate-400 border-white/[0.06] cursor-pointer"
@@ -552,7 +552,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                         type="button"
                                         onClick={() => {
                                           playClick();
-                                          toggleCompleted(ep.historyId || ep.mediaId, ep.episodeId);
+                                          toggleCompleted(ep.historyId || ep.mediaId, ep.episodeId, ep.media || group.media);
                                         }}
                                         title={language === 'en' ? 'Mark as Completed' : 'Tandai Selesai'}
                                         className="p-1.5 rounded-md bg-white/[0.04] hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/10 transition-colors cursor-pointer"

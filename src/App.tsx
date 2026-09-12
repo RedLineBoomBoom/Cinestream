@@ -69,7 +69,7 @@ const getInitialTab = (): string => {
 };
 
 const MainContent: React.FC = () => {
-  const { watchlist, recordWatch, historyItems } = useWatchlist();
+  const { watchlist, watchlistMediaMap, recordWatch, historyItems } = useWatchlist();
   const { playClick, playHover, playWhoosh } = useSound();
   const { t, language } = useLanguage();
   const {
@@ -354,6 +354,21 @@ const MainContent: React.FC = () => {
       }
     } catch {}
 
+    // 2.5 Check in watchlistMediaMap or historyItems
+    if (watchlistMediaMap && watchlistMediaMap[lowerId]) {
+      setSelectedMedia(watchlistMediaMap[lowerId]);
+      setIsMiniPlayer(false);
+      setIsMediaLoading(false);
+      return;
+    }
+    const inHistoryMedia = historyItems.find((h) => h.mediaId.toLowerCase() === lowerId)?.media;
+    if (inHistoryMedia) {
+      setSelectedMedia(inHistoryMedia);
+      setIsMiniPlayer(false);
+      setIsMediaLoading(false);
+      return;
+    }
+
     // 3. Resolve from TMDB API
     let tmdbType: 'movie' | 'tv' | null = null;
     let tmdbNumericId: number | null = null;
@@ -543,16 +558,50 @@ const MainContent: React.FC = () => {
     });
   }, [fullCatalog, filterType, activeTab, selectedGenre, selectedCountry, selectedYear, sortBy]);
 
-  // Watchlist Items (robust case-insensitive matching with fullCatalog)
+  // Watchlist Items (instant sync from context map + fullCatalog + history fallback)
   const watchlistItems = useMemo(() => {
     const lowerWatchlist = new Set(watchlist.map((id) => id.toLowerCase()));
-    return fullCatalog.filter((item) => lowerWatchlist.has(item.id.toLowerCase()));
-  }, [watchlist, fullCatalog]);
+    const itemMap = new Map<string, MediaItem>();
 
-  // Auto-heal & hydrate any watchlist items that are missing from fullCatalog
+    // 1. Highest priority: dedicated watchlistMediaMap from context (persisted synchronously in localStorage)
+    if (watchlistMediaMap) {
+      for (const [key, item] of Object.entries(watchlistMediaMap)) {
+        if (lowerWatchlist.has(key.toLowerCase()) && item && item.id) {
+          itemMap.set(key.toLowerCase(), item);
+        }
+      }
+    }
+
+    // 2. Second priority: fullCatalog
+    for (const item of fullCatalog) {
+      if (lowerWatchlist.has(item.id.toLowerCase()) && !itemMap.has(item.id.toLowerCase())) {
+        itemMap.set(item.id.toLowerCase(), item);
+      }
+    }
+
+    // 3. Third priority: historyItems media snapshots
+    for (const h of historyItems) {
+      if (h.media && lowerWatchlist.has(h.mediaId.toLowerCase()) && !itemMap.has(h.mediaId.toLowerCase())) {
+        itemMap.set(h.mediaId.toLowerCase(), h.media);
+      }
+    }
+
+    // Preserve exact user order of items
+    const list: MediaItem[] = [];
+    for (const id of watchlist) {
+      const found = itemMap.get(id.toLowerCase());
+      if (found) list.push(found);
+    }
+    return list;
+  }, [watchlist, watchlistMediaMap, fullCatalog, historyItems]);
+
+  // Auto-heal & hydrate any legacy watchlist items that lack local media metadata
   useEffect(() => {
-    const lowerCatalogIds = new Set(fullCatalog.map((item) => item.id.toLowerCase()));
-    const missingIds = watchlist.filter((id) => !lowerCatalogIds.has(id.toLowerCase()));
+    const knownKeys = new Set<string>([
+      ...fullCatalog.map((item) => item.id.toLowerCase()),
+      ...Object.keys(watchlistMediaMap || {}).map((k) => k.toLowerCase()),
+    ]);
+    const missingIds = watchlist.filter((id) => !knownKeys.has(id.toLowerCase()));
     if (missingIds.length === 0) return;
 
     let isMounted = true;
@@ -560,6 +609,10 @@ const MainContent: React.FC = () => {
       let updatedCustom = false;
       const customRaw = localStorage.getItem('cinestream_custom_catalog');
       const customList: MediaItem[] = customRaw ? JSON.parse(customRaw) : [];
+
+      let updatedMap = false;
+      const mapRaw = localStorage.getItem('cinestream_watchlist_media_map_v1');
+      const mediaMap: Record<string, MediaItem> = mapRaw ? JSON.parse(mapRaw) : {};
 
       for (const missingId of missingIds) {
         const lower = missingId.toLowerCase();
@@ -570,6 +623,10 @@ const MainContent: React.FC = () => {
           if (!customList.some((m) => m.id.toLowerCase() === inHistory.id.toLowerCase())) {
             customList.unshift(inHistory);
             updatedCustom = true;
+          }
+          if (!mediaMap[lower]) {
+            mediaMap[lower] = inHistory;
+            updatedMap = true;
           }
           continue;
         }
@@ -612,6 +669,10 @@ const MainContent: React.FC = () => {
                 customList.unshift(fetched);
                 updatedCustom = true;
               }
+              if (!mediaMap[lower]) {
+                mediaMap[lower] = fetched;
+                updatedMap = true;
+              }
             }
           } catch (err) {
             console.warn('Could not auto-recover watchlist item from TMDB:', missingId, err);
@@ -619,10 +680,16 @@ const MainContent: React.FC = () => {
         }
       }
 
-      if (updatedCustom && isMounted) {
-        localStorage.setItem('cinestream_custom_catalog', JSON.stringify(customList));
-        setCustomCatalog(customList);
-        window.dispatchEvent(new Event('custom-catalog-updated'));
+      if (isMounted) {
+        if (updatedCustom) {
+          localStorage.setItem('cinestream_custom_catalog', JSON.stringify(customList));
+          setCustomCatalog(customList);
+          window.dispatchEvent(new Event('custom-catalog-updated'));
+        }
+        if (updatedMap) {
+          localStorage.setItem('cinestream_watchlist_media_map_v1', JSON.stringify(mediaMap));
+          window.dispatchEvent(new Event('cinestream-watchlist-updated'));
+        }
       }
     };
 
@@ -631,7 +698,7 @@ const MainContent: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [watchlist, fullCatalog, historyItems]);
+  }, [watchlist, fullCatalog, historyItems, watchlistMediaMap]);
 
   const handleOpenSearch = () => {
     if (activeTab === 'home' && (!selectedMedia || isMiniPlayer)) {

@@ -284,18 +284,42 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
       toggleWatchlist(item.id);
       return;
     }
-    // Resolve full media to persist properly in custom catalog
+
+    const fallbackMedia: MediaItem = {
+      id: item.id,
+      title: item.title,
+      titleId: item.titleId || item.title,
+      titleEn: item.titleEn || item.title,
+      type: item.mediaType === 'anime' ? 'anime' : item.mediaType === 'series' ? 'series' : 'movie',
+      year: item.year || new Date().getFullYear(),
+      releaseDate: `${item.year || new Date().getFullYear()}-01-01`,
+      poster: item.poster || '',
+      backdrop: item.backdrop || item.poster || '',
+      rating: item.rating || 0,
+      duration: item.duration || (item.mediaType === 'movie' ? '1h 45m' : '45m / ep'),
+      quality: '1080p FHD',
+      ageRating: '13+',
+      genres: item.genres || [],
+      country: 'Internasional',
+      director: '',
+      synopsis: item.synopsis || item.title,
+      cast: [],
+      servers: [],
+      audioTracks: ['Original'],
+      subtitles: ['Indonesia', 'English'],
+    };
+
+    // Resolve full media to persist properly in custom catalog and watchlistMediaMap
     try {
       const fullMedia = await resolveToPlayableMediaItem(item);
       if (fullMedia) {
         toggleWatchlist(fullMedia.id, fullMedia);
       } else {
-        // Fallback: store with composite id
-        toggleWatchlist(item.id);
+        toggleWatchlist(item.id, fallbackMedia);
       }
     } catch (err) {
       console.error('Error resolving media for watchlist:', err);
-      toggleWatchlist(item.id);
+      toggleWatchlist(item.id, fallbackMedia);
     }
   };
 

@@ -33,7 +33,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
 
   // Filter items that are in-progress (not completed and have progress > 0)
   const inProgressItems = historyItems.filter(
-    (item) => !item.completed && item.currentTime > 0 && item.duration > 0
+    (item) => !item.completed && item.currentTime > 0 && item.duration > 0 && Boolean(item.media)
   );
 
   if (inProgressItems.length === 0) {
@@ -96,7 +96,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
       >
         {inProgressItems.slice(0, 10).map((item) => {
           const itemKey = item.historyId || (item.episodeId ? `${item.mediaId}__ep_${item.episodeId}` : item.mediaId);
-          const isSeriesEpisode = item.media.type !== 'movie' || Boolean(item.episodeId || item.episodeNumber);
+          const isSeriesEpisode = (item.media?.type !== 'movie') || Boolean(item.episodeId || item.episodeNumber);
           const rawPercent = item.duration > 0 ? (item.currentTime / item.duration) * 100 : 0;
           const displayPercent = Math.min(100, Math.max(0, Math.round(rawPercent)));
           const barWidthPercent = item.completed

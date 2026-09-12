@@ -236,16 +236,41 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
       toggleWatchlist(item.id);
       return;
     }
+
+    const fallbackMedia: MediaItem = {
+      id: item.id,
+      title: item.title,
+      titleId: item.title,
+      titleEn: item.title,
+      type: item.type,
+      year: item.year || new Date().getFullYear(),
+      releaseDate: `${item.year || new Date().getFullYear()}-01-01`,
+      poster: item.poster || '',
+      backdrop: item.backdrop || item.poster || '',
+      rating: item.rating || 0,
+      duration: item.duration || (item.type === 'movie' ? '1h 45m' : '45m / ep'),
+      quality: '1080p FHD',
+      ageRating: '13+',
+      genres: [],
+      country: 'Internasional',
+      director: item.job || '',
+      synopsis: item.synopsis || item.title,
+      cast: [],
+      servers: [],
+      audioTracks: ['Original'],
+      subtitles: ['Indonesia', 'English'],
+    };
+
     try {
       const fullMedia = await resolveCurationPlayableMedia(item, language);
       if (fullMedia) {
         toggleWatchlist(fullMedia.id, fullMedia);
       } else {
-        toggleWatchlist(item.id);
+        toggleWatchlist(item.id, fallbackMedia);
       }
     } catch (err) {
       console.error('Failed to resolve media for watchlist:', err);
-      toggleWatchlist(item.id);
+      toggleWatchlist(item.id, fallbackMedia);
     }
   };
 
