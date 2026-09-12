@@ -24,7 +24,7 @@ import {
 import type { MediaItem, Server, Episode, Review } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
 import { type CurationTarget, splitMultipleNames } from '../../services/curation';
-import { CinematicPlayer } from '../player/CinematicPlayer';
+import { CinematicPlayer, appendSubtitleParams } from '../player/CinematicPlayer';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
 import { MovieCard } from '../home/MovieCard';
@@ -385,6 +385,17 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  const handleOpenDirectStream = () => {
+    playClick();
+    const raw =
+      activeServer?.url ||
+      (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+    if (raw) {
+      const finalUrl = activeServer?.isEmbed ? appendSubtitleParams(raw, language) : raw;
+      window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   // Filmography / Country Curation Modal State
   const [curationTarget, setCurationTarget] = useState<CurationTarget | null>(null);
   const [isCurationOpen, setIsCurationOpen] = useState(false);
@@ -625,22 +636,14 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <span className="hidden xs:inline">{copiedLink ? t('copied') : t('share')}</span>
               </button>
 
-              {/* 🚀 Open in Full Tab Button — Direct Full Player Stream */}
+              {/* 🚀 FITUR UTAMA: Open in Full Tab Button */}
               <button
-                onClick={() => {
-                  playClick();
-                  const targetStream =
-                    activeServer?.url ||
-                    (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
-                  if (targetStream) {
-                    window.open(targetStream, '_blank', 'noopener,noreferrer');
-                  }
-                }}
+                onClick={handleOpenDirectStream}
                 onMouseEnter={playHover}
-                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-red-600/15 hover:from-amber-500 hover:to-red-600 text-amber-200 hover:text-black border border-amber-500/35 text-xs font-bold transition-all shadow-sm hover:shadow-glow-gold cursor-pointer group"
+                className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-[#E50914] via-orange-600 to-amber-500 hover:from-red-600 hover:to-amber-400 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-red-600/30 border border-amber-400/50 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
                 title={t('openInFullTabTooltip')}
               >
-                <ExternalLink className="w-3.5 h-3.5 text-amber-300 group-hover:text-black transition-colors" />
+                <ExternalLink className="w-4 h-4 stroke-[2.5] group-hover:rotate-12 transition-transform" />
                 <span>{t('openInFullTab')} ↗</span>
               </button>
 
@@ -716,6 +719,49 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               }}
             />
           </div>
+
+          {/* 🚀 FITUR UTAMA: Direct Full Tab Cinema Mode Banner */}
+          {!isMiniPlayer && !isFullscreen && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-[#181818] to-amber-950/60 border border-amber-500/40 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden group">
+              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+              <div className="flex items-center gap-3.5 min-w-0 relative z-10">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#E50914] via-orange-500 to-amber-400 flex items-center justify-center text-black font-black shadow-lg shadow-red-600/30 shrink-0">
+                  <ExternalLink className="w-6 h-6 stroke-[2.5] text-black" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-display font-black text-white text-sm sm:text-base tracking-wide flex items-center gap-1.5">
+                      <span>{language === 'en' ? 'Direct Full Tab Player' : 'Mode Pemutar Tab Penuh'}</span>
+                    </h3>
+                    <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-[#E50914] text-white font-black tracking-wider shadow-sm animate-pulse">
+                      {language === 'en' ? '★ Primary Feature' : '★ Fitur Utama'}
+                    </span>
+                    <span className="text-[11px] font-mono text-amber-300 font-semibold bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                      {activeServer.name.split('•')[1]?.trim() || activeServer.name}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                    {language === 'en'
+                      ? 'Play directly in a dedicated full tab: 100% maximum hardware volume, no iframe restrictions, and pure distraction-free screen.'
+                      : 'Nonton langsung di tab penuh browser: Volume audio 100% kencang maksimal, bebas batasan iframe, dan layar murni.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleOpenDirectStream}
+                onMouseEnter={playHover}
+                className="w-full md:w-auto py-3 px-6 rounded-xl bg-gradient-to-r from-[#E50914] via-orange-600 to-amber-500 hover:from-red-600 hover:to-amber-400 active:scale-[0.98] text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-red-600/30 flex items-center justify-center gap-2.5 transition-all cursor-pointer shrink-0 hover:shadow-glow-red relative z-10"
+              >
+                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                <span>
+                  {media.type === 'movie'
+                    ? (language === 'en' ? 'Open Film in Full Tab ↗' : 'Buka Film di Tab Penuh ↗')
+                    : (language === 'en' ? `Open Episode ${currentEpisode?.episodeNumber || ''} in Full Tab ↗` : `Buka Episode ${currentEpisode?.episodeNumber || ''} di Tab Penuh ↗`)}
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Real Streaming Server Selector */}
           {!isMiniPlayer && !isFullscreen && (
@@ -958,6 +1004,17 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>{t('tabReviewsOfficial')} ({portalReviews.length + reviewsList.length})</span>
+            </button>
+
+            {/* 🚀 Fitur Utama Button on Tab Bar */}
+            <button
+              onClick={handleOpenDirectStream}
+              onMouseEnter={playHover}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black tracking-wide transition-all bg-gradient-to-r from-[#E50914] via-orange-600 to-amber-500 hover:from-red-600 hover:to-amber-400 text-white shadow-glow-red hover:scale-105 active:scale-95 ml-auto shrink-0 cursor-pointer border border-amber-400/40"
+              title={t('openInFullTabTooltip')}
+            >
+              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>{t('openInFullTab')} ↗</span>
             </button>
           </div>
 
