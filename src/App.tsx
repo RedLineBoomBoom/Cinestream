@@ -87,8 +87,27 @@ const MainContent: React.FC = () => {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // CineStream Netflix-style Intro Animation
-  const [showIntro, setShowIntro] = useState(true);
+  // CineStream Netflix-style Intro Animation (only once per browser session; does not re-appear on refresh)
+  const [showIntro, setShowIntro] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const hasSeenIntro = sessionStorage.getItem('cinestream_session_intro_shown');
+      return !hasSeenIntro;
+    } catch {
+      return false;
+    }
+  });
+
+  // Ensure intro is marked as seen for current browser session
+  useEffect(() => {
+    if (showIntro) {
+      try {
+        sessionStorage.setItem('cinestream_session_intro_shown', 'true');
+      } catch {
+        // ignore
+      }
+    }
+  }, [showIntro]);
 
   // Handle party CODE on load
   useEffect(() => {
@@ -737,7 +756,18 @@ const MainContent: React.FC = () => {
   return (
     <div className="relative min-h-screen text-slate-100 flex flex-col font-sans selection:bg-[#E50914] selection:text-white">
       {/* CineStream Netflix-style Intro Animation */}
-      {showIntro && <CinestreamIntro onComplete={() => setShowIntro(false)} />}
+      {showIntro && (
+        <CinestreamIntro
+          onComplete={() => {
+            try {
+              sessionStorage.setItem('cinestream_session_intro_shown', 'true');
+            } catch {
+              // ignore
+            }
+            setShowIntro(false);
+          }}
+        />
+      )}
 
       {/* Dynamic Cinematic Atmospheric Background */}
       <CinematicAtmosphere

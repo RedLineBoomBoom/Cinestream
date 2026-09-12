@@ -133,6 +133,11 @@ export const CinestreamIntro: React.FC<CinestreamIntroProps> = ({ onComplete }) 
   const finishIntro = () => {
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
+    try {
+      sessionStorage.setItem('cinestream_session_intro_shown', 'true');
+    } catch {
+      // ignore
+    }
     setPhase('fade');
     setTimeout(() => {
       setPhase('done');
