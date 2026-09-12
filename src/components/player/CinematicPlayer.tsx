@@ -1259,9 +1259,49 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       wasAutoRotatedFullscreen.current = false;
       userExitedFullscreenInLandscape.current = false;
 
-      const enterFullscreen = () => {
+      const inPortrait = isMobilePortrait();
+
+      if (inPortrait) {
+        // === MOBILE PORTRAIT PATH ===
+        // Step 1: Immediately activate CSS landscape rotation (works on ALL browsers incl. iOS Safari)
+        setIsPortraitFullscreen(true);
+        setIsFullscreen(true);
+        onFullscreenChange?.(true);
+
+        // Step 2: Also try orientation lock as enhancement — if it works,
+        //         device physically rotates and we clear the CSS rotation.
+        if ((screen.orientation as any)?.lock) {
+          (screen.orientation as any).lock('landscape').then(() => {
+            // Device rotated — remove CSS rotation, let native fullscreen handle it
+            setIsPortraitFullscreen(false);
+            if (elem.requestFullscreen) {
+              elem.requestFullscreen().catch(() => {
+                // Native fs rejected — keep CSS rotation active
+                setIsPortraitFullscreen(true);
+              });
+            }
+          }).catch(() => {
+            // Lock rejected — CSS rotation already active, no further action needed
+          });
+        }
+        // Also try native fullscreen in background (will trigger fullscreenchange event)
         if (elem.requestFullscreen) {
-          return elem.requestFullscreen().catch(() => {
+          elem.requestFullscreen().then(() => {
+            // Native fullscreen granted — if device also rotated to landscape, clear CSS rotation
+            const nowLandscape = window.innerWidth > window.innerHeight;
+            if (nowLandscape) setIsPortraitFullscreen(false);
+          }).catch(() => {
+            // Native fs blocked (iOS) — CSS rotation handles it, already active
+          });
+        } else if ((elem as any).webkitRequestFullscreen) {
+          try { (elem as any).webkitRequestFullscreen(); } catch {}
+        }
+
+      } else {
+        // === DESKTOP / ALREADY LANDSCAPE PATH ===
+        setIsPortraitFullscreen(false);
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen().catch(() => {
             setIsFullscreen(true);
             onFullscreenChange?.(true);
           });
@@ -1275,27 +1315,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           setIsFullscreen(true);
           onFullscreenChange?.(true);
         }
-        return Promise.resolve();
-      };
-
-      // Check if currently portrait on mobile — try orientation lock first
-      if (isMobilePortrait() && (screen.orientation as any)?.lock) {
-        (screen.orientation as any).lock('landscape').then(() => {
-          // Lock succeeded — device will auto-rotate, enter fullscreen normally
-          setIsPortraitFullscreen(false);
-          enterFullscreen();
-        }).catch(() => {
-          // Lock rejected (iOS Safari, some Androids) — use CSS rotation fallback
-          setIsPortraitFullscreen(true);
-          setIsFullscreen(true);
-          onFullscreenChange?.(true);
-        });
-      } else {
-        setIsPortraitFullscreen(false);
-        enterFullscreen();
       }
 
     } else {
+      // === EXIT FULLSCREEN ===
       userExitedFullscreenInLandscape.current = true;
       wasAutoRotatedFullscreen.current = false;
       setIsPortraitFullscreen(false);
@@ -1327,6 +1350,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       onFullscreenChange?.(false);
     }
   };
+
 
 
   // Sync fullscreen state with native document fullscreen events
