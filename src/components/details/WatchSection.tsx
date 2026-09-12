@@ -20,6 +20,7 @@ import {
   Loader2,
   CheckCircle2,
   Clapperboard,
+  ShieldAlert,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode, Review } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
@@ -60,6 +61,7 @@ interface WatchSectionProps {
   onToggleMiniPlayer?: () => void;
   onCloseMiniPlayer?: () => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
+  onOpenVpnNotice?: () => void;
 }
 
 export const WatchSection: React.FC<WatchSectionProps> = ({
@@ -75,6 +77,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   onToggleMiniPlayer,
   onCloseMiniPlayer,
   onFullscreenChange,
+  onOpenVpnNotice,
 }) => {
   const { isInWatchlist, toggleWatchlist, historyItems, toggleCompleted } = useWatchlist();
   const isCompleted = Boolean(historyItems.find((h) => h.mediaId === media.id)?.completed);
@@ -693,6 +696,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 setIsFullscreen(isFs);
                 onFullscreenChange?.(isFs);
               }}
+              onOpenVpnNotice={onOpenVpnNotice}
             />
           </div>
 
@@ -715,6 +719,17 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                     <span className="text-[11px] font-mono text-amber-300 font-semibold bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
                       {activeServer.name.split('•')[1]?.trim() || activeServer.name}
                     </span>
+                    {onOpenVpnNotice && (
+                      <button
+                        onClick={onOpenVpnNotice}
+                        onMouseEnter={playHover}
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 hover:text-white border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                        title={language === 'en' ? 'Playback Troubleshooting: VPN & Cloudflare DNS' : 'Tips Pemutaran: VPN & DNS Cloudflare'}
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{language === 'en' ? 'VPN / DNS Tips' : 'Tips VPN / DNS'}</span>
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs text-white/70 mt-1 leading-relaxed">
                     {language === 'en'

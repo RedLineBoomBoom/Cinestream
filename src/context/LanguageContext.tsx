@@ -219,6 +219,21 @@ export const translations = {
     allEnginesActive: '6 Mesin Streaming Aktif',
     autoFailoverNotice: 'Multi-Engine Failover: 6 server mandiri siap sedia untuk memastikan semua film dan serial dapat dimainkan.',
 
+    // VPN & Cloudflare DNS Notice Popup
+    vpnDnsNoticeTitle: 'Peringatan Pemutaran Video',
+    vpnDnsNoticeBadge: 'Tips Kelancaran Streaming',
+    vpnDnsNoticeHighlight: 'Jika video player tidak bisa play atau buffering, coba gunakan VPN atau mengganti DNS menggunakan Cloudflare.',
+    vpnDnsNoticeDesc: 'Beberapa penyedia internet (ISP) membatasi akses ke server video streaming. Ikuti solusi berikut agar tayangan langsung lancar:',
+    vpnDnsTipVpnTitle: 'Gunakan VPN (Sangat Disarankan)',
+    vpnDnsTipVpnDesc: 'Aktifkan Cloudflare WARP 1.1.1.1, ProtonVPN, atau VPN favorit Anda untuk membuka koneksi server streaming.',
+    vpnDnsTipDnsTitle: 'Ganti DNS ke Cloudflare (1.1.1.1)',
+    vpnDnsTipDnsDesc: 'Ubah DNS perangkat/browser Anda ke 1.1.1.1 (DNS Pribadi: 1dot1dot1dot1.cloudflare-dns.com) untuk bebas blokir ISP.',
+    vpnDnsTipServerTitle: 'Beralih Server / Tab Penuh',
+    vpnDnsTipServerDesc: 'Gunakan tombol Server cadangan (S1 - S6), tombol Atasi 404, atau tombol Tab Penuh ↗ untuk memutar langsung tanpa hambatan.',
+    vpnDnsOpenCloudflare: 'Unduh / Buka Cloudflare 1.1.1.1',
+    vpnDnsDontShowAgain: 'Jangan tampilkan peringatan ini lagi',
+    vpnDnsUnderstandBtn: 'Saya Mengerti, Lanjutkan Nonton',
+
     // Details & Watch Section & YouTube Trailer
     tabTrailerOfficial: 'Trailer Resmi (YouTube)',
     watchTrailer: 'Tonton Trailer',
@@ -534,6 +549,21 @@ export const translations = {
     serverTroubleshootingTip: 'Tips: If video encounters 404 or buffering, click the auto-resolve button above to select a smooth server.',
     allEnginesActive: '6 Streaming Engines Active',
     autoFailoverNotice: 'Multi-Engine Failover: 6 independent servers ready to ensure all movies and series can be played.',
+
+    // VPN & Cloudflare DNS Notice Popup
+    vpnDnsNoticeTitle: 'Video Playback Notice',
+    vpnDnsNoticeBadge: 'Streaming Performance Tip',
+    vpnDnsNoticeHighlight: 'If the video player cannot play or keeps buffering, try using a VPN or changing your DNS to Cloudflare.',
+    vpnDnsNoticeDesc: 'Some Internet Service Providers (ISPs) restrict access to streaming servers. Follow these solutions for uninterrupted playback:',
+    vpnDnsTipVpnTitle: 'Use a VPN (Highly Recommended)',
+    vpnDnsTipVpnDesc: 'Turn on Cloudflare WARP 1.1.1.1, ProtonVPN, or your preferred VPN to bypass ISP streaming restrictions.',
+    vpnDnsTipDnsTitle: 'Change DNS to Cloudflare (1.1.1.1)',
+    vpnDnsTipDnsDesc: 'Configure your device or browser DNS to 1.1.1.1 (Private DNS: 1dot1dot1dot1.cloudflare-dns.com) to bypass network blocks.',
+    vpnDnsTipServerTitle: 'Switch Server / Open Full Tab',
+    vpnDnsTipServerDesc: 'Use alternate backup servers (S1 - S6), the Fix 404 button, or Open in Full Tab ↗ for direct playback.',
+    vpnDnsOpenCloudflare: 'Get Cloudflare 1.1.1.1',
+    vpnDnsDontShowAgain: 'Do not show this notice again',
+    vpnDnsUnderstandBtn: 'I Understand, Continue Watching',
 
     // Details & Watch Section & YouTube Trailer
     tabTrailerOfficial: 'Official Trailer (YouTube)',

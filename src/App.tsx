@@ -22,6 +22,7 @@ import { WatchPartyProvider, useWatchParty } from './context/WatchPartyContext';
 import { WatchPartyModal } from './components/party/WatchPartyModal';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
+import { VpnDnsNoticeModal } from './components/player/VpnDnsNoticeModal';
 import { MOCK_CATALOG } from './data/mockCatalog';
 import type { MediaItem, Episode } from './types/media';
 import { fetchPopularHeroItems, fetchFullMediaItem } from './services/tmdb';
@@ -32,7 +33,7 @@ import {
   getTabUrl,
   VALID_TABS,
 } from './utils/navigation';
-import { Bookmark, Users } from 'lucide-react';
+import { Bookmark, Users, ShieldAlert } from 'lucide-react';
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'home';
@@ -108,6 +109,28 @@ const MainContent: React.FC = () => {
       }
     }
   }, [showIntro]);
+
+  // VPN & Cloudflare DNS Notice Popup for Film & Series (auto-triggered once per session or until dismissed)
+  const [isVpnNoticeOpen, setIsVpnNoticeOpen] = useState(false);
+  const hasTriggeredVpnNotice = useRef(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('cinestream_vpn_notice_dismissed') === 'true') return;
+      if (sessionStorage.getItem('cinestream_vpn_notice_dismissed') === 'true') return;
+    } catch {}
+
+    const isFilmOrSeriesTab = activeTab === 'movie' || activeTab === 'series';
+    const isWatchingFilmOrSeries = !!selectedMedia && (selectedMedia.type === 'movie' || selectedMedia.type === 'series');
+
+    if ((isFilmOrSeriesTab || isWatchingFilmOrSeries) && !hasTriggeredVpnNotice.current) {
+      hasTriggeredVpnNotice.current = true;
+      const timer = setTimeout(() => {
+        setIsVpnNoticeOpen(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, selectedMedia]);
 
   // Handle party CODE on load
   useEffect(() => {
@@ -843,9 +866,25 @@ const MainContent: React.FC = () => {
                   {t('catalogDesc')}
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold text-white bg-[#E50914]/20 px-3 py-1.5 rounded-full border border-[#E50914]/35 self-start sm:self-auto">
-                {filteredCatalog.length} {t('titlesRegistered')}
-              </span>
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {(activeTab === 'movie' || activeTab === 'series') && (
+                  <button
+                    onClick={() => {
+                      playClick();
+                      setIsVpnNoticeOpen(true);
+                    }}
+                    onMouseEnter={playHover}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-amber-500/10"
+                    title={language === 'en' ? 'Playback Troubleshooting (VPN & DNS)' : 'Tips Pemutaran (VPN & DNS Cloudflare)'}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{language === 'en' ? 'Playback Tips (VPN / DNS)' : 'Tips Video (VPN / DNS)'}</span>
+                  </button>
+                )}
+                <span className="text-xs font-mono font-bold text-white bg-[#E50914]/20 px-3 py-1.5 rounded-full border border-[#E50914]/35">
+                  {filteredCatalog.length} {t('titlesRegistered')}
+                </span>
+              </div>
             </div>
 
             <FilterBar
@@ -969,6 +1008,7 @@ const MainContent: React.FC = () => {
             onTheaterModeChange={setIsTheaterMode}
             isMiniPlayer={isMiniPlayer}
             onFullscreenChange={setIsFullscreen}
+            onOpenVpnNotice={() => setIsVpnNoticeOpen(true)}
             onToggleMiniPlayer={() => {
               playClick();
               setIsTheaterMode(false);
@@ -1044,6 +1084,12 @@ const MainContent: React.FC = () => {
           setIsCustomStreamOpen(false);
           handlePlayCustomMedia(item);
         }}
+      />
+
+      {/* ── VPN & Cloudflare DNS Notice Popup for Film & Series ─────── */}
+      <VpnDnsNoticeModal
+        isOpen={isVpnNoticeOpen}
+        onClose={() => setIsVpnNoticeOpen(false)}
       />
 
       {/* ── Watch Party Modal ───────────────────────────── */}

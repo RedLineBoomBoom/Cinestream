@@ -22,6 +22,7 @@ import {
   MoveDiagonal,
   MoveDiagonal2,
   ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
@@ -51,6 +52,7 @@ interface CinematicPlayerProps {
   onToggleMiniPlayer?: () => void;
   onCloseMiniPlayer?: () => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
+  onOpenVpnNotice?: () => void;
 }
 
 export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string {
@@ -202,6 +204,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   onToggleMiniPlayer,
   onCloseMiniPlayer,
   onFullscreenChange,
+  onOpenVpnNotice,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -2501,7 +2504,22 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             {t('serverTroubleshootingTip')}
           </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+          {onOpenVpnNotice && (
+            <button
+              onClick={() => {
+                playClick();
+                onOpenVpnNotice();
+              }}
+              onMouseEnter={playHover}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/30 text-amber-200 border border-amber-500/35 text-[11px] font-medium transition-all cursor-pointer shadow-sm hover:shadow-amber-500/10"
+              title={language === 'en' ? 'Playback Troubleshooting: VPN & Cloudflare DNS' : 'Tips Pemutaran: VPN & DNS Cloudflare'}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              <span>{language === 'en' ? 'VPN / DNS Tips' : 'Tips VPN / DNS'}</span>
+            </button>
+          )}
+
           <button
             onClick={handleSmartFailover}
             disabled={isResolvingServer}
