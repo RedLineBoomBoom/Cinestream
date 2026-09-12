@@ -31,7 +31,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { WatchPartyButton } from '../party/WatchPartyButton';
 import { resolveBestServer } from '../../services/serverResolver';
-import { AudioBoosterModal } from './AudioBoosterModal';
 
 export type SnapCorner = 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
 
@@ -263,21 +262,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasVerifiedTime, setHasVerifiedTime] = useState(false);
-
-  // Audio Booster states
-  const [showAudioBooster, setShowAudioBooster] = useState(false);
-  const [audioBoost, setAudioBoost] = useState<number>(() => {
-    try { return parseFloat(localStorage.getItem('cinestream_audio_boost') || '1.0') || 1.0; } catch { return 1.0; }
-  });
-  const [isDialogueBoost, setIsDialogueBoost] = useState<boolean>(() => {
-    try { return localStorage.getItem('cinestream_dialogue_boost') === 'true'; } catch { return false; }
-  });
-
-  // Web Audio API nodes for native <video> boosting (GainNode + DynamicsCompressorNode)
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   useEffect(() => {
     setHasVerifiedTime(false);
@@ -832,110 +816,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       }
     };
   }, [media.id, currentEpisode?.id, initialDuration]);
-
-  // ── Web Audio API boost for native <video> ──────────────────────────────────
-  // Helper: initialize AudioContext + GainNode connected to the video element.
-  // Called lazily on first user gesture (boost click or play), so browsers allow it.
-  const ensureAudioContext = useCallback(() => {
-    if (isEmbedStream || !videoRef.current) return false;
-    const video = videoRef.current;
-
-    // Already wired up — just resume and update gain
-    if (audioCtxRef.current && gainNodeRef.current) {
-      audioCtxRef.current.resume().catch(() => {});
-      gainNodeRef.current.gain.value = audioBoost;
-      return true;
-    }
-
-    // Source node already created (ctx was suspended/recreated) — skip
-    if (sourceNodeRef.current) return false;
-
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      ctx.resume().catch(() => {});
-
-      const src = ctx.createMediaElementSource(video);
-
-      const gain = ctx.createGain();
-      gain.gain.value = audioBoost;
-
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -24;
-      compressor.knee.value = 30;
-      compressor.ratio.value = 12;
-      compressor.attack.value = 0.003;
-      compressor.release.value = 0.25;
-
-      src.connect(gain);
-      if (isDialogueBoost) {
-        gain.connect(compressor);
-        compressor.connect(ctx.destination);
-      } else {
-        gain.connect(ctx.destination);
-      }
-
-      audioCtxRef.current = ctx;
-      gainNodeRef.current = gain;
-      compressorRef.current = compressor;
-      sourceNodeRef.current = src;
-      return true;
-    } catch {
-      return false;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEmbedStream, audioBoost, isDialogueBoost]);
-
-  // Also try to set up on first 'play' event (catches cases where boost is set before play)
-  useEffect(() => {
-    if (isEmbedStream || !videoRef.current) return;
-    const video = videoRef.current;
-    const onPlay = () => ensureAudioContext();
-    video.addEventListener('play', onPlay);
-    return () => video.removeEventListener('play', onPlay);
-  }, [isEmbedStream, ensureAudioContext]);
-
-  // Update gain value whenever audioBoost changes — also triggers init if not yet done
-  useEffect(() => {
-    if (!isEmbedStream) {
-      if (gainNodeRef.current) {
-        // Already initialized — just update gain
-        gainNodeRef.current.gain.value = audioBoost;
-        audioCtxRef.current?.resume().catch(() => {});
-      }
-      // Note: init happens on next user gesture / play event via ensureAudioContext
-    }
-    try { localStorage.setItem('cinestream_audio_boost', String(audioBoost)); } catch {}
-  }, [audioBoost, isEmbedStream]);
-
-  // Reconnect dialogue clarity compressor when toggle changes
-  useEffect(() => {
-    const gain = gainNodeRef.current;
-    const compressor = compressorRef.current;
-    const ctx = audioCtxRef.current;
-    if (!gain || !compressor || !ctx) return;
-    try {
-      gain.disconnect();
-      if (isDialogueBoost) {
-        gain.connect(compressor);
-        compressor.connect(ctx.destination);
-      } else {
-        gain.connect(ctx.destination);
-      }
-    } catch {}
-    try { localStorage.setItem('cinestream_dialogue_boost', String(isDialogueBoost)); } catch {}
-  }, [isDialogueBoost]);
-
-  // Clean up AudioContext when media changes so it gets re-created for new source
-  useEffect(() => {
-    return () => {
-      try {
-        if (sourceNodeRef.current) { sourceNodeRef.current.disconnect(); sourceNodeRef.current = null; }
-        if (gainNodeRef.current) { gainNodeRef.current.disconnect(); gainNodeRef.current = null; }
-        if (compressorRef.current) { compressorRef.current.disconnect(); compressorRef.current = null; }
-        if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
-      } catch {}
-    };
-  }, [media.id, currentEpisode?.id]);
 
   // ── Iframe volume broadcast ──────────────────────────────────────────────────
   // Sends max-volume postMessages to embed iframe at multiple delays after mount
@@ -2165,21 +2045,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   </button>
                 )}
 
-                {/* 🔊 Audio Booster Button — embed stream top bar */}
-                <button
-                  onClick={() => { playClick(); setShowAudioBooster(true); }}
-                  className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer ${
-                    audioBoost > 1
-                      ? 'bg-[#E50914]/90 text-white border-[#E50914] shadow-glow-red'
-                      : 'bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10'
-                  }`}
-                  title={language === 'en' ? `Audio Boost: ${Math.round(audioBoost * 100)}%` : `Penguat Audio: ${Math.round(audioBoost * 100)}%`}
-                >
-                  <Volume2 className={`w-3 h-3 ${audioBoost > 1 ? 'text-white stroke-[2.5]' : 'text-brand-champagne'}`} />
-                  <span className="hidden md:inline">{language === 'en' ? 'Audio' : 'Audio'}</span>
-                  {audioBoost > 1 && <span className="font-mono text-[9px] font-bold">{Math.round(audioBoost * 100)}%</span>}
-                </button>
-
                 {/* 🚀 Fitur Utama: Open in Full Tab Button */}
                 <button
                   onClick={handleOpenFullTab}
@@ -2543,21 +2408,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               </button>
             )}
 
-            {/* 🔊 Audio Booster Button — native video bottom bar */}
-            <button
-              onClick={() => { playClick(); setShowAudioBooster(true); }}
-              onMouseEnter={playHover}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                audioBoost > 1
-                  ? 'bg-[#E50914]/80 text-white px-2 rounded-full'
-                  : 'text-slate-400 hover:text-white hover:bg-white/10'
-              }`}
-              title={language === 'en' ? `Audio Boost: ${Math.round(audioBoost * 100)}%` : `Penguat Audio: ${Math.round(audioBoost * 100)}%`}
-            >
-              <Volume2 className="w-4 h-4" />
-              {audioBoost > 1 && <span className="font-mono text-[9px] font-bold">{Math.round(audioBoost * 100)}%</span>}
-            </button>
-
             {/* 🚀 Open in Full Tab Button — native video */}
             <button
               onClick={handleOpenFullTab}
@@ -2629,43 +2479,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       </div>
     )}
 
-    {/* 🔊 Audio Booster Modal */}
-    <AudioBoosterModal
-      isOpen={showAudioBooster}
-      onClose={() => setShowAudioBooster(false)}
-      audioBoost={audioBoost}
-      onAudioBoostChange={(v) => {
-        setAudioBoost(v);
-        if (!isEmbedStream) {
-          ensureAudioContext();
-        }
-      }}
-      isDialogueBoost={isDialogueBoost}
-      onDialogueBoostChange={(v) => setIsDialogueBoost(v)}
-      isEmbedStream={isEmbedStream}
-      activeServer={activeServer}
-      availableServers={availableServers}
-      onSelectServer={(srv) => {
-        onSelectServer?.(srv);
-        if (theaterToastTimeoutRef.current) clearTimeout(theaterToastTimeoutRef.current);
-        const locName = formatServerName(srv.name, language);
-        const cleanName = locName.split('•')[1]?.trim() || locName;
-        setTheaterToast(`🔊 ${cleanName}`);
-        theaterToastTimeoutRef.current = setTimeout(() => setTheaterToast(null), 2500);
-      }}
-      videoSource={videoSource}
-      mediaTitle={media.title}
-      onMaxVolume={() => {
-        if (iframeRef.current?.contentWindow) {
-          broadcastIframeVolume(iframeRef.current.contentWindow, 1.0);
-        }
-        if (videoRef.current && !isEmbedStream) {
-          videoRef.current.volume = 1.0;
-          videoRef.current.muted = false;
-          ensureAudioContext();
-        }
-      }}
-    />
   </div>
   );
 };
