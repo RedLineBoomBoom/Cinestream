@@ -1,4 +1,4 @@
-﻿export type RouteInfo =
+export type RouteInfo =
   | { type: 'watch'; mediaId: string; episodeId?: string }
   | { type: 'party'; code: string }
   | { type: 'tab'; tab: string };

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Users } from 'lucide-react';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { useSound } from '../../context/SoundContext';
