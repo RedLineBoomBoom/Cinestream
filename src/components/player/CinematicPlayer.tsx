@@ -336,6 +336,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     return 420;
   });
 
+  // Base desktop viewport dimensions for iframe scaling in mini player mode
+  // Ensures embed video players (JWPlayer, Plyr, Video.js, AutoEmbed) render in Desktop Cinema Mode
+  // with normal desktop subtitle sizes (~18-20px) rather than mobile oversized text (28-34px).
+  const baseMiniWidth = 1024;
+  const baseMiniHeight = 576;
+  const miniScale = isMiniPlayer ? miniPlayerWidth / baseMiniWidth : 1;
+
   // Free Floating Drag & Corner Magnetic Snap State
   const [freePosition, setFreePosition] = useState<{ x: number; y: number } | null>(() => {
     try {
@@ -994,6 +1001,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         { action: 'setSubtitle', value: targetTitle },
         { method: 'setSubtitle', value: targetTitle },
         { command: 'setCaptions', label: targetTitle },
+        // Subtitle sizing signals for embed players
+        { type: 'SET_SUBTITLE_SIZE', size: isMiniPlayer ? 'small' : 'medium' },
+        { type: 'SUBTITLE_SIZE', value: isMiniPlayer ? 'small' : 'medium' },
+        { action: 'setSubtitleSize', size: isMiniPlayer ? 'small' : 'medium' },
+        { command: 'setCaptionSize', size: isMiniPlayer ? 50 : 100 },
       ];
 
       syncEvents.forEach((evt) => {
@@ -1015,7 +1027,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, [language, videoSource]);
+  }, [language, videoSource, isMiniPlayer]);
 
   // Handle incoming storage handshake requests from iframe players
   useEffect(() => {
@@ -1028,7 +1040,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           iframeRef.current?.contentWindow?.postMessage(
             {
               type: 'STORAGE_INIT',
-              data: { subtitleLang: targetTitle },
+              data: {
+                subtitleLang: targetTitle,
+                subSize: isMiniPlayer ? 'small' : 'medium',
+                captionSize: isMiniPlayer ? 'small' : 'medium',
+              },
             },
             '*'
           );
@@ -1046,7 +1062,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     window.addEventListener('message', handleIncomingMessage);
     return () => window.removeEventListener('message', handleIncomingMessage);
-  }, [language]);
+  }, [language, isMiniPlayer]);
 
   const isHoveringControlsRef = useRef(false);
   const [isPartyInteracting, setIsPartyInteracting] = useState(false);
@@ -1803,6 +1819,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       )}
       <div
         ref={containerRef}
+        data-miniplayer={isMiniPlayer ? 'true' : 'false'}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => { isMouseOverPlayer.current = true; }}
         onMouseLeave={() => { isMouseOverPlayer.current = false; }}
@@ -2016,7 +2033,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
       {/* Video Content: Native HTML5 Video OR Sandboxed Iframe Embed */}
       {isEmbedStream ? (
-        <div className={`relative w-full h-full overflow-hidden ${isTheaterMode ? 'bg-black/90' : 'bg-black'}`}>
+        <div className={`relative w-full h-full overflow-hidden ${isMiniPlayer ? 'rounded-2xl' : ''} ${isTheaterMode ? 'bg-black/90' : 'bg-black'}`}>
           {isTheaterMode && (
             <div
               className="absolute inset-0 bg-cover bg-center opacity-25 blur-3xl scale-110 pointer-events-none -z-10"
@@ -2193,7 +2210,20 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             key={videoSource}
             src={videoSource}
             title={media.title}
-            className={`w-full h-full border-0 relative z-0 ${isResizing || isDraggingPlayer ? 'pointer-events-none' : ''}`}
+            className={`border-0 z-0 ${isMiniPlayer ? 'absolute top-0 left-0' : 'w-full h-full relative'} ${
+              isResizing || isDraggingPlayer ? 'pointer-events-none' : ''
+            }`}
+            style={
+              isMiniPlayer
+                ? {
+                    width: `${baseMiniWidth}px`,
+                    height: `${baseMiniHeight}px`,
+                    transform: `scale(${miniScale})`,
+                    transformOrigin: 'top left',
+                    pointerEvents: isResizing || isDraggingPlayer ? 'none' : 'auto',
+                  }
+                : undefined
+            }
             allow="accelerometer *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *; fullscreen *"
             allowFullScreen
             // @ts-expect-error - vendor fullscreen attributes

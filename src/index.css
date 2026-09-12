@@ -178,5 +178,13 @@ input[type=range].video-scrubber:hover::-webkit-slider-thumb {
   }
 }
 
+/* Mini player subtitle and iframe scaling rules */
+[data-miniplayer="true"] video::cue {
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
 
-
+[data-miniplayer="true"] iframe {
+  transform-origin: top left;
+}
