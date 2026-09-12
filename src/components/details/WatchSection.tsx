@@ -636,30 +636,6 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <span className="hidden xs:inline">{copiedLink ? t('copied') : t('share')}</span>
               </button>
 
-              {/* 🚀 FITUR UTAMA: Open in Full Tab Button */}
-              <button
-                onClick={handleOpenDirectStream}
-                onMouseEnter={playHover}
-                className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-[#E50914] via-orange-600 to-amber-500 hover:from-red-600 hover:to-amber-400 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-red-600/30 border border-amber-400/50 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
-                title={t('openInFullTabTooltip')}
-              >
-                <ExternalLink className="w-4 h-4 stroke-[2.5] group-hover:rotate-12 transition-transform" />
-                <span>{t('openInFullTab')} ↗</span>
-              </button>
-
-              {/* Open in New Tab Button */}
-              <a
-                href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => playClick()}
-                onMouseEnter={playHover}
-                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.07] text-xs font-medium transition-all no-underline cursor-pointer"
-                title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-brand-champagne" />
-                <span className="hidden sm:inline">{language === 'en' ? 'New Tab' : 'Tab Baru'}</span>
-              </a>
             </div>
           </div>
         )}
