@@ -357,7 +357,8 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
       .replace(/\(Multi-Sumber\)/gi, '(Multi-Source)')
       .replace(/\(Sub Indo Multi-Host\)/gi, '(Multi-Sub Host)')
       .replace(/\(Cadangan Siap Saji\)/gi, '(Instant Backup)')
-      .replace(/\(Cadangan\)/gi, '(Backup)');
+      .replace(/\(Cadangan\)/gi, '(Backup)')
+      .replace(/\(Audio Stereo Jernih\)/gi, '(Crystal Clear Audio)');
   }
 
   // Indonesian localization
@@ -371,7 +372,8 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
     .replace(/\(Multi-Source\)/gi, '(Multi-Sumber)')
     .replace(/\(Multi-Sub Host\)/gi, '(Sub Indo Multi-Host)')
     .replace(/\(Instant Backup\)/gi, '(Cadangan Siap Saji)')
-    .replace(/\(Backup\)/gi, '(Cadangan)');
+    .replace(/\(Backup\)/gi, '(Cadangan)')
+    .replace(/\(Crystal Clear Audio\)/gi, '(Audio Stereo Jernih)');
 }
 
 /**

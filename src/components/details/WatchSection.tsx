@@ -45,7 +45,7 @@ import {
   type PortalReviewItem,
 } from '../../services/portalReviews';
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
-import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer } from '../../utils/formatters';
+import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName } from '../../utils/formatters';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface WatchSectionProps {
@@ -717,7 +717,10 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                       {language === 'en' ? '★ Primary Feature' : '★ Fitur Utama'}
                     </span>
                     <span className="text-[11px] font-mono text-amber-300 font-semibold bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
-                      {activeServer.name.split('•')[1]?.trim() || activeServer.name}
+                      {(() => {
+                        const localized = formatServerName(activeServer.name, language);
+                        return localized.split('•')[1]?.trim() || localized;
+                      })()}
                     </span>
                     {onOpenVpnNotice && (
                       <button
