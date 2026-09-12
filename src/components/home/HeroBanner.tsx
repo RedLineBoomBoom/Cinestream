@@ -7,6 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { fetchLogoForMedia, fetchTrailerForMedia } from '../../services/tmdb';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 import { formatGenre, getMediaTitle, getMediaBackdrop } from '../../utils/formatters';
+import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface HeroBannerProps {
   featuredItems: MediaItem[];
@@ -442,7 +443,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1 sm:pt-2">
             {/* Netflix Iconic Solid White Play Button */}
             <a
-              href={`#/watch/${currentMedia.id}`}
+              href={getMediaWatchUrl(currentMedia.id)}
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
                   return;
@@ -476,7 +477,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
             {/* Open in New Tab Button */}
             <a
-              href={`#/watch/${currentMedia.id}`}
+              href={getAbsoluteWatchUrl(currentMedia.id)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {

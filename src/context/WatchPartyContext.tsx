@@ -199,7 +199,7 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // ── Derived ───────────────────────────────────────────────
   const roomCode = room?.roomCode ?? '';
   const inviteLink = roomCode
-    ? `${window.location.origin}${window.location.pathname}#/party/${roomCode}`
+    ? `${window.location.origin}/party/${roomCode}`
     : '';
 
   return (

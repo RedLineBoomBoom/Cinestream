@@ -6,6 +6,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop, formatMediaDuration, getMediaSynopsis } from '../../utils/formatters';
 import { useAutoTranslateSynopsis } from '../../services/translator';
+import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface MovieCardProps {
   media: MediaItem;
@@ -78,7 +79,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
 
   return (
     <a
-      href={`#/watch/${media.id}`}
+      href={getMediaWatchUrl(media.id)}
       onClick={(e) => {
         // If holding modifier key (Ctrl, Cmd, Shift) or middle click, allow native browser new tab behavior
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
@@ -199,7 +200,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({
               e.preventDefault();
               e.stopPropagation();
               playClick();
-              const url = `${window.location.origin}${window.location.pathname}#/watch/${media.id}`;
+              const url = getAbsoluteWatchUrl(media.id);
               window.open(url, '_blank', 'noopener,noreferrer');
             }}
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 border border-white/30 text-white hover:bg-white/20 hover:border-white flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg cursor-pointer"

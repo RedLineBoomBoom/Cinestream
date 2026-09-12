@@ -4,6 +4,7 @@ import { GENRE_LIST, COUNTRY_LIST, YEAR_LIST } from '../../data/mockCatalog';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatGenre, formatCountry, formatYearFilter } from '../../utils/formatters';
+import { getTabUrl } from '../../utils/navigation';
 
 interface FilterBarProps {
   activeType: string;
@@ -56,23 +57,29 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {/* Top Type Tabs */}
         <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-1">
           <div className="flex items-center gap-2">
-            {typeTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  playClick();
-                  onSelectType(tab.id);
-                }}
-                onMouseEnter={playHover}
-                className={`px-4 py-1.5 rounded-full text-xs tracking-wide whitespace-nowrap transition-all duration-200 ${
-                  activeType === tab.id
-                    ? 'bg-white text-black font-bold shadow-md shadow-white/10'
-                    : 'bg-white/[0.07] text-slate-300 hover:bg-white/15 hover:text-white font-medium'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {typeTabs.map((tab) => {
+              const targetUrl = getTabUrl(tab.id === 'all' ? 'home' : tab.id);
+              return (
+                <a
+                  key={tab.id}
+                  href={targetUrl}
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                    e.preventDefault();
+                    playClick();
+                    onSelectType(tab.id);
+                  }}
+                  onMouseEnter={playHover}
+                  className={`px-4 py-1.5 rounded-full text-xs tracking-wide whitespace-nowrap transition-all duration-200 no-underline cursor-pointer ${
+                    activeType === tab.id
+                      ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                      : 'bg-white/[0.07] text-slate-300 hover:bg-white/15 hover:text-white font-medium'
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              );
+            })}
           </div>
 
           {hasActiveFilters && (

@@ -18,6 +18,7 @@ import {
 import type { MediaItem } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
   searchHybrid,
   resolveToPlayableMediaItem,
@@ -615,7 +616,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                           e.preventDefault();
                           e.stopPropagation();
                           playClick();
-                          const url = `${window.location.origin}${window.location.pathname}#/watch/${item.id}`;
+                          const url = getAbsoluteWatchUrl(item.id);
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }}
                         className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer"
@@ -758,7 +759,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         e.preventDefault();
                         e.stopPropagation();
                         playClick();
-                        const url = `${window.location.origin}${window.location.pathname}#/watch/${item.id}`;
+                        const url = getAbsoluteWatchUrl(item.id);
                         window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                       className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer"

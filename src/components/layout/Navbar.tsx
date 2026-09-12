@@ -12,6 +12,7 @@ import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ProfileDropdown } from '../profile/ProfileDropdown';
+import { getTabUrl } from '../../utils/navigation';
 
 interface NavbarProps {
   activeTab: string;
@@ -73,13 +74,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 flex items-center justify-between gap-4 xl:gap-6">
         {/* Brand Logo - Modern Netflix-Style Streaming Identity */}
-        <div
-          onClick={() => {
+        <a
+          href="/"
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+            e.preventDefault();
             playClick();
             onSelectTab('home');
           }}
           onMouseEnter={playHover}
-          className="flex items-center gap-2.5 cursor-pointer select-none group"
+          className="flex items-center gap-2.5 cursor-pointer select-none group no-underline text-inherit"
         >
           <div className="w-8 h-8 rounded bg-[#E50914] flex items-center justify-center shadow-lg shadow-red-900/50 group-hover:scale-105 transition-transform duration-200">
             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
@@ -88,21 +92,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="font-display font-black text-2xl sm:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
             CINESTREAM
           </span>
-        </div>
+        </a>
 
         {/* Desktop Navigation Links - Modern Minimalist Streaming Menu */}
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => {
             const isActive = activeTab === link.id;
+            const targetUrl = getTabUrl(link.id);
             return (
-              <button
+              <a
                 key={link.id}
-                onClick={() => {
+                href={targetUrl}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                  e.preventDefault();
                   playClick();
                   onSelectTab(link.id);
                 }}
                 onMouseEnter={playHover}
-                className={`relative px-3.5 py-1.5 rounded text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-1.5 rounded text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 no-underline cursor-pointer ${
                   isActive
                     ? 'text-white font-bold bg-white/10 shadow-sm'
                     : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
@@ -124,7 +132,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {isActive && (
                   <span className="absolute bottom-0 inset-x-3.5 h-[2px] bg-[#E50914] rounded-full" />
                 )}
-              </button>
+              </a>
             );
           })}
         </nav>
@@ -244,33 +252,39 @@ export const Navbar: React.FC<NavbarProps> = ({
               {language === 'en' ? 'Manage' : 'Kelola'}
             </span>
           </div>
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => {
-                playClick();
-                onSelectTab(link.id);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-sm transition-all ${
-                activeTab === link.id
-                  ? 'bg-[#E50914] text-white font-bold shadow-md'
-                  : 'text-slate-300 hover:bg-white/10'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                {link.id === 'advanced-search' && (
-                  <SlidersHorizontal className="w-4 h-4 text-white" />
+          {navLinks.map((link) => {
+            const targetUrl = getTabUrl(link.id);
+            return (
+              <a
+                key={link.id}
+                href={targetUrl}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                  e.preventDefault();
+                  playClick();
+                  onSelectTab(link.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-sm transition-all no-underline cursor-pointer ${
+                  activeTab === link.id
+                    ? 'bg-[#E50914] text-white font-bold shadow-md'
+                    : 'text-slate-300 hover:bg-white/10'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  {link.id === 'advanced-search' && (
+                    <SlidersHorizontal className="w-4 h-4 text-white" />
+                  )}
+                  <span>{link.label}</span>
+                </div>
+                {link.count !== undefined && link.count > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-brand-crimson text-white">
+                    {link.count}
+                  </span>
                 )}
-                <span>{link.label}</span>
-              </div>
-              {link.count !== undefined && link.count > 0 && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-brand-crimson text-white">
-                  {link.count}
-                </span>
-              )}
-            </button>
-          ))}
+              </a>
+            );
+          })}
 
           {/* Mobile Language Switcher */}
           <button

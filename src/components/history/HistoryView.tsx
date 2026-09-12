@@ -21,6 +21,7 @@ import {
   getMediaPoster,
   getMediaBackdrop,
 } from '../../utils/formatters';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface HistoryViewProps {
   onPlayMedia: (media: MediaItem, resumeTime?: number, episodeId?: string) => void;
@@ -328,7 +329,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     {/* Actions: Open in New Tab & Delete Group */}
                     <div className="flex items-center gap-1.5 pointer-events-auto">
                       <a
-                        href={`${window.location.origin}${window.location.pathname}#/watch/${group.media.id}${activeItem.episodeId ? `?ep=${activeItem.episodeId}` : ''}`}
+                        href={getAbsoluteWatchUrl(group.media.id, activeItem.episodeId)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => {
@@ -438,7 +439,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
                     {/* Open in New Tab Button */}
                     <a
-                      href={`${window.location.origin}${window.location.pathname}#/watch/${group.media.id}${activeItem.episodeId ? `?ep=${activeItem.episodeId}` : ''}`}
+                      href={getAbsoluteWatchUrl(group.media.id, activeItem.episodeId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => playClick()}
@@ -562,7 +563,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
                                       {/* Open in new tab */}
                                       <a
-                                        href={`${window.location.origin}${window.location.pathname}#/watch/${group.media.id}${ep.episodeId ? `?ep=${ep.episodeId}` : ''}`}
+                                        href={getAbsoluteWatchUrl(group.media.id, ep.episodeId)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => playClick()}

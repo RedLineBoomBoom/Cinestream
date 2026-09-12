@@ -4,6 +4,7 @@ import { Play, Tv, Clock, ExternalLink } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus } from '../../utils/formatters';
+import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 
 interface EpisodeListProps {
   seasons: Season[];
@@ -142,7 +143,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
           return (
             <a
               key={ep.id}
-              href={mediaId ? `#/watch/${mediaId}?ep=${ep.id}` : '#'}
+              href={mediaId ? getMediaWatchUrl(mediaId, ep.id) : '#'}
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
                   return;
@@ -200,7 +201,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                           e.preventDefault();
                           e.stopPropagation();
                           playClick();
-                          const url = `${window.location.origin}${window.location.pathname}#/watch/${mediaId}?ep=${ep.id}`;
+                          const url = getAbsoluteWatchUrl(mediaId, ep.id);
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }}
                         className="p-1 rounded-full text-slate-400 hover:text-brand-champagne hover:bg-white/10 transition-colors cursor-pointer"

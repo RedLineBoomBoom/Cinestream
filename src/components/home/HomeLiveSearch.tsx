@@ -21,6 +21,7 @@ import {
   fetchTmdbTrending,
   getGenreNames,
 } from '../../services/tmdb';
+import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 import {
   searchHybrid,
   resolveToPlayableMediaItem,
@@ -59,11 +60,11 @@ type MediaFilter = (typeof VALID_FILTERS)[number];
 
 const getInitialFilter = (): MediaFilter => {
   if (typeof window !== 'undefined') {
-    const hash = window.location.hash.toLowerCase();
-    if (hash.includes('movie') || hash.includes('film')) return 'movie';
-    if (hash.includes('series') || hash.includes('tv')) return 'tv';
-    if (hash.includes('anime')) return 'anime';
-    if (hash.includes('all')) return 'all';
+    const pathOrHash = (window.location.pathname + window.location.hash).toLowerCase();
+    if (pathOrHash.includes('movie') || pathOrHash.includes('film')) return 'movie';
+    if (pathOrHash.includes('series') || pathOrHash.includes('tv')) return 'tv';
+    if (pathOrHash.includes('anime')) return 'anime';
+    if (pathOrHash.includes('all')) return 'all';
 
     try {
       const saved = localStorage.getItem('cinestream_homelive_filter');
@@ -629,7 +630,7 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
 
   return (
     <a
-      href={`#/watch/${item.id}`}
+      href={getMediaWatchUrl(item.id)}
       onClick={(e) => {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
           return;
@@ -769,7 +770,7 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
               e.preventDefault();
               e.stopPropagation();
               playClick();
-              const url = `${window.location.origin}${window.location.pathname}#/watch/${item.id}`;
+              const url = getAbsoluteWatchUrl(item.id);
               window.open(url, '_blank', 'noopener,noreferrer');
             }}
             className="w-full py-2 px-3 rounded-md bg-white/10 hover:bg-[#E50914] text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-150 hover:scale-105 cursor-pointer"

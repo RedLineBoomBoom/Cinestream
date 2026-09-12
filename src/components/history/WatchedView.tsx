@@ -14,6 +14,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeDate, getMediaTitle, getMediaPoster, getMediaBackdrop } from '../../utils/formatters';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface WatchedViewProps {
   onPlayMedia: (media: MediaItem, resumeTime?: number, episodeId?: string) => void;
@@ -171,7 +172,7 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
                       <span>{t('markAsUnwatched')}</span>
                     </button>
                     <a
-                      href={`${window.location.origin}${window.location.pathname}#/watch/${media.id}${histItem.episodeId ? `?ep=${histItem.episodeId}` : ''}`}
+                      href={getAbsoluteWatchUrl(media.id, histItem.episodeId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => {

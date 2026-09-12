@@ -26,6 +26,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getImdbUrl } from '../../services/imdb';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis, getDefaultServer } from '../../utils/formatters';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 
 interface DetailModalProps {
@@ -105,7 +106,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
   const handleShare = () => {
     playClick();
-    navigator.clipboard.writeText(window.location.href);
+    const url = getAbsoluteWatchUrl(media.id, currentEpisode?.id);
+    navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
@@ -145,7 +147,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
       >
         {/* Floating Open in New Tab Button */}
         <a
-          href={`${window.location.origin}${window.location.pathname}#/watch/${media.id}${currentEpisode ? `?ep=${currentEpisode.id}` : ''}`}
+          href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => playClick()}
@@ -340,7 +342,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               </button>
 
               <a
-                href={`${window.location.origin}${window.location.pathname}#/watch/${media.id}${currentEpisode ? `?ep=${currentEpisode.id}` : ''}`}
+                href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => playClick()}

@@ -5,6 +5,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRemainingTime, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop } from '../../utils/formatters';
+import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface ContinueWatchingRowProps {
   onPlayMedia: (media: MediaItem, resumeTime?: number, episodeId?: string) => void;
@@ -118,7 +119,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
             >
               {/* Thumbnail Container */}
               <a
-                href={`#/watch/${item.media.id}${item.episodeId ? `?ep=${item.episodeId}` : ''}`}
+                href={getMediaWatchUrl(item.media.id, item.episodeId)}
                 onClick={(e) => {
                   if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
                     return;
@@ -165,7 +166,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
                         e.preventDefault();
                         e.stopPropagation();
                         playClick();
-                        const url = `${window.location.origin}${window.location.pathname}#/watch/${item.media.id}${item.episodeId ? `?ep=${item.episodeId}` : ''}`;
+                        const url = getAbsoluteWatchUrl(item.media.id, item.episodeId);
                         window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                       title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}

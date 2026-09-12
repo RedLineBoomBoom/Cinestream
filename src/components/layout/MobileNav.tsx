@@ -3,6 +3,7 @@ import { Home, Bookmark, History, CheckCircle2, SlidersHorizontal } from 'lucide
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { getTabUrl } from '../../utils/navigation';
 
 interface MobileNavProps {
   activeTab: string;
@@ -39,16 +40,20 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
+        const targetUrl = getTabUrl(item.id);
 
         return (
-          <button
+          <a
             key={item.id}
-            onClick={() => {
+            href={targetUrl}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+              e.preventDefault();
               playClick();
               onSelectTab(item.id);
             }}
             onMouseEnter={playHover}
-            className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all duration-200 ${
+            className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all duration-200 no-underline cursor-pointer ${
               isActive ? 'text-white font-bold scale-105' : 'text-neutral-400 hover:text-white font-medium'
             }`}
           >
@@ -61,7 +66,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
               )}
             </div>
             <span className="text-[10px] tracking-wide">{item.label}</span>
-          </button>
+          </a>
         );
       })}
     </nav>

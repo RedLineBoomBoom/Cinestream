@@ -26,38 +26,23 @@ import { MOCK_CATALOG } from './data/mockCatalog';
 import type { MediaItem, Episode } from './types/media';
 import { fetchPopularHeroItems, fetchFullMediaItem } from './services/tmdb';
 import { formatGenre, getMediaTitle } from './utils/formatters';
+import {
+  parseCurrentRoute,
+  getMediaWatchUrl,
+  getTabUrl,
+  VALID_TABS,
+} from './utils/navigation';
 import { Bookmark, Users } from 'lucide-react';
-
-const VALID_TABS = ['home', 'advanced-search', 'movie', 'series', 'anime', 'drama', 'watchlist', 'history', 'watched'] as const;
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'home';
-  const hash = window.location.hash.toLowerCase();
+  const route = parseCurrentRoute();
 
-  // If hash is a watch URL, check saved tab or default to home
-  if (hash.startsWith('#/watch/')) {
-    try {
-      const saved = localStorage.getItem('cinestream_active_tab');
-      if (saved && (VALID_TABS as readonly string[]).includes(saved)) {
-        return saved;
-      }
-    } catch {
-      // ignore
-    }
-    return 'home';
+  if (route.type === 'tab') {
+    return route.tab;
   }
 
-  // Check explicit tab in hash
-  if (hash.includes('advanced') || hash.includes('filter')) return 'advanced-search';
-  if (hash.includes('movie') || hash.includes('film')) return 'movie';
-  if (hash.includes('series') || hash.includes('tv')) return 'series';
-  if (hash.includes('anime')) return 'anime';
-  if (hash.includes('drama')) return 'drama';
-  if (hash.includes('watchlist')) return 'watchlist';
-  if (hash.includes('watched')) return 'watched';
-  if (hash.includes('history') || hash.includes('riwayat')) return 'history';
-  if (hash.includes('home')) return 'home';
-
+  // If route is watch or party, recover saved browsing tab or default to home
   try {
     const saved = localStorage.getItem('cinestream_active_tab');
     if (saved && (VALID_TABS as readonly string[]).includes(saved)) {
@@ -93,7 +78,7 @@ const MainContent: React.FC = () => {
   const [isMiniPlayer, setIsMiniPlayer] = useState(false);
   const [isMediaLoading, setIsMediaLoading] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return window.location.hash.toLowerCase().startsWith('#/watch/');
+      return parseCurrentRoute().type === 'watch';
     }
     return false;
   });
@@ -105,15 +90,12 @@ const MainContent: React.FC = () => {
   // CineStream Netflix-style Intro Animation
   const [showIntro, setShowIntro] = useState(true);
 
-  // Handle #/party/CODE URL on load
+  // Handle party CODE on load
   useEffect(() => {
-    const hash = window.location.hash;
-    const partyMatch = hash.match(/^#\/party\/([A-Z0-9]{4,8})$/i);
-    if (partyMatch) {
-      const code = partyMatch[1].toUpperCase();
-      setAutoJoinCode(code);
+    const route = parseCurrentRoute();
+    if (route.type === 'party') {
+      setAutoJoinCode(route.code);
       setIsPartyOpen(true);
-      // Clean up URL hash so it doesn't re-trigger on re-render
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [setAutoJoinCode, setIsPartyOpen]);
@@ -211,7 +193,7 @@ const MainContent: React.FC = () => {
   const heroDisplayItems = heroPopularItems.length > 0 ? heroPopularItems : featuredItems;
 
   // Switch tab and persist state to URL and localStorage
-  const handleSelectTab = (tab: string) => {
+  const handleSelectTab = (tab: string, pushHistory = true) => {
     playClick();
     if (selectedMedia) {
       // Transition to floating mini player so playback continues uninterrupted while browsing
@@ -225,7 +207,12 @@ const MainContent: React.FC = () => {
       if (!selectedMedia) {
         localStorage.removeItem('cinestream_active_watch_id');
       }
-      window.history.replaceState(null, '', `#/${tab}`);
+      const targetUrl = getTabUrl(tab);
+      if (pushHistory) {
+        window.history.pushState({ type: 'tab', tab }, '', targetUrl);
+      } else {
+        window.history.replaceState({ type: 'tab', tab }, '', targetUrl);
+      }
     } catch {
       // ignore
     }
@@ -233,7 +220,12 @@ const MainContent: React.FC = () => {
   };
 
   // Open player / details section
-  const handleOpenMedia = (media: MediaItem, customResumeTime?: number, customEpisodeId?: string) => {
+  const handleOpenMedia = (
+    media: MediaItem,
+    customResumeTime?: number,
+    customEpisodeId?: string,
+    pushHistory = true
+  ) => {
     playWhoosh();
     setResumeTime(customResumeTime);
     setResumeEpisodeId(customEpisodeId);
@@ -260,7 +252,12 @@ const MainContent: React.FC = () => {
 
     try {
       localStorage.setItem('cinestream_active_watch_id', media.id);
-      window.history.replaceState(null, '', `#/watch/${media.id}`);
+      const targetUrl = getMediaWatchUrl(media.id, customEpisodeId);
+      if (pushHistory) {
+        window.history.pushState({ type: 'watch', mediaId: media.id, episodeId: customEpisodeId }, '', targetUrl);
+      } else {
+        window.history.replaceState({ type: 'watch', mediaId: media.id, episodeId: customEpisodeId }, '', targetUrl);
+      }
     } catch {
       // ignore
     }
@@ -273,7 +270,8 @@ const MainContent: React.FC = () => {
     setIsTheaterMode(false);
     setIsFullscreen(false);
     try {
-      window.history.replaceState(null, '', `#/${activeTab}`);
+      const targetUrl = getTabUrl(activeTab);
+      window.history.pushState({ type: 'tab', tab: activeTab }, '', targetUrl);
     } catch {
       // ignore
     }
@@ -290,7 +288,8 @@ const MainContent: React.FC = () => {
     setIsTheaterMode(false);
     try {
       localStorage.removeItem('cinestream_active_watch_id');
-      window.history.replaceState(null, '', `#/${activeTab}`);
+      const targetUrl = getTabUrl(activeTab);
+      window.history.replaceState({ type: 'tab', tab: activeTab }, '', targetUrl);
     } catch {
       // ignore
     }
@@ -301,36 +300,22 @@ const MainContent: React.FC = () => {
   const fullCatalogRef = useRef(fullCatalog);
   fullCatalogRef.current = fullCatalog;
 
-  // Resolve and load media for playback from URL hash (supports direct load in a new browser tab)
-  const resolveAndPlayMedia = async (hashStr: string) => {
-    const raw = hashStr.trim();
-    const hashIndex = raw.toLowerCase().indexOf('#/watch/');
-    if (hashIndex === -1) {
+  // Resolve and load media for playback from clean URL or hash (supports direct load in a new browser tab)
+  const resolveAndPlayMedia = async (watchId: string, customEpisodeId?: string, syncUrl = false) => {
+    const raw = (watchId || '').trim();
+    if (!raw) {
       setSelectedMedia(null);
       setIsMediaLoading(false);
       return;
     }
 
-    const afterWatch = raw.slice(hashIndex + 8); // after '#/watch/'
-    const [idPart, queryPart] = afterWatch.split('?');
-    const watchId = decodeURIComponent((idPart || '').trim());
-    if (!watchId) {
-      setIsMediaLoading(false);
-      return;
-    }
-
-    // Check query params for episode ID (e.g. ?ep=tmdb-tv-123-s1-e2)
-    if (queryPart) {
-      const searchParams = new URLSearchParams(queryPart);
-      const epId = searchParams.get('ep');
-      if (epId) {
-        setResumeEpisodeId(epId);
-      }
+    if (customEpisodeId) {
+      setResumeEpisodeId(customEpisodeId);
     }
 
     setIsMediaLoading(true);
 
-    const lowerId = watchId.toLowerCase();
+    const lowerId = raw.toLowerCase();
 
     // 1. Check in fullCatalog or heroDisplayItems
     const found =
@@ -341,6 +326,9 @@ const MainContent: React.FC = () => {
       setSelectedMedia(found);
       setIsMiniPlayer(false);
       setIsMediaLoading(false);
+      if (syncUrl) {
+        window.history.replaceState({ type: 'watch', mediaId: found.id, episodeId: customEpisodeId }, '', getMediaWatchUrl(found.id, customEpisodeId));
+      }
       return;
     }
 
@@ -422,9 +410,34 @@ const MainContent: React.FC = () => {
 
   // Restore or load watched media on initial load (crucial for opening film/series in a new browser tab)
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.toLowerCase().startsWith('#/watch/')) {
-      resolveAndPlayMedia(hash);
+    const route = parseCurrentRoute();
+
+    if (route.type === 'watch') {
+      // Normalize URL to clean path if opened via legacy hash #/watch/...
+      if (typeof window !== 'undefined' && window.location.hash.toLowerCase().startsWith('#/watch/')) {
+        window.history.replaceState(
+          { type: 'watch', mediaId: route.mediaId, episodeId: route.episodeId },
+          '',
+          getMediaWatchUrl(route.mediaId, route.episodeId)
+        );
+      }
+      resolveAndPlayMedia(route.mediaId, route.episodeId);
+    } else if (route.type === 'tab') {
+      // Normalize URL to clean path if opened via legacy hash
+      if (typeof window !== 'undefined' && window.location.hash.startsWith('#/')) {
+        window.history.replaceState({ type: 'tab', tab: route.tab }, '', getTabUrl(route.tab));
+      }
+      setSelectedMedia(null);
+      setIsMediaLoading(false);
+      setActiveTab(route.tab);
+    } else if (route.type === 'party') {
+      if (typeof window !== 'undefined' && window.location.hash.startsWith('#/party/')) {
+        window.history.replaceState({ type: 'party', code: route.code }, '', `/party/${route.code}`);
+      }
+      setAutoJoinCode(route.code);
+      setIsPartyOpen(true);
+      setSelectedMedia(null);
+      setIsMediaLoading(false);
     } else {
       setSelectedMedia(null);
       setIsMediaLoading(false);
@@ -449,14 +462,14 @@ const MainContent: React.FC = () => {
         const found = fullCatalog.find((m) => m.id === targetId) || heroDisplayItems.find((m) => m.id === targetId);
         if (found) {
           setSelectedMedia(found);
-          window.location.hash = `#/watch/${found.id}`;
+          window.history.replaceState({ type: 'watch', mediaId: found.id }, '', getMediaWatchUrl(found.id));
         } else if (targetId.startsWith('tmdb-movie-')) {
           const tmdbId = Number(targetId.replace('tmdb-movie-', ''));
           if (tmdbId) {
             fetchFullMediaItem(tmdbId, 'movie').then((m) => {
               if (m) {
                 setSelectedMedia(m);
-                window.location.hash = `#/watch/${m.id}`;
+                window.history.replaceState({ type: 'watch', mediaId: m.id }, '', getMediaWatchUrl(m.id));
               }
             });
           }
@@ -466,7 +479,7 @@ const MainContent: React.FC = () => {
             fetchFullMediaItem(tmdbId, 'tv').then((m) => {
               if (m) {
                 setSelectedMedia(m);
-                window.location.hash = `#/watch/${m.id}`;
+                window.history.replaceState({ type: 'watch', mediaId: m.id }, '', getMediaWatchUrl(m.id));
               }
             });
           }
@@ -475,38 +488,42 @@ const MainContent: React.FC = () => {
     }
   }, [partyStatus, room?.mediaInfo?.mediaId, selectedMedia, fullCatalog, heroDisplayItems]);
 
-  // Listen to browser navigation (back/forward)
+  // Listen to browser navigation (back/forward buttons)
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.toLowerCase();
-      if (hash.startsWith('#/watch/')) {
-        resolveAndPlayMedia(window.location.hash);
-      } else {
-        setIsMiniPlayer(true);
-        let targetTab: string | null = null;
-        if (hash.includes('movie') || hash.includes('film')) targetTab = 'movie';
-        else if (hash.includes('series') || hash.includes('tv')) targetTab = 'series';
-        else if (hash.includes('anime')) targetTab = 'anime';
-        else if (hash.includes('drama')) targetTab = 'drama';
-        else if (hash.includes('watchlist')) targetTab = 'watchlist';
-        else if (hash.includes('watched')) targetTab = 'watched';
-        else if (hash.includes('history') || hash.includes('riwayat')) targetTab = 'history';
-        else if (hash.includes('home') || hash === '' || hash === '#') targetTab = 'home';
+    const handleNavigation = () => {
+      const route = parseCurrentRoute();
 
-        if (targetTab) {
-          setActiveTab(targetTab);
-          try {
-            localStorage.setItem('cinestream_active_tab', targetTab);
-          } catch {
-            // ignore
-          }
+      if (route.type === 'watch') {
+        if (selectedMedia?.id !== route.mediaId) {
+          resolveAndPlayMedia(route.mediaId, route.episodeId);
+        } else if (route.episodeId) {
+          setResumeEpisodeId(route.episodeId);
         }
+        setIsMiniPlayer(false);
+      } else if (route.type === 'tab') {
+        if (selectedMedia) {
+          setSelectedMedia(null);
+          setIsMiniPlayer(false);
+        }
+        setActiveTab(route.tab);
+        try {
+          localStorage.setItem('cinestream_active_tab', route.tab);
+        } catch {
+          // ignore
+        }
+      } else if (route.type === 'party') {
+        setAutoJoinCode(route.code);
+        setIsPartyOpen(true);
       }
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+    window.addEventListener('popstate', handleNavigation);
+    window.addEventListener('hashchange', handleNavigation);
+    return () => {
+      window.removeEventListener('popstate', handleNavigation);
+      window.removeEventListener('hashchange', handleNavigation);
+    };
+  }, [selectedMedia?.id, setAutoJoinCode, setIsPartyOpen]);
 
   // Persist activeTab whenever it changes
   useEffect(() => {
@@ -930,13 +947,17 @@ const MainContent: React.FC = () => {
                 if (!nextState) {
                   // Expanding to full player
                   try {
-                    window.history.replaceState(null, '', `#/watch/${selectedMedia.id}`);
+                    window.history.replaceState(
+                      { type: 'watch', mediaId: selectedMedia.id, episodeId: resumeEpisodeId },
+                      '',
+                      getMediaWatchUrl(selectedMedia.id, resumeEpisodeId)
+                    );
                   } catch {}
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                   // Minimizing to mini player
                   try {
-                    window.history.replaceState(null, '', `#/${activeTab}`);
+                    window.history.replaceState({ type: 'tab', tab: activeTab }, '', getTabUrl(activeTab));
                   } catch {}
                 }
                 return nextState;

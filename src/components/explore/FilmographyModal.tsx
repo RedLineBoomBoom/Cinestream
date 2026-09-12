@@ -25,6 +25,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { formatMediaDuration } from '../../utils/formatters';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
   type CurationTarget,
   type CurationCreditItem,
@@ -675,7 +676,7 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
                             )}
                           </button>
                           <a
-                            href={`${window.location.origin}${window.location.pathname}#/watch/${item.id}`}
+                            href={getAbsoluteWatchUrl(item.id)}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => {

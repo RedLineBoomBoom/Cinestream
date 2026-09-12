@@ -45,6 +45,7 @@ import {
 } from '../../services/portalReviews';
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
 import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer } from '../../utils/formatters';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface WatchSectionProps {
   media: MediaItem;
@@ -378,7 +379,8 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
 
   const handleShare = () => {
     playClick();
-    navigator.clipboard.writeText(window.location.href);
+    const url = getAbsoluteWatchUrl(media.id, currentEpisode?.id);
+    navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
@@ -625,7 +627,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
 
               {/* Open in New Tab Button */}
               <a
-                href={`${window.location.origin}${window.location.pathname}#/watch/${media.id}${currentEpisode ? `?ep=${currentEpisode.id}` : ''}`}
+                href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => playClick()}
