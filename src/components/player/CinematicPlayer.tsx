@@ -21,6 +21,7 @@ import {
   Scaling,
   MoveDiagonal,
   MoveDiagonal2,
+  ExternalLink,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
@@ -1415,6 +1416,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     }
   };
 
+  const handleOpenFullTab = useCallback(() => {
+    playClick();
+    if (videoSource) {
+      window.open(videoSource, '_blank', 'noopener,noreferrer');
+    }
+  }, [playClick, videoSource]);
+
   const wasAutoRotatedFullscreen = useRef(false);
   const userExitedFullscreenInLandscape = useRef(false);
 
@@ -2172,6 +2180,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   {audioBoost > 1 && <span className="font-mono text-[9px] font-bold">{Math.round(audioBoost * 100)}%</span>}
                 </button>
 
+                {/* 🚀 Open in Full Tab Button */}
+                <button
+                  onClick={handleOpenFullTab}
+                  className="flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10 hover:text-white"
+                  title={t('openInFullTabTooltip')}
+                >
+                  <ExternalLink className="w-3 h-3 text-brand-champagne" />
+                  <span className="hidden xl:inline">{t('openInFullTab')}</span>
+                </button>
+
                 {/* Native Fullscreen Toggle Button */}
                 <button
                   onClick={toggleFullscreen}
@@ -2538,6 +2556,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             >
               <Volume2 className="w-4 h-4" />
               {audioBoost > 1 && <span className="font-mono text-[9px] font-bold">{Math.round(audioBoost * 100)}%</span>}
+            </button>
+
+            {/* 🚀 Open in Full Tab Button — native video */}
+            <button
+              onClick={handleOpenFullTab}
+              onMouseEnter={playHover}
+              className="p-1.5 rounded-lg transition-all cursor-pointer text-slate-400 hover:text-white hover:bg-white/10"
+              title={t('openInFullTabTooltip')}
+            >
+              <ExternalLink className="w-4 h-4" />
             </button>
 
             <button

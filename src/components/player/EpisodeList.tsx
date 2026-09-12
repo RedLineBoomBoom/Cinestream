@@ -201,13 +201,19 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                           e.preventDefault();
                           e.stopPropagation();
                           playClick();
-                          const url = getAbsoluteWatchUrl(mediaId, ep.id);
-                          window.open(url, '_blank', 'noopener,noreferrer');
+                          const stream = ep.videoUrl || ep.servers?.[0]?.url;
+                          if (stream) {
+                            window.open(stream, '_blank', 'noopener,noreferrer');
+                          } else {
+                            const url = getAbsoluteWatchUrl(mediaId, ep.id);
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }
                         }}
-                        className="p-1 rounded-full text-slate-400 hover:text-brand-champagne hover:bg-white/10 transition-colors cursor-pointer"
-                        title={t('openInNewTabTooltip') || (language === 'en' ? 'Open episode in new tab' : 'Buka episode di tab baru')}
+                        className="px-2 py-0.5 rounded-full bg-white/[0.05] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/40 text-[10px] font-medium transition-all flex items-center gap-1 cursor-pointer"
+                        title={t('openInFullTabTooltip')}
                       >
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-2.5 h-2.5 text-amber-300" />
+                        <span>{language === 'en' ? 'Full Tab ↗' : 'Tab Penuh ↗'}</span>
                       </button>
                     )}
                   </div>

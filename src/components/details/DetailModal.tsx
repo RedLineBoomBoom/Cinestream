@@ -341,6 +341,24 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 <span>{copiedLink ? (language === 'en' ? 'Link Copied' : 'Tautan Disalin') : (language === 'en' ? 'Share' : 'Bagikan')}</span>
               </button>
 
+              <button
+                onClick={() => {
+                  playClick();
+                  const targetStream =
+                    activeServer?.url ||
+                    (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+                  if (targetStream) {
+                    window.open(targetStream, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                onMouseEnter={playHover}
+                title={t('openInFullTabTooltip')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-600/20 hover:from-amber-500 hover:to-red-600 text-amber-200 hover:text-black border border-amber-500/40 text-xs font-bold transition-all cursor-pointer group shadow-sm hover:shadow-glow-gold"
+              >
+                <ExternalLink className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                <span>{t('openInFullTab')} ↗</span>
+              </button>
+
               <a
                 href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
                 target="_blank"

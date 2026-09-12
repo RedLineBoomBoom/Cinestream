@@ -625,6 +625,25 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <span className="hidden xs:inline">{copiedLink ? t('copied') : t('share')}</span>
               </button>
 
+              {/* 🚀 Open in Full Tab Button — Direct Full Player Stream */}
+              <button
+                onClick={() => {
+                  playClick();
+                  const targetStream =
+                    activeServer?.url ||
+                    (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+                  if (targetStream) {
+                    window.open(targetStream, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-red-600/15 hover:from-amber-500 hover:to-red-600 text-amber-200 hover:text-black border border-amber-500/35 text-xs font-bold transition-all shadow-sm hover:shadow-glow-gold cursor-pointer group"
+                title={t('openInFullTabTooltip')}
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-amber-300 group-hover:text-black transition-colors" />
+                <span>{t('openInFullTab')} ↗</span>
+              </button>
+
               {/* Open in New Tab Button */}
               <a
                 href={getAbsoluteWatchUrl(media.id, currentEpisode?.id)}
