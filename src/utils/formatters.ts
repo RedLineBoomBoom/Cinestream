@@ -440,6 +440,12 @@ export function getServerBadgeInfo(server: { id?: string; name?: string }, lang:
       color: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
     };
   }
+  if (id.includes('vidlink') || name.includes('vidlink')) {
+    return {
+      label: lang === 'en' ? '🔊 Stereo Audio HD' : '🔊 Audio Stereo Jernih',
+      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 font-semibold',
+    };
+  }
   return {
     label: lang === 'en' ? '🔄 Backup' : '🔄 Cadangan',
     color: 'text-blue-300 bg-blue-500/10 border-blue-500/20',

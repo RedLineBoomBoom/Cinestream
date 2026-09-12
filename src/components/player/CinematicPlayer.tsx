@@ -833,51 +833,78 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   }, [media.id, currentEpisode?.id, initialDuration]);
 
   // ── Web Audio API boost for native <video> ──────────────────────────────────
-  // Creates AudioContext → MediaElementSource → GainNode → DynamicsCompressor → destination
-  // This allows volume to be amplified up to 300% and dialogue clarity enhancement
-  useEffect(() => {
-    if (isEmbedStream || !videoRef.current) return;
-
+  // Helper: initialize AudioContext + GainNode connected to the video element.
+  // Called lazily on first user gesture (boost click or play), so browsers allow it.
+  const ensureAudioContext = useCallback(() => {
+    if (isEmbedStream || !videoRef.current) return false;
     const video = videoRef.current;
 
-    // Lazily create AudioContext on first user interaction (browsers require gesture)
-    const setupAudio = () => {
-      if (audioCtxRef.current) return; // already set up
-      try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const src = ctx.createMediaElementSource(video);
-        const gain = ctx.createGain();
-        gain.gain.value = audioBoost;
-
-        const compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -24;
-        compressor.knee.value = 30;
-        compressor.ratio.value = 12;
-        compressor.attack.value = 0.003;
-        compressor.release.value = 0.25;
-
-        src.connect(gain);
-        gain.connect(isDialogueBoost ? compressor : ctx.destination);
-        if (isDialogueBoost) compressor.connect(ctx.destination);
-
-        audioCtxRef.current = ctx;
-        gainNodeRef.current = gain;
-        compressorRef.current = compressor;
-        sourceNodeRef.current = src;
-      } catch {}
-    };
-
-    video.addEventListener('play', setupAudio, { once: true });
-    return () => video.removeEventListener('play', setupAudio);
-  }, [isEmbedStream, media.id, currentEpisode?.id]);
-
-  // Update gain value when audioBoost changes
-  useEffect(() => {
-    if (gainNodeRef.current) {
+    // Already wired up — just resume and update gain
+    if (audioCtxRef.current && gainNodeRef.current) {
+      audioCtxRef.current.resume().catch(() => {});
       gainNodeRef.current.gain.value = audioBoost;
+      return true;
+    }
+
+    // Source node already created (ctx was suspended/recreated) — skip
+    if (sourceNodeRef.current) return false;
+
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      ctx.resume().catch(() => {});
+
+      const src = ctx.createMediaElementSource(video);
+
+      const gain = ctx.createGain();
+      gain.gain.value = audioBoost;
+
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+
+      src.connect(gain);
+      if (isDialogueBoost) {
+        gain.connect(compressor);
+        compressor.connect(ctx.destination);
+      } else {
+        gain.connect(ctx.destination);
+      }
+
+      audioCtxRef.current = ctx;
+      gainNodeRef.current = gain;
+      compressorRef.current = compressor;
+      sourceNodeRef.current = src;
+      return true;
+    } catch {
+      return false;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEmbedStream, audioBoost, isDialogueBoost]);
+
+  // Also try to set up on first 'play' event (catches cases where boost is set before play)
+  useEffect(() => {
+    if (isEmbedStream || !videoRef.current) return;
+    const video = videoRef.current;
+    const onPlay = () => ensureAudioContext();
+    video.addEventListener('play', onPlay);
+    return () => video.removeEventListener('play', onPlay);
+  }, [isEmbedStream, ensureAudioContext]);
+
+  // Update gain value whenever audioBoost changes — also triggers init if not yet done
+  useEffect(() => {
+    if (!isEmbedStream) {
+      if (gainNodeRef.current) {
+        // Already initialized — just update gain
+        gainNodeRef.current.gain.value = audioBoost;
+        audioCtxRef.current?.resume().catch(() => {});
+      }
+      // Note: init happens on next user gesture / play event via ensureAudioContext
     }
     try { localStorage.setItem('cinestream_audio_boost', String(audioBoost)); } catch {}
-  }, [audioBoost]);
+  }, [audioBoost, isEmbedStream]);
 
   // Reconnect dialogue clarity compressor when toggle changes
   useEffect(() => {
@@ -897,11 +924,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     try { localStorage.setItem('cinestream_dialogue_boost', String(isDialogueBoost)); } catch {}
   }, [isDialogueBoost]);
 
+  // Clean up AudioContext when media changes so it gets re-created for new source
+  useEffect(() => {
+    return () => {
+      try {
+        if (sourceNodeRef.current) { sourceNodeRef.current.disconnect(); sourceNodeRef.current = null; }
+        if (gainNodeRef.current) { gainNodeRef.current.disconnect(); gainNodeRef.current = null; }
+        if (compressorRef.current) { compressorRef.current.disconnect(); compressorRef.current = null; }
+        if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
+      } catch {}
+    };
+  }, [media.id, currentEpisode?.id]);
+
   // ── Iframe volume broadcast ──────────────────────────────────────────────────
-  // Sends max-volume postMessages to embed iframe at 500ms, 1.5s, 3s, 6s after mount
+  // Sends max-volume postMessages to embed iframe at multiple delays after mount
   useEffect(() => {
     if (!isEmbedStream) return;
-    const delays = [500, 1500, 3000, 6000];
+    const delays = [300, 800, 2000, 4000, 8000];
     const timers = delays.map((d) =>
       setTimeout(() => {
         if (iframeRef.current?.contentWindow) {
@@ -919,6 +958,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       videoRef.current.muted = false;
     }
   }, [isEmbedStream, media.id, currentEpisode?.id]);
+
+
 
   // Listen for native playback events & time updates from embed players that support postMessage API
   useEffect(() => {
@@ -2565,10 +2606,27 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       isOpen={showAudioBooster}
       onClose={() => setShowAudioBooster(false)}
       audioBoost={audioBoost}
-      onAudioBoostChange={(v) => setAudioBoost(v)}
+      onAudioBoostChange={(v) => {
+        setAudioBoost(v);
+        if (!isEmbedStream) {
+          ensureAudioContext();
+        }
+      }}
       isDialogueBoost={isDialogueBoost}
       onDialogueBoostChange={(v) => setIsDialogueBoost(v)}
       isEmbedStream={isEmbedStream}
+      activeServer={activeServer}
+      availableServers={availableServers}
+      onSelectServer={(srv) => {
+        onSelectServer?.(srv);
+        if (theaterToastTimeoutRef.current) clearTimeout(theaterToastTimeoutRef.current);
+        const locName = formatServerName(srv.name, language);
+        const cleanName = locName.split('•')[1]?.trim() || locName;
+        setTheaterToast(`🔊 ${cleanName}`);
+        theaterToastTimeoutRef.current = setTimeout(() => setTheaterToast(null), 2500);
+      }}
+      videoSource={videoSource}
+      mediaTitle={media.title}
       onMaxVolume={() => {
         if (iframeRef.current?.contentWindow) {
           broadcastIframeVolume(iframeRef.current.contentWindow, 1.0);
@@ -2576,6 +2634,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         if (videoRef.current && !isEmbedStream) {
           videoRef.current.volume = 1.0;
           videoRef.current.muted = false;
+          ensureAudioContext();
         }
       }}
     />

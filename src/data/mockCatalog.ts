@@ -59,7 +59,7 @@ export const createMovieServers = (tmdbId: number, _fallbackUrl?: string) => [
   },
   {
     id: 'srv-vidlink',
-    name: 'Server 6 • VidLink HD (Cadangan Siap Saji)',
+    name: 'Server 6 • VidLink HD (Audio Stereo Jernih)',
     speed: '19 ms',
     quality: '1080p FHD',
     url: `https://vidlink.pro/movie/${tmdbId}`,
@@ -122,7 +122,7 @@ export const createTvServers = (
   },
   {
     id: `srv-vidlink-s${seasonNumber}e${episodeNumber}`,
-    name: 'Server 6 • VidLink TV (Cadangan Siap Saji)',
+    name: 'Server 6 • VidLink TV (Audio Stereo Jernih)',
     speed: '19 ms',
     quality: '1080p FHD',
     url: `https://vidlink.pro/tv/${tmdbId}/${seasonNumber}/${episodeNumber}`,
