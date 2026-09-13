@@ -822,18 +822,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   // Menus
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
-  // Automatically start active watch tracking once player is mounted on screen
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (document.visibilityState === 'visible') {
-        setIsActivelyWatching(true);
-        setIsPlaying(true);
-        hasPlayedThisSession.current = true;
-      }
-    }, 1500);
-    return () => clearTimeout(t);
-  }, []);
-
   // Automatically start active watch tracking if autoPlay is enabled
   useEffect(() => {
     if (autoPlay) {
@@ -893,8 +881,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (isMouseOverPlayer.current || document.activeElement === iframeRef.current) {
         hasInteractedWithPlayer.current = true;
         hasPlayedThisSession.current = true;
-        setIsActivelyWatching(true);
-        setIsPlaying(true);
       }
     };
 
@@ -908,10 +894,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (document.activeElement === iframeRef.current) {
         hasInteractedWithPlayer.current = true;
         hasPlayedThisSession.current = true;
-        if (!isActivelyWatchingRef.current) {
-          setIsActivelyWatching(true);
-          setIsPlaying(true);
-        }
       }
     }, 1000);
     return () => clearInterval(checkFocus);
@@ -935,11 +917,24 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   const handleEpisodeEnded = useCallback(() => {
     if (hasTriggeredEndRef.current) return;
+
+    // Must have actually had playback in this session
+    if (!hasPlayedThisSession.current) return;
+
+    const curDur = durationRef.current || initialDuration;
+    const curTime = currentTimeRef.current;
+
+    // Safety guard: If duration is known (> 60s), an episode cannot end prematurely
+    // while user is in the middle of watching (e.g. user is paused or early in episode).
+    // Must be at least 80% through the episode or within the last 45 seconds of duration.
+    if (curDur > 60 && curTime > 0 && curTime < Math.min(curDur - 45, curDur * 0.8)) {
+      return;
+    }
+
     hasTriggeredEndRef.current = true;
     setIsPlaying(false);
     setIsActivelyWatching(false);
 
-    const curDur = durationRef.current || initialDuration;
     if (curDur > 0) {
       updateProgressRef.current(
         {
@@ -974,7 +969,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   // Active watch tracker & heartbeat: sync elapsed watch time
   useEffect(() => {
-    if (!isActivelyWatching && !isPlaying) return;
+    // Only tick when actively playing and watching — strictly freeze when paused
+    if (!isPlaying || !isActivelyWatching) return;
 
     // Tick every 1 second: track elapsed playback time
     const timer = setInterval(() => {
@@ -984,13 +980,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (curDur <= 0) return;
 
       // If we don't have a verified postMessage time, advance natural playback time
+      // Capped at 95% — an unverified fallback timer must NEVER trigger episode completion
       if (!hasVerifiedTime) {
         hasPlayedThisSession.current = true;
-        currentTimeRef.current = Math.min(curDur, currentTimeRef.current + 1);
+        currentTimeRef.current = Math.min(curDur * 0.95, currentTimeRef.current + 1);
         setCurrentTime(currentTimeRef.current);
-        if (curDur > 60 && currentTimeRef.current >= curDur - 10) {
-          handleEpisodeEnded();
-        }
       }
     }, 1000);
 
@@ -1077,6 +1071,20 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
         // Detect embed player play/pause state
         const eventName = (data.event || data.type || data.action || '').toLowerCase();
+
+        // Ignore any ad completion / ad break events
+        const isAdEvent =
+          eventName.includes('ad_') ||
+          eventName.includes('adbreak') ||
+          eventName.startsWith('ad') ||
+          Boolean(data.ad) ||
+          data.isAd === true ||
+          data.adBreak === true;
+
+        if (isAdEvent) {
+          return;
+        }
+
         const isEndedEvent =
           eventName === 'ended' ||
           eventName === 'complete' ||
@@ -1085,13 +1093,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           eventName === 'finished' ||
           eventName === 'video_ended' ||
           eventName === 'playback_ended' ||
-          eventName.includes('ended');
+          eventName === 'player:ended' ||
+          eventName === 'media:ended';
 
         if (eventName === 'play' || eventName === 'playing' || eventName === 'start') {
           hasPlayedThisSession.current = true;
           setIsPlaying(true);
+          setIsActivelyWatching(true);
         } else if (eventName === 'pause') {
           setIsPlaying(false);
+          setIsActivelyWatching(false);
         } else if (isEndedEvent) {
           handleEpisodeEnded();
         }
@@ -2062,8 +2073,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           isMouseOverPlayer.current = true;
           hasInteractedWithPlayer.current = true;
           hasPlayedThisSession.current = true;
-          setIsActivelyWatching(true);
-          setIsPlaying(true);
           handleMouseMove();
         }}
         onDoubleClick={isMiniPlayer ? onToggleMiniPlayer : toggleFullscreen}
