@@ -23,6 +23,8 @@ import {
   MoveDiagonal2,
   ExternalLink,
   ShieldAlert,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
@@ -54,6 +56,10 @@ interface CinematicPlayerProps {
   onCloseMiniPlayer?: () => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
   onOpenVpnNotice?: () => void;
+  onNextEpisode?: () => void;
+  onPrevEpisode?: () => void;
+  nextEpisode?: Episode;
+  prevEpisode?: Episode;
 }
 
 export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string {
@@ -206,6 +212,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   onCloseMiniPlayer,
   onFullscreenChange,
   onOpenVpnNotice,
+  onNextEpisode,
+  onPrevEpisode,
+  nextEpisode,
+  prevEpisode,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -215,6 +225,40 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const { updateProgress, continueWatching, historyItems, recordWatch } = useWatchlist();
   const { playClick, playHover } = useSound();
   const { t, language } = useLanguage();
+
+  // Next Episode Auto-Prompt and Countdown State
+  const [showNextPrompt, setShowNextPrompt] = useState(false);
+  const [nextCountdown, setNextCountdown] = useState(8);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clear countdown on unmount or episode change
+  useEffect(() => {
+    setShowNextPrompt(false);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, [currentEpisode?.id]);
+
+  const cancelNextCountdown = useCallback(() => {
+    setShowNextPrompt(false);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const triggerNextEpisode = useCallback(() => {
+    cancelNextCountdown();
+    playClick();
+    onNextEpisode?.();
+  }, [cancelNextCountdown, onNextEpisode, playClick]);
+
+  const triggerPrevEpisode = useCallback(() => {
+    cancelNextCountdown();
+    playClick();
+    onPrevEpisode?.();
+  }, [cancelNextCountdown, onPrevEpisode, playClick]);
   const {
     status: partyStatus,
     sendSignal: sendPartySignal,
@@ -1741,7 +1785,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
 
-      const playerKeys = [' ', 'Space', 'f', 'F', 't', 'T', 'Escape', 'm', 'M', 'ArrowLeft', 'ArrowRight', 'p', 'P', 's', 'S'];
+      const playerKeys = [' ', 'Space', 'f', 'F', 't', 'T', 'Escape', 'm', 'M', 'ArrowLeft', 'ArrowRight', 'p', 'P', 's', 'S', 'n', 'N'];
       if (playerKeys.includes(e.key) || playerKeys.includes(e.code)) {
         setShowControls(true);
         resetHideTimer();
@@ -1750,6 +1794,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (e.code === 'Space') {
         e.preventDefault();
         togglePlay();
+      } else if (e.shiftKey && (e.key === 'N' || e.key === 'n')) {
+        if (nextEpisode && onNextEpisode) {
+          e.preventDefault();
+          triggerNextEpisode();
+        }
+      } else if (e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+        if (prevEpisode && onPrevEpisode) {
+          e.preventDefault();
+          triggerPrevEpisode();
+        }
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         toggleFullscreen();
@@ -1774,7 +1828,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         e.preventDefault();
         handleSkip(10);
       } else if (e.key === 'p' || e.key === 'P') {
-        if (!e.ctrlKey && !e.metaKey && !e.altKey && onToggleMiniPlayer) {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && onToggleMiniPlayer) {
           e.preventDefault();
           onToggleMiniPlayer();
         }
@@ -1806,7 +1860,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, duration, isFullscreen, isTheaterMode, isMiniPlayer, toggleTheaterMode, onToggleMiniPlayer, onOpenWatchParty, handleSmartFailover, resetHideTimer]);
+  }, [isPlaying, duration, isFullscreen, isTheaterMode, isMiniPlayer, toggleTheaterMode, onToggleMiniPlayer, onOpenWatchParty, handleSmartFailover, resetHideTimer, nextEpisode, prevEpisode, onNextEpisode, onPrevEpisode, triggerNextEpisode, triggerPrevEpisode]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
@@ -1858,6 +1912,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       duration: curDur,
       lastWatched: Date.now(),
     }, media);
+
+    // Auto-prompt countdown for series next episode
+    if (nextEpisode && onNextEpisode) {
+      setNextCountdown(8);
+      setShowNextPrompt(true);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = setInterval(() => {
+        setNextCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+            setShowNextPrompt(false);
+            onNextEpisode();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
   };
 
 
@@ -2113,6 +2186,57 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                 onMouseLeave={handleControlsMouseLeave}
                 className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5"
               >
+                {/* Series Episode Quick Navigator (Prev / Episode Indicator / Next) */}
+                {media.type !== 'movie' && currentEpisode && (
+                  <div className="flex items-center gap-1 bg-cinema-950/90 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 shadow-lg flex-shrink-0">
+                    <button
+                      onClick={triggerPrevEpisode}
+                      disabled={!prevEpisode}
+                      onMouseEnter={playHover}
+                      className={`p-1 rounded-full transition-all ${
+                        prevEpisode
+                          ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
+                          : 'text-slate-600 opacity-30 cursor-not-allowed'
+                      }`}
+                      title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
+                    >
+                      <SkipBack className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        playClick();
+                        onOpenEpisodeDrawer?.();
+                      }}
+                      onMouseEnter={playHover}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-slate-200 hover:text-brand-gold hover:bg-white/10 transition-colors cursor-pointer"
+                      title={t('episodeNavigation')}
+                    >
+                      <Tv className="w-3 h-3 text-brand-champagne" />
+                      <span className="font-bold text-brand-champagne">
+                        S{currentEpisode.seasonNumber}:E{currentEpisode.episodeNumber}
+                      </span>
+                      <span className="hidden xl:inline max-w-[120px] truncate text-slate-300 font-sans text-[10px]">
+                        • {currentEpisode.title}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={triggerNextEpisode}
+                      disabled={!nextEpisode}
+                      onMouseEnter={playHover}
+                      className={`p-1 rounded-full transition-all ${
+                        nextEpisode
+                          ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
+                          : 'text-slate-600 opacity-30 cursor-not-allowed'
+                      }`}
+                      title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
+                    >
+                      <SkipForward className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Quick Server Switcher Pills */}
                 <div className="flex items-center gap-1 bg-cinema-950/90 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-lg flex-shrink-0">
                   {availableServers.map((srv, idx) => {
@@ -2363,6 +2487,38 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           </div>
 
         <div className="flex items-center gap-2 pointer-events-auto">
+          {media.type !== 'movie' && currentEpisode && (
+            <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-1.5 py-1 rounded-full border border-white/[0.12]">
+              <button
+                onClick={triggerPrevEpisode}
+                disabled={!prevEpisode}
+                onMouseEnter={playHover}
+                className={`p-1 rounded-full transition-all ${
+                  prevEpisode
+                    ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
+                    : 'text-slate-600 opacity-30 cursor-not-allowed'
+                }`}
+                title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
+              >
+                <SkipBack className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={triggerNextEpisode}
+                disabled={!nextEpisode}
+                onMouseEnter={playHover}
+                className={`p-1 rounded-full transition-all ${
+                  nextEpisode
+                    ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
+                    : 'text-slate-600 opacity-30 cursor-not-allowed'
+                }`}
+                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {onOpenServerModal && (
             <button
               onClick={() => {
@@ -2399,21 +2555,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       {!isEmbedStream && !isPlaying && (
         <div
           onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[1px] cursor-pointer group"
+          className="absolute inset-0 flex items-center justify-center cursor-pointer group/grand"
         >
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-glow-red hover:scale-110 hover:bg-[#F40612] transition-all duration-300">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 border border-brand-gold/40 flex items-center justify-center backdrop-blur-md group-hover/grand:scale-110 group-hover/grand:border-brand-gold group-hover/grand:bg-black/80 transition-all shadow-2xl">
             <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-1 fill-white" />
           </div>
         </div>
       )}
 
-      {/* Buffering Spinner */}
+      {/* Center Buffering Spinner */}
       {!isEmbedStream && isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-12 h-12 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin shadow-glow-red" />
+          <div className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-black/70 border border-white/10 backdrop-blur-md">
+            <Loader2 className="w-8 h-8 text-brand-gold animate-spin" />
+            <span className="text-xs font-mono text-slate-300 tracking-wider">BUFFERING</span>
+          </div>
         </div>
       )}
-
 
       {/* Speed Selector Popup */}
       {showSpeedMenu && !isMiniPlayer && (
@@ -2442,71 +2600,116 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       {/* Live Floating Watch Party Emoji Reactions Overlay */}
       <PartyReactionsOverlay />
 
-      {/* Bottom Controls Bar (For native HTML5 stream) */}
+      {/* Bottom Controls Bar (Only for native video player) */}
       {!isEmbedStream && !isMiniPlayer && (
         <div
           onMouseEnter={handleControlsMouseEnter}
           onMouseLeave={handleControlsMouseLeave}
-          className={`absolute bottom-0 inset-x-0 p-3 sm:p-5 pb-[max(env(safe-area-inset-bottom),0.875rem)] pl-[max(env(safe-area-inset-left),0.875rem)] pr-[max(env(safe-area-inset-right),0.875rem)] bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 ${
+          className={`absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col gap-3 transition-all duration-300 pointer-events-none ${
             showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'
           }`}
         >
-        {/* Scrubber & Progress Bar */}
-        <div className="relative w-full mb-3 group/progress cursor-pointer">
-          {/* Buffer Bar */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 left-0 h-1 rounded-full bg-white/20 pointer-events-none transition-all"
-            style={{ width: `${(buffered / (duration || 1)) * 100}%` }}
-          />
+          {/* Progress / Scrubber Bar */}
+          <div className="relative group/progress h-4 flex items-center cursor-pointer pointer-events-auto">
+            {/* Background Track */}
+            <div className="w-full h-1 rounded-full bg-white/20 group-hover/progress:h-1.5 transition-all" />
 
-          {/* Current Progress Gold Bar */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 left-0 h-1 rounded-full bg-brand-gold shadow-glow-gold pointer-events-none transition-all group-hover/progress:h-1.5"
-            style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
-          />
+            {/* Buffer Gray Bar */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 left-0 h-1 rounded-full bg-white/20 pointer-events-none transition-all"
+              style={{ width: `${(buffered / (duration || 1)) * 100}%` }}
+            />
 
-          {/* Native Range Input */}
-          <input
-            type="range"
-            min={0}
-            max={duration || 100}
-            step={0.1}
-            value={currentTime}
-            onChange={handleSeek}
-            className="video-scrubber relative w-full h-4 sm:h-5 z-10 cursor-pointer opacity-0 group-hover/progress:opacity-100 transition-opacity"
-          />
-        </div>
+            {/* Current Progress Gold Bar */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 left-0 h-1 rounded-full bg-brand-gold shadow-glow-gold pointer-events-none transition-all group-hover/progress:h-1.5"
+              style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+            />
 
-        {/* Buttons Row */}
-        <div className="flex items-center justify-between gap-3">
-          {/* Left Controls */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            <button
-              onClick={togglePlay}
-              onMouseEnter={playHover}
-              className="p-1.5 rounded-lg text-slate-200 hover:text-brand-champagne transition-all"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
-            </button>
+            {/* Native Range Input */}
+            <input
+              type="range"
+              min={0}
+              max={duration || 100}
+              step={0.1}
+              value={currentTime}
+              onChange={handleSeek}
+              className="video-scrubber relative w-full h-4 sm:h-5 z-10 cursor-pointer opacity-0 group-hover/progress:opacity-100 transition-opacity"
+            />
+          </div>
 
-            <button
-              onClick={() => handleSkip(-10)}
-              onMouseEnter={playHover}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all hidden sm:flex items-center"
-              title={t('rewind10s')}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+          {/* Buttons Row */}
+          <div className="flex items-center justify-between gap-3 pointer-events-auto">
+            {/* Left Controls */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Previous Episode Button (Series Only) */}
+              {media.type !== 'movie' && (
+                <button
+                  onClick={triggerPrevEpisode}
+                  disabled={!prevEpisode}
+                  onMouseEnter={playHover}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    prevEpisode
+                      ? 'text-slate-300 hover:text-brand-champagne hover:scale-105 active:scale-95 cursor-pointer'
+                      : 'text-slate-600 cursor-not-allowed opacity-30'
+                  }`}
+                  title={
+                    prevEpisode
+                      ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)`
+                      : t('noPrevEpisode')
+                  }
+                >
+                  <SkipBack className="w-4 h-4" />
+                </button>
+              )}
 
-            <button
-              onClick={() => handleSkip(10)}
-              onMouseEnter={playHover}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all hidden sm:flex items-center"
-              title={t('forward10s')}
-            >
-              <RotateCw className="w-4 h-4" />
-            </button>
+              <button
+                onClick={togglePlay}
+                onMouseEnter={playHover}
+                className="p-1.5 rounded-lg text-slate-200 hover:text-brand-champagne transition-all cursor-pointer"
+                title={isPlaying ? 'Pause' : 'Play'}
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+              </button>
+
+              {/* Next Episode Button (Series Only) */}
+              {media.type !== 'movie' && (
+                <button
+                  onClick={triggerNextEpisode}
+                  disabled={!nextEpisode}
+                  onMouseEnter={playHover}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    nextEpisode
+                      ? 'text-slate-300 hover:text-brand-champagne hover:scale-105 active:scale-95 cursor-pointer'
+                      : 'text-slate-600 cursor-not-allowed opacity-30'
+                  }`}
+                  title={
+                    nextEpisode
+                      ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)`
+                      : t('noNextEpisode')
+                  }
+                >
+                  <SkipForward className="w-4 h-4" />
+                </button>
+              )}
+
+              <button
+                onClick={() => handleSkip(-10)}
+                onMouseEnter={playHover}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all hidden sm:flex items-center cursor-pointer"
+                title={t('rewind10s')}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => handleSkip(10)}
+                onMouseEnter={playHover}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all hidden sm:flex items-center cursor-pointer"
+                title={t('forward10s')}
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
 
             {/* Volume */}
             <div className="flex items-center gap-2 group/volume">
@@ -2623,6 +2826,53 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               )}
             </button>
           </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Auto-Next Episode Prompt Card (Series Only) */}
+      {showNextPrompt && nextEpisode && (
+        <div className="absolute bottom-16 sm:bottom-20 right-4 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 bg-cinema-950/95 border border-brand-gold/40 backdrop-blur-xl rounded-2xl p-4 shadow-2xl max-w-sm w-auto text-left pointer-events-auto">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold flex-shrink-0">
+                <SkipForward className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-brand-champagne uppercase tracking-wider block">
+                  {t('nextEpisode')}
+                </span>
+                <span className="text-xs font-semibold text-white truncate max-w-[200px] block">
+                  S{nextEpisode.seasonNumber}:E{nextEpisode.episodeNumber} - {nextEpisode.title}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={cancelNextCountdown}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-300 mb-3 font-light">
+            {t('autoNextEpisodePrompt')} <span className="font-mono text-brand-gold font-bold">{nextCountdown}s</span>...
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={triggerNextEpisode}
+              className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-brand-gold to-amber-500 hover:brightness-110 text-cinema-950 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>{t('playNow')}</span>
+            </button>
+            <button
+              onClick={cancelNextCountdown}
+              className="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+            >
+              {t('cancelAutoPlay')}
+            </button>
           </div>
         </div>
       )}

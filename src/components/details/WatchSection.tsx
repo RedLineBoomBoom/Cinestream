@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   Clapperboard,
   ShieldAlert,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode, Season, Review } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
@@ -199,6 +201,107 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+
+  // Flatten all episodes across seasons in chronological order
+  const allEpisodes = React.useMemo(() => {
+    if (activeMedia.type === 'movie' || !activeMedia.seasons || activeMedia.seasons.length === 0) {
+      return [];
+    }
+    const eps: Episode[] = [];
+    const sortedSeasons = [...activeMedia.seasons].sort(
+      (a, b) => (a.seasonNumber ?? 0) - (b.seasonNumber ?? 0)
+    );
+    for (const season of sortedSeasons) {
+      if (season.episodes && season.episodes.length > 0) {
+        const sortedEpisodes = [...season.episodes].sort(
+          (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
+        );
+        eps.push(...sortedEpisodes);
+      }
+    }
+    return eps;
+  }, [activeMedia.type, activeMedia.seasons]);
+
+  // Current episode index in flattened list
+  const currentEpisodeIndex = React.useMemo(() => {
+    if (!currentEpisode || allEpisodes.length === 0) return -1;
+    return allEpisodes.findIndex(
+      (ep) =>
+        ep.id === currentEpisode.id ||
+        (ep.seasonNumber === currentEpisode.seasonNumber && ep.episodeNumber === currentEpisode.episodeNumber)
+    );
+  }, [allEpisodes, currentEpisode]);
+
+  const prevEpisode = currentEpisodeIndex > 0 ? allEpisodes[currentEpisodeIndex - 1] : undefined;
+  const nextEpisode =
+    currentEpisodeIndex >= 0 && currentEpisodeIndex < allEpisodes.length - 1
+      ? allEpisodes[currentEpisodeIndex + 1]
+      : undefined;
+
+  // Unified Episode Selection Handler
+  const handleSelectEpisode = React.useCallback(
+    (ep: Episode, autoScroll = true) => {
+      const currentServers = currentEpisode?.servers || activeMedia.servers;
+      const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
+      const targetServer =
+        activeIndex >= 0 && ep.servers && ep.servers[activeIndex]
+          ? ep.servers[activeIndex]
+          : getDefaultServer(ep.servers, activeMedia.servers);
+
+      setCurrentEpisode(ep);
+      setActiveServer(targetServer);
+
+      // Check saved progress for this episode
+      const epHistory = historyItems.find((h) => h.mediaId === activeMedia.id && h.episodeId === ep.id);
+      const epTime = epHistory?.currentTime || 0;
+      const epDur = epHistory?.duration || parseDurationToSeconds(ep.duration);
+
+      recordWatch(activeMedia, {
+        currentTime: epTime,
+        duration: epDur,
+        episode: ep,
+        seasonNumber: ep.seasonNumber,
+      });
+
+      try {
+        const targetUrl = getMediaWatchUrl(activeMedia.id, ep.id);
+        window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: ep.id }, '', targetUrl);
+      } catch {}
+
+      // Synchronize new episode with all Watch Party participants if user is Host
+      if (partyStatus === 'connected' && isHost) {
+        changeMedia({
+          mediaId: activeMedia.id,
+          mediaTitle: activeMedia.title,
+          mediaPoster: activeMedia.poster,
+          mediaType: activeMedia.type,
+          episodeId: ep.id,
+          seasonNumber: ep.seasonNumber,
+          episodeNumber: ep.episodeNumber,
+          episodeTitle: ep.title,
+        });
+      }
+
+      if (autoScroll) {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+      }
+    },
+    [activeMedia, currentEpisode?.servers, activeServer.id, historyItems, recordWatch, partyStatus, isHost, changeMedia]
+  );
+
+  const handleNextEpisode = React.useCallback(() => {
+    if (nextEpisode) {
+      playClick();
+      handleSelectEpisode(nextEpisode, false);
+    }
+  }, [nextEpisode, playClick, handleSelectEpisode]);
+
+  const handlePrevEpisode = React.useCallback(() => {
+    if (prevEpisode) {
+      playClick();
+      handleSelectEpisode(prevEpisode, false);
+    }
+  }, [prevEpisode, playClick, handleSelectEpisode]);
 
   // Synchronize target episode and server when resumeEpisodeId or media changes
   useEffect(() => {
@@ -768,6 +871,11 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 const el = document.getElementById('theatrical-server-selector');
                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
+              onOpenEpisodeDrawer={() => {
+                setActiveTab('episodes');
+                const el = document.getElementById('media-tabs-section');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               autoPlay={false}
               resumeTime={resumeTime}
               isTheaterMode={isTheaterMode}
@@ -781,8 +889,79 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 onFullscreenChange?.(isFs);
               }}
               onOpenVpnNotice={onOpenVpnNotice}
+              onNextEpisode={handleNextEpisode}
+              onPrevEpisode={handlePrevEpisode}
+              nextEpisode={nextEpisode}
+              prevEpisode={prevEpisode}
             />
           </div>
+
+          {/* Series Quick Episode Navigation Bar */}
+          {!isMiniPlayer && !isFullscreen && activeMedia.type !== 'movie' && currentEpisode && (
+            <div className="flex items-center justify-between gap-2.5 p-3 sm:p-4 rounded-2xl bg-cinema-900/70 border border-white/[0.08] backdrop-blur-xl shadow-lg">
+              {/* Previous Episode Button */}
+              <button
+                onClick={handlePrevEpisode}
+                disabled={!prevEpisode}
+                onMouseEnter={playHover}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  prevEpisode
+                    ? 'bg-white/5 hover:bg-white/15 text-slate-200 hover:text-brand-champagne border border-white/10 hover:border-brand-gold/40 shadow-sm active:scale-95'
+                    : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
+                }`}
+                title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
+              >
+                <SkipBack className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {prevEpisode ? `S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
+                </span>
+                <span className="sm:hidden">{t('prevEpisodeShort')}</span>
+              </button>
+
+              {/* Current Episode Info Badge & Drawer/Tab Launcher */}
+              <button
+                onClick={() => {
+                  playClick();
+                  setActiveTab('episodes');
+                  const el = document.getElementById('media-tabs-section');
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-brand-gold/15 via-amber-500/10 to-brand-gold/15 border border-brand-gold/30 hover:border-brand-gold/60 text-brand-champagne text-xs font-medium transition-all shadow-sm group/badge cursor-pointer max-w-[200px] sm:max-w-xs md:max-w-md"
+                title={`${t('episodeNavigation')} (${t('allEpisodesLabel')})`}
+              >
+                <Tv className="w-3.5 h-3.5 text-brand-gold shrink-0 group-hover/badge:scale-110 transition-transform" />
+                <div className="flex items-center gap-1.5 min-w-0 truncate">
+                  <span className="font-mono font-bold text-white shrink-0">
+                    S{currentEpisode.seasonNumber}:E{currentEpisode.episodeNumber}
+                  </span>
+                  <span className="text-slate-300 font-light truncate hidden md:inline">
+                    • {currentEpisode.title}
+                  </span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-brand-champagne/70 shrink-0 group-hover/badge:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Next Episode Button */}
+              <button
+                onClick={handleNextEpisode}
+                disabled={!nextEpisode}
+                onMouseEnter={playHover}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                  nextEpisode
+                    ? 'bg-gradient-to-r from-brand-gold to-amber-500 hover:brightness-110 text-cinema-950 font-semibold shadow-glow-gold active:scale-95'
+                    : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
+                }`}
+                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title}` : t('noNextEpisode')}
+              >
+                <span className="hidden sm:inline">
+                  {nextEpisode ? `${t('nextEpisodeShort')} S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber}` : t('nextEpisodeShort')}
+                </span>
+                <span className="sm:hidden">{t('nextEpisodeShort')}</span>
+                <SkipForward className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* 🚀 FITUR UTAMA: Direct Full Tab Cinema Mode Banner */}
           {!isMiniPlayer && !isFullscreen && (
@@ -1097,47 +1276,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 isOngoing={activeMedia.isOngoing}
                 totalEpisodes={activeMedia.totalEpisodes}
                 onSelectEpisode={(ep) => {
-                  const currentServers = currentEpisode?.servers || activeMedia.servers;
-                  const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
-                  const targetServer =
-                    activeIndex >= 0 && ep.servers[activeIndex]
-                      ? ep.servers[activeIndex]
-                      : getDefaultServer(ep.servers, activeMedia.servers);
-                  setCurrentEpisode(ep);
-                  setActiveServer(targetServer);
-
-                  // Check saved progress for this episode
-                  const epHistory = historyItems.find((h) => h.mediaId === activeMedia.id && h.episodeId === ep.id);
-                  const epTime = epHistory?.currentTime || 0;
-                  const epDur = epHistory?.duration || parseDurationToSeconds(ep.duration);
-
-                  recordWatch(activeMedia, {
-                    currentTime: epTime,
-                    duration: epDur,
-                    episode: ep,
-                    seasonNumber: ep.seasonNumber,
-                  });
-
-                  try {
-                    const targetUrl = getMediaWatchUrl(activeMedia.id, ep.id);
-                    window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: ep.id }, '', targetUrl);
-                  } catch {}
-
-                  // Synchronize new episode with all Watch Party participants if user is Host
-                  if (partyStatus === 'connected' && isHost) {
-                    changeMedia({
-                      mediaId: activeMedia.id,
-                      mediaTitle: activeMedia.title,
-                      mediaPoster: activeMedia.poster,
-                      mediaType: activeMedia.type,
-                      episodeId: ep.id,
-                      seasonNumber: ep.seasonNumber,
-                      episodeNumber: ep.episodeNumber,
-                      episodeTitle: ep.title,
-                    });
-                  }
-
-                  window.scrollTo({ top: 120, behavior: 'smooth' });
+                  handleSelectEpisode(ep, true);
                 }}
               />
             </div>

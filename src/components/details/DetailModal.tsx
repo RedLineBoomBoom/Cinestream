@@ -90,6 +90,66 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     setReviewsList(media.reviews || []);
   }, [media.id]);
 
+  // Flatten all episodes across seasons in chronological order
+  const allEpisodes = React.useMemo(() => {
+    if (media.type === 'movie' || !media.seasons || media.seasons.length === 0) {
+      return [];
+    }
+    const eps: Episode[] = [];
+    const sortedSeasons = [...media.seasons].sort(
+      (a, b) => (a.seasonNumber ?? 0) - (b.seasonNumber ?? 0)
+    );
+    for (const season of sortedSeasons) {
+      if (season.episodes && season.episodes.length > 0) {
+        const sortedEpisodes = [...season.episodes].sort(
+          (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
+        );
+        eps.push(...sortedEpisodes);
+      }
+    }
+    return eps;
+  }, [media.type, media.seasons]);
+
+  const currentEpisodeIndex = React.useMemo(() => {
+    if (!currentEpisode || allEpisodes.length === 0) return -1;
+    return allEpisodes.findIndex(
+      (ep) =>
+        ep.id === currentEpisode.id ||
+        (ep.seasonNumber === currentEpisode.seasonNumber && ep.episodeNumber === currentEpisode.episodeNumber)
+    );
+  }, [allEpisodes, currentEpisode]);
+
+  const prevEpisode = currentEpisodeIndex > 0 ? allEpisodes[currentEpisodeIndex - 1] : undefined;
+  const nextEpisode =
+    currentEpisodeIndex >= 0 && currentEpisodeIndex < allEpisodes.length - 1
+      ? allEpisodes[currentEpisodeIndex + 1]
+      : undefined;
+
+  const handleSelectEpisode = (ep: Episode) => {
+    const currentServers = currentEpisode?.servers || media.servers;
+    const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
+    const targetServer =
+      activeIndex >= 0 && ep.servers && ep.servers[activeIndex]
+        ? ep.servers[activeIndex]
+        : getDefaultServer(ep.servers, media.servers);
+    setCurrentEpisode(ep);
+    setActiveServer(targetServer);
+  };
+
+  const handleNextEpisode = () => {
+    if (nextEpisode) {
+      playClick();
+      handleSelectEpisode(nextEpisode);
+    }
+  };
+
+  const handlePrevEpisode = () => {
+    if (prevEpisode) {
+      playClick();
+      handleSelectEpisode(prevEpisode);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -184,6 +244,10 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               autoPlay={false}
               isTheaterMode={isTheaterMode}
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+              onNextEpisode={handleNextEpisode}
+              onPrevEpisode={handlePrevEpisode}
+              nextEpisode={nextEpisode}
+              prevEpisode={prevEpisode}
             />
 
             {/* Server Selector Bar */}
@@ -433,16 +497,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               status={media.status}
               isOngoing={media.isOngoing}
               totalEpisodes={media.totalEpisodes}
-              onSelectEpisode={(ep) => {
-                const currentServers = currentEpisode?.servers || media.servers;
-                const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
-                const targetServer =
-                  activeIndex >= 0 && ep.servers[activeIndex]
-                    ? ep.servers[activeIndex]
-                    : getDefaultServer(ep.servers, media.servers);
-                setCurrentEpisode(ep);
-                setActiveServer(targetServer);
-              }}
+              onSelectEpisode={handleSelectEpisode}
             />
           )}
 
