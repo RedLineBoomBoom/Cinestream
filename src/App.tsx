@@ -299,20 +299,29 @@ const MainContent: React.FC = () => {
     setSelectedMedia(media);
 
     let targetEp: Episode | undefined;
+    let targetSeasonNum: number | undefined;
     if (effectiveEpId && media.seasons) {
       for (const s of media.seasons) {
-        const found = s.episodes?.find((ep) => ep.id === effectiveEpId);
+        const found = s.episodes?.find((ep) => ep.id === effectiveEpId || (Boolean(ep.id) && ep.id.toLowerCase() === effectiveEpId.toLowerCase()));
         if (found) {
-          targetEp = found;
+          targetSeasonNum = Number(found.seasonNumber || s.seasonNumber || (s as any).season_number || 1);
+          targetEp = {
+            ...found,
+            seasonNumber: targetSeasonNum,
+          };
           break;
         }
       }
     }
+    if (!targetSeasonNum && effectiveEpId) {
+      const match = effectiveEpId.match(/s(\d+)/i) || effectiveEpId.match(/season[_-]?(\d+)/i);
+      if (match) targetSeasonNum = parseInt(match[1], 10);
+    }
 
     recordWatch(media, {
       currentTime: effectiveResumeTime,
-      episode: media.type === 'movie' ? undefined : (targetEp || (effectiveEpId ? ({ id: effectiveEpId } as any) : undefined)),
-      seasonNumber: targetEp?.seasonNumber,
+      episode: media.type === 'movie' ? undefined : (targetEp || (effectiveEpId ? ({ id: effectiveEpId, seasonNumber: targetSeasonNum } as any) : undefined)),
+      seasonNumber: targetSeasonNum,
     });
 
     try {

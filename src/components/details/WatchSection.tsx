@@ -50,6 +50,12 @@ import {
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
 import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName, parseDurationToSeconds } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
+import {
+  getAdjacentEpisodes,
+  getFlattenedEpisodes,
+  resolveEpisodeSeasonNumber,
+  resolveEpisodeNumber,
+} from '../../utils/seriesNavigation';
 
 interface WatchSectionProps {
   media: MediaItem;
@@ -119,11 +125,13 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     if (!seasons || seasons.length === 0) return undefined;
     if (epId) {
       for (const season of seasons) {
-        const found = season.episodes?.find((ep) => ep.id === epId || ep.id.toLowerCase() === epId.toLowerCase());
+        const actualS = Number(season.seasonNumber || (season as any).season_number || 1);
+        const found = season.episodes?.find((ep) => ep.id === epId || (Boolean(ep.id) && ep.id.toLowerCase() === epId.toLowerCase()));
         if (found) {
           return {
             ...found,
-            seasonNumber: found.seasonNumber ?? season.seasonNumber ?? 1,
+            seasonNumber: Number(found.seasonNumber || actualS),
+            episodeNumber: resolveEpisodeNumber(found),
           };
         }
       }
@@ -132,12 +140,14 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         const parsedS = parseInt(match[1], 10);
         const parsedE = parseInt(match[2], 10);
         for (const season of seasons) {
-          if (season.seasonNumber === parsedS) {
-            const found = season.episodes?.find((ep) => ep.episodeNumber === parsedE);
+          const actualS = Number(season.seasonNumber || (season as any).season_number);
+          if (actualS === parsedS) {
+            const found = season.episodes?.find((ep) => resolveEpisodeNumber(ep) === parsedE);
             if (found) {
               return {
                 ...found,
-                seasonNumber: found.seasonNumber ?? season.seasonNumber ?? parsedS,
+                seasonNumber: Number(found.seasonNumber || actualS),
+                episodeNumber: parsedE,
               };
             }
           }
@@ -146,12 +156,14 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     }
     if (sNum !== undefined && epNum !== undefined) {
       for (const season of seasons) {
-        if (season.seasonNumber === sNum) {
-          const found = season.episodes?.find((ep) => ep.episodeNumber === epNum);
+        const actualS = Number(season.seasonNumber || (season as any).season_number);
+        if (actualS === sNum) {
+          const found = season.episodes?.find((ep) => resolveEpisodeNumber(ep) === epNum);
           if (found) {
             return {
               ...found,
-              seasonNumber: found.seasonNumber ?? season.seasonNumber ?? sNum,
+              seasonNumber: Number(found.seasonNumber || actualS),
+              episodeNumber: epNum,
             };
           }
         }
@@ -223,74 +235,55 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
 
   // Flatten all episodes across seasons in chronological order
   const allEpisodes = React.useMemo(() => {
-    if (activeMedia.type === 'movie' || !activeMedia.seasons || activeMedia.seasons.length === 0) {
-      return [];
-    }
-    const eps: Episode[] = [];
-    const sortedSeasons = [...activeMedia.seasons].sort(
-      (a, b) => (a.seasonNumber ?? 0) - (b.seasonNumber ?? 0)
-    );
-    for (const season of sortedSeasons) {
-      if (season.episodes && season.episodes.length > 0) {
-        const sortedEpisodes = [...season.episodes].sort(
-          (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
-        );
-        for (const ep of sortedEpisodes) {
-          eps.push({
-            ...ep,
-            seasonNumber: ep.seasonNumber ?? season.seasonNumber ?? 1,
-          });
-        }
-      }
-    }
-    return eps;
+    if (activeMedia.type === 'movie') return [];
+    return getFlattenedEpisodes(activeMedia.seasons);
   }, [activeMedia.type, activeMedia.seasons]);
 
-  // Current episode index in flattened list
-  const currentEpisodeIndex = React.useMemo(() => {
-    if (!currentEpisode || allEpisodes.length === 0) return -1;
-    const currentSeasonNum = currentEpisode.seasonNumber ?? 1;
-    return allEpisodes.findIndex(
-      (ep) =>
-        ep.id === currentEpisode.id ||
-        ((ep.seasonNumber ?? 1) === currentSeasonNum && ep.episodeNumber === currentEpisode.episodeNumber)
-    );
-  }, [allEpisodes, currentEpisode]);
-
-  const prevEpisode = currentEpisodeIndex > 0 ? allEpisodes[currentEpisodeIndex - 1] : undefined;
-  const nextEpisode =
-    currentEpisodeIndex >= 0 && currentEpisodeIndex < allEpisodes.length - 1
-      ? allEpisodes[currentEpisodeIndex + 1]
-      : undefined;
+  // High-accuracy, season-aware resolution of Previous and Next episodes
+  const { prevEpisode, nextEpisode } = React.useMemo(() => {
+    return getAdjacentEpisodes({
+      currentEpisode,
+      seasons: activeMedia.seasons,
+      allEpisodes,
+    });
+  }, [currentEpisode, activeMedia.seasons, allEpisodes]);
 
   // Unified Episode Selection Handler
   const handleSelectEpisode = React.useCallback(
     (ep: Episode, autoScroll = true) => {
+      const resolvedSNum = resolveEpisodeSeasonNumber(ep, activeMedia.seasons);
+      const resolvedEpNum = resolveEpisodeNumber(ep);
+      const safeEp: Episode = {
+        ...ep,
+        seasonNumber: resolvedSNum,
+        episodeNumber: resolvedEpNum,
+      };
+
       const currentServers = currentEpisode?.servers || activeMedia.servers;
       const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
       const targetServer =
-        activeIndex >= 0 && ep.servers && ep.servers[activeIndex]
-          ? ep.servers[activeIndex]
-          : getDefaultServer(ep.servers, activeMedia.servers);
+        activeIndex >= 0 && safeEp.servers && safeEp.servers[activeIndex]
+          ? safeEp.servers[activeIndex]
+          : getDefaultServer(safeEp.servers, activeMedia.servers);
 
-      setCurrentEpisode(ep);
+      setCurrentEpisode(safeEp);
       setActiveServer(targetServer);
 
       // Check saved progress for this episode
-      const epHistory = historyItems.find((h) => h.mediaId === activeMedia.id && h.episodeId === ep.id);
+      const epHistory = historyItems.find((h) => h.mediaId === activeMedia.id && h.episodeId === safeEp.id);
       const epTime = epHistory?.currentTime || 0;
-      const epDur = epHistory?.duration || parseDurationToSeconds(ep.duration);
+      const epDur = epHistory?.duration || parseDurationToSeconds(safeEp.duration);
 
       recordWatch(activeMedia, {
         currentTime: epTime,
         duration: epDur,
-        episode: ep,
-        seasonNumber: ep.seasonNumber,
+        episode: safeEp,
+        seasonNumber: safeEp.seasonNumber,
       });
 
       try {
-        const targetUrl = getMediaWatchUrl(activeMedia.id, ep.id);
-        window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: ep.id }, '', targetUrl);
+        const targetUrl = getMediaWatchUrl(activeMedia.id, safeEp.id);
+        window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: safeEp.id }, '', targetUrl);
       } catch {}
 
       // Synchronize new episode with all Watch Party participants if user is Host
@@ -300,10 +293,10 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
           mediaTitle: activeMedia.title,
           mediaPoster: activeMedia.poster,
           mediaType: activeMedia.type,
-          episodeId: ep.id,
-          seasonNumber: ep.seasonNumber,
-          episodeNumber: ep.episodeNumber,
-          episodeTitle: ep.title,
+          episodeId: safeEp.id,
+          seasonNumber: safeEp.seasonNumber,
+          episodeNumber: safeEp.episodeNumber,
+          episodeTitle: safeEp.title,
         });
       }
 
@@ -354,6 +347,26 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       setCurrentEpisode(undefined);
       setActiveServer(getDefaultServer(activeMedia.servers));
       return;
+    }
+
+    // If user is already watching an episode, re-match and enrich it from activeMedia.seasons without resetting to Ep 1
+    if (currentEpisode) {
+      const matched = findEpisode(
+        activeMedia.seasons,
+        currentEpisode.id,
+        currentEpisode.seasonNumber,
+        currentEpisode.episodeNumber
+      );
+      if (matched) {
+        setCurrentEpisode((prev) => (prev ? { ...prev, ...matched } : matched));
+        if (matched.servers?.length) {
+          setActiveServer((prevSrv) => {
+            const foundSrv = matched.servers.find((s) => s.id === prevSrv.id);
+            return foundSrv || getDefaultServer(matched.servers, activeMedia.servers);
+          });
+        }
+        return;
+      }
     }
 
     const targetEp = getTargetEpisode(activeMedia);
@@ -961,10 +974,16 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
                 >
                   <SkipBack className="w-4 h-4 text-slate-200 shrink-0" />
-                  <span className="hidden sm:inline">
-                    {prevEpisode ? `S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
-                  </span>
-                  <span className="sm:hidden">{t('prevEpisodeShort')}</span>
+                  <div className="flex items-center gap-1.5 min-w-0 max-w-[140px] sm:max-w-[200px] md:max-w-[260px] truncate">
+                    <span className="shrink-0">
+                      {prevEpisode ? `S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
+                    </span>
+                    {prevEpisode?.title && (
+                      <span className="font-light text-slate-300 truncate hidden sm:inline">
+                        • {prevEpisode.title}
+                      </span>
+                    )}
+                  </div>
                 </button>
 
                 {/* Auto Next Toggle Button */}
@@ -995,7 +1014,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
                 onMouseEnter={playHover}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-brand-gold/15 via-amber-500/10 to-brand-gold/15 border border-brand-gold/30 hover:border-brand-gold/60 text-brand-champagne text-xs font-medium transition-all shadow-sm group/badge cursor-pointer max-w-[200px] sm:max-w-xs md:max-w-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-brand-gold/15 via-amber-500/10 to-brand-gold/15 border border-brand-gold/30 hover:border-brand-gold/60 text-brand-champagne text-xs font-medium transition-all shadow-sm group/badge cursor-pointer max-w-[220px] sm:max-w-xs md:max-w-md"
                 title={`${t('episodeNavigation')} (${t('allEpisodesLabel')})`}
               >
                 <Tv className="w-3.5 h-3.5 text-brand-gold shrink-0 group-hover/badge:scale-110 transition-transform" />
@@ -1003,7 +1022,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   <span className="font-mono font-bold text-white shrink-0">
                     S{currentEpisode.seasonNumber ?? 1}:E{currentEpisode.episodeNumber}
                   </span>
-                  <span className="text-slate-300 font-light truncate hidden md:inline">
+                  <span className="text-slate-300 font-light truncate max-w-[120px] sm:max-w-[200px] md:max-w-[280px]">
                     • {currentEpisode.title}
                   </span>
                 </div>
@@ -1022,10 +1041,16 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 }`}
                 title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber} - ${nextEpisode.title}` : t('noNextEpisode')}
               >
-                <span className="hidden sm:inline">
-                  {nextEpisode ? `${t('nextEpisodeShort')} S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber}` : t('nextEpisodeShort')}
-                </span>
-                <span className="sm:hidden">{t('nextEpisodeShort')}</span>
+                <div className="flex items-center gap-1.5 min-w-0 max-w-[180px] sm:max-w-[260px] md:max-w-[340px] truncate">
+                  <span className="shrink-0">
+                    {nextEpisode ? `${t('nextEpisodeShort')} S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber}` : t('nextEpisodeShort')}
+                  </span>
+                  {nextEpisode?.title && (
+                    <span className="font-medium text-white/90 truncate">
+                      • {nextEpisode.title}
+                    </span>
+                  )}
+                </div>
                 <SkipForward className="w-4 h-4 text-white fill-current shrink-0" />
               </button>
             </div>

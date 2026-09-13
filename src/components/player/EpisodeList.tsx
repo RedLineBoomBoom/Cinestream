@@ -27,8 +27,19 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 }) => {
   const initialSeasonIdx = (() => {
     if (activeEpisodeId && seasons && seasons.length > 0) {
-      const idx = seasons.findIndex((s) => s.episodes?.some((e) => e.id === activeEpisodeId));
+      const idx = seasons.findIndex((s) =>
+        s.episodes?.some(
+          (e) => e.id === activeEpisodeId || (Boolean(e.id) && e.id.toLowerCase() === activeEpisodeId.toLowerCase())
+        )
+      );
       if (idx >= 0) return idx;
+
+      const match = activeEpisodeId.match(/s(\d+)/i) || activeEpisodeId.match(/season[_-]?(\d+)/i);
+      if (match) {
+        const sNum = parseInt(match[1], 10);
+        const sIdx = seasons.findIndex((s) => Number(s.seasonNumber || (s as any).season_number) === sNum);
+        if (sIdx >= 0) return sIdx;
+      }
     }
     return 0;
   })();
@@ -37,7 +48,18 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
   useEffect(() => {
     if (activeEpisodeId && seasons && seasons.length > 0) {
-      const idx = seasons.findIndex((s) => s.episodes?.some((e) => e.id === activeEpisodeId));
+      let idx = seasons.findIndex((s) =>
+        s.episodes?.some(
+          (e) => e.id === activeEpisodeId || (Boolean(e.id) && e.id.toLowerCase() === activeEpisodeId.toLowerCase())
+        )
+      );
+      if (idx === -1) {
+        const match = activeEpisodeId.match(/s(\d+)/i) || activeEpisodeId.match(/season[_-]?(\d+)/i);
+        if (match) {
+          const sNum = parseInt(match[1], 10);
+          idx = seasons.findIndex((s) => Number(s.seasonNumber || (s as any).season_number) === sNum);
+        }
+      }
       if (idx >= 0) {
         setSelectedSeasonIdx(idx);
       }
@@ -167,9 +189,13 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 }
                 e.preventDefault();
                 playClick();
+                const resolvedSNum = Number(
+                  ep.seasonNumber || currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1)
+                );
                 onSelectEpisode({
                   ...ep,
-                  seasonNumber: ep.seasonNumber ?? currentSeason.seasonNumber ?? 1,
+                  seasonNumber: resolvedSNum,
+                  episodeNumber: Number(ep.episodeNumber || 1),
                 });
               }}
               onMouseEnter={playHover}

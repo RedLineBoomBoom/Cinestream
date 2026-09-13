@@ -27,6 +27,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getImdbUrl } from '../../services/imdb';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis, getDefaultServer } from '../../utils/formatters';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
+import {
+  getAdjacentEpisodes,
+  getFlattenedEpisodes,
+  resolveEpisodeSeasonNumber,
+  resolveEpisodeNumber,
+} from '../../utils/seriesNavigation';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 
 interface DetailModalProps {
@@ -92,53 +98,35 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
   // Flatten all episodes across seasons in chronological order
   const allEpisodes = React.useMemo(() => {
-    if (media.type === 'movie' || !media.seasons || media.seasons.length === 0) {
-      return [];
-    }
-    const eps: Episode[] = [];
-    const sortedSeasons = [...media.seasons].sort(
-      (a, b) => (a.seasonNumber ?? 0) - (b.seasonNumber ?? 0)
-    );
-    for (const season of sortedSeasons) {
-      if (season.episodes && season.episodes.length > 0) {
-        const sortedEpisodes = [...season.episodes].sort(
-          (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
-        );
-        for (const ep of sortedEpisodes) {
-          eps.push({
-            ...ep,
-            seasonNumber: ep.seasonNumber ?? season.seasonNumber ?? 1,
-          });
-        }
-      }
-    }
-    return eps;
+    if (media.type === 'movie') return [];
+    return getFlattenedEpisodes(media.seasons);
   }, [media.type, media.seasons]);
 
-  const currentEpisodeIndex = React.useMemo(() => {
-    if (!currentEpisode || allEpisodes.length === 0) return -1;
-    const currentSeasonNum = currentEpisode.seasonNumber ?? 1;
-    return allEpisodes.findIndex(
-      (ep) =>
-        ep.id === currentEpisode.id ||
-        ((ep.seasonNumber ?? 1) === currentSeasonNum && ep.episodeNumber === currentEpisode.episodeNumber)
-    );
-  }, [allEpisodes, currentEpisode]);
-
-  const prevEpisode = currentEpisodeIndex > 0 ? allEpisodes[currentEpisodeIndex - 1] : undefined;
-  const nextEpisode =
-    currentEpisodeIndex >= 0 && currentEpisodeIndex < allEpisodes.length - 1
-      ? allEpisodes[currentEpisodeIndex + 1]
-      : undefined;
+  // High-accuracy, season-aware resolution of Previous and Next episodes
+  const { prevEpisode, nextEpisode } = React.useMemo(() => {
+    return getAdjacentEpisodes({
+      currentEpisode,
+      seasons: media.seasons,
+      allEpisodes,
+    });
+  }, [currentEpisode, media.seasons, allEpisodes]);
 
   const handleSelectEpisode = (ep: Episode) => {
+    const resolvedSNum = resolveEpisodeSeasonNumber(ep, media.seasons);
+    const resolvedEpNum = resolveEpisodeNumber(ep);
+    const safeEp: Episode = {
+      ...ep,
+      seasonNumber: resolvedSNum,
+      episodeNumber: resolvedEpNum,
+    };
+
     const currentServers = currentEpisode?.servers || media.servers;
     const activeIndex = currentServers.findIndex((s) => s.id === activeServer.id);
     const targetServer =
-      activeIndex >= 0 && ep.servers && ep.servers[activeIndex]
-        ? ep.servers[activeIndex]
-        : getDefaultServer(ep.servers, media.servers);
-    setCurrentEpisode(ep);
+      activeIndex >= 0 && safeEp.servers && safeEp.servers[activeIndex]
+        ? safeEp.servers[activeIndex]
+        : getDefaultServer(safeEp.servers, media.servers);
+    setCurrentEpisode(safeEp);
     setActiveServer(targetServer);
   };
 
