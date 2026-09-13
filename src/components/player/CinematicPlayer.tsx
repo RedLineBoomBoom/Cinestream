@@ -337,9 +337,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         videoSource.includes('smashystream') ||
         videoSource.includes('player.')));
 
-  const initialDuration = currentEpisode?.duration
-    ? parseDurationToSeconds(currentEpisode.duration)
-    : parseDurationToSeconds(media.duration);
+  const initialDuration = (() => {
+    const rawSec = currentEpisode?.duration
+      ? parseDurationToSeconds(currentEpisode.duration)
+      : parseDurationToSeconds(media.duration);
+    if (rawSec > 0) return rawSec;
+    return media.type !== 'movie' ? 45 * 60 : 120 * 60;
+  })();
 
   const initialTime = (() => {
     if (resumeTime !== undefined && resumeTime > 0) return resumeTime;
@@ -881,6 +885,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (isMouseOverPlayer.current || document.activeElement === iframeRef.current) {
         hasInteractedWithPlayer.current = true;
         hasPlayedThisSession.current = true;
+        setIsActivelyWatching(true);
+        setIsPlaying(true);
       }
     };
 
@@ -915,26 +921,27 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     setNextCountdown(8);
   }, [currentEpisode?.id]);
 
-  const handleEpisodeEnded = useCallback(() => {
+  const handleEpisodeEnded = useCallback((force = false) => {
     if (hasTriggeredEndRef.current) return;
 
-    // Must have actually had playback in this session
-    if (!hasPlayedThisSession.current) return;
+    if (!force) {
+      // Must have actually had playback in this session
+      if (!hasPlayedThisSession.current) return;
 
-    const curDur = durationRef.current || initialDuration;
-    const curTime = currentTimeRef.current;
+      const curDur = durationRef.current || initialDuration;
+      const curTime = currentTimeRef.current;
 
-    // Safety guard: If duration is known (> 60s), an episode cannot end prematurely
-    // while user is in the middle of watching (e.g. user is paused or early in episode).
-    // Must be at least 80% through the episode or within the last 45 seconds of duration.
-    if (curDur > 60 && curTime > 0 && curTime < Math.min(curDur - 45, curDur * 0.8)) {
-      return;
+      // Reject unforced triggers if too early in duration
+      if (curDur > 60 && curTime > 0 && curTime < Math.min(curDur - 30, curDur * 0.8)) {
+        return;
+      }
     }
 
     hasTriggeredEndRef.current = true;
     setIsPlaying(false);
     setIsActivelyWatching(false);
 
+    const curDur = durationRef.current || initialDuration;
     if (curDur > 0) {
       updateProgressRef.current(
         {
@@ -980,11 +987,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (curDur <= 0) return;
 
       // If we don't have a verified postMessage time, advance natural playback time
-      // Capped at 95% — an unverified fallback timer must NEVER trigger episode completion
       if (!hasVerifiedTime) {
         hasPlayedThisSession.current = true;
-        currentTimeRef.current = Math.min(curDur * 0.95, currentTimeRef.current + 1);
+        currentTimeRef.current = Math.min(curDur, currentTimeRef.current + 1);
         setCurrentTime(currentTimeRef.current);
+        if (curDur > 60 && currentTimeRef.current >= curDur - 6) {
+          handleEpisodeEnded(true);
+        }
       }
     }, 1000);
 
@@ -1066,11 +1075,63 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        let data = event.data;
+
+        // 1. Direct plain string postMessages (prevents JSON.parse syntax error swallow)
+        if (typeof data === 'string') {
+          const trimmed = data.trim();
+          const lower = trimmed.toLowerCase();
+
+          if (
+            lower === 'ended' ||
+            lower === 'complete' ||
+            lower === 'completed' ||
+            lower === 'finish' ||
+            lower === 'finished' ||
+            lower === 'player:ended' ||
+            lower === 'video:ended' ||
+            lower === 'media:ended' ||
+            lower === 'plyr:ended'
+          ) {
+            handleEpisodeEnded(true);
+            return;
+          } else if (lower === 'pause') {
+            setIsPlaying(false);
+            setIsActivelyWatching(false);
+            return;
+          } else if (lower === 'play' || lower === 'playing') {
+            hasPlayedThisSession.current = true;
+            setIsPlaying(true);
+            setIsActivelyWatching(true);
+            return;
+          }
+
+          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+              data = JSON.parse(trimmed);
+            } catch {
+              return;
+            }
+          } else {
+            return;
+          }
+        }
+
         if (!data || typeof data !== 'object') return;
 
-        // Detect embed player play/pause state
-        const eventName = (data.event || data.type || data.action || '').toLowerCase();
+        // Resolve potential nested payload (VidLink, PlayerJS, JWPlayer, etc.)
+        const payload = (data.data && typeof data.data === 'object'
+          ? data.data
+          : data.payload && typeof data.payload === 'object'
+          ? data.payload
+          : data.detail && typeof data.detail === 'object'
+          ? data.detail
+          : data) as any;
+
+        // Detect embed player play/pause/ended state
+        const eventName = String(
+          data.event || data.type || data.action || payload.event || payload.type || payload.action || ''
+        ).toLowerCase();
 
         // Ignore any ad completion / ad break events
         const isAdEvent =
@@ -1078,8 +1139,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           eventName.includes('adbreak') ||
           eventName.startsWith('ad') ||
           Boolean(data.ad) ||
+          Boolean(payload.ad) ||
           data.isAd === true ||
-          data.adBreak === true;
+          payload.isAd === true ||
+          data.adBreak === true ||
+          payload.adBreak === true;
 
         if (isAdEvent) {
           return;
@@ -1094,7 +1158,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           eventName === 'video_ended' ||
           eventName === 'playback_ended' ||
           eventName === 'player:ended' ||
-          eventName === 'media:ended';
+          eventName === 'media:ended' ||
+          eventName === 'plyr:ended' ||
+          data.ended === true ||
+          data.isEnded === true ||
+          data.status === 'ended' ||
+          payload.ended === true ||
+          payload.isEnded === true ||
+          payload.status === 'ended';
 
         if (eventName === 'play' || eventName === 'playing' || eventName === 'start') {
           hasPlayedThisSession.current = true;
@@ -1104,7 +1175,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           setIsPlaying(false);
           setIsActivelyWatching(false);
         } else if (isEndedEvent) {
-          handleEpisodeEnded();
+          handleEpisodeEnded(true);
         }
 
         const time =
@@ -1130,6 +1201,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? data.progress.position
             : typeof data.detail?.plyr?.currentTime === 'number'
             ? data.detail.plyr.currentTime
+            : typeof payload.currentTime === 'number'
+            ? payload.currentTime
+            : typeof payload.time === 'number'
+            ? payload.time
+            : typeof payload.position === 'number'
+            ? payload.position
+            : typeof payload.seconds === 'number'
+            ? payload.seconds
             : undefined;
 
         const dur =
@@ -1141,19 +1220,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? data.progress.duration
             : typeof data.detail?.plyr?.duration === 'number'
             ? data.detail.plyr.duration
+            : typeof payload.duration === 'number'
+            ? payload.duration
             : undefined;
 
         if (typeof time === 'number' && time > 0) {
           hasPlayedThisSession.current = true;
           setHasVerifiedTime(true);
+          currentTimeRef.current = time;
           setCurrentTime(time);
           const resolvedDur = typeof dur === 'number' && dur > 0 ? dur : (durationRef.current || initialDuration);
           if (typeof dur === 'number' && dur > 0) {
+            durationRef.current = dur;
             setDuration(dur);
           }
           // Check if playback reached near the end of the episode (within 4s of duration)
           if (resolvedDur > 30 && time >= resolvedDur - 4) {
-            handleEpisodeEnded();
+            handleEpisodeEnded(true);
           }
           // Throttle progress updates to context/storage every 4 seconds
           if (Math.floor(time) % 4 === 0 && resolvedDur > 0) {
@@ -2008,6 +2091,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     const curr = videoRef.current.currentTime;
+    currentTimeRef.current = curr;
     setCurrentTime(curr);
     setHasVerifiedTime(true);
 
@@ -2035,6 +2119,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     setIsPlaying(false);
     if (videoRef.current && videoRef.current.currentTime > 5) {
       hasPlayedThisSession.current = true;
+      currentTimeRef.current = videoRef.current.currentTime;
       updateProgress({
         mediaId: media.id,
         episodeId: currentEpisode?.id,
@@ -2046,7 +2131,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   };
 
   const handleNativeEnded = () => {
-    handleEpisodeEnded();
+    handleEpisodeEnded(true);
   };
 
 
