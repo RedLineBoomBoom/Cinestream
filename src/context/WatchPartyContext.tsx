@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { watchPartyService } from '../services/watchParty';
+import { soundFX } from '../utils/soundEffects';
 import type {
   PartyRoom,
   PartyMember,
@@ -7,6 +8,8 @@ import type {
   PartyStatus,
   PartyMediaInfo,
   PlaybackSignal,
+  ControlMode,
+  FloatingReaction,
 } from '../types/party';
 
 // ── Context Value ──────────────────────────────────────────
@@ -20,15 +23,27 @@ interface WatchPartyContextValue {
   isHost: boolean;
   errorMsg: string;
   latestSignal: { signal: PlaybackSignal; senderName: string; senderId?: string; alertText?: string; id: string } | null;
+  controlMode: ControlMode;
+  hostTimeSync: { currentTime: number; isPlaying: boolean; timestamp: number } | null;
+  reactions: FloatingReaction[];
+  unreadCount: number;
+  isMinimized: boolean;
 
   // Actions
   createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string) => Promise<void>;
   joinParty: (roomCode: string, name: string, userId?: string) => Promise<void>;
   leaveParty: () => void;
   sendChat: (text: string) => void;
-  sendSignal: (signal: PlaybackSignal, customAlertText?: string) => void;
+  sendSignal: (signal: PlaybackSignal, customAlertText?: string) => boolean;
+  sendTimeSync: (currentTime: number, isPlaying: boolean) => void;
+  changeMedia: (mediaInfo: PartyMediaInfo) => void;
+  setControlMode: (mode: ControlMode) => void;
+  sendReaction: (emoji: string, xOffset?: number) => void;
+  kickMember: (memberId: string) => void;
   clearSignal: () => void;
   clearError: () => void;
+  resetUnreadCount: () => void;
+  setIsMinimized: (minimized: boolean) => void;
 
   // Popup open/close state
   isPartyOpen: boolean;
@@ -62,12 +77,23 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [errorMsg, setErrorMsg] = useState('');
   const [latestSignal, setLatestSignal] = useState<{ signal: PlaybackSignal; senderName: string; senderId?: string; alertText?: string; id: string } | null>(null);
   const [isPartyOpen, setIsPartyOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [autoJoinCode, setAutoJoinCode] = useState('');
+  const [controlMode, setControlModeState] = useState<ControlMode>('all');
+  const [hostTimeSync, setHostTimeSync] = useState<{ currentTime: number; isPlaying: boolean; timestamp: number } | null>(null);
+  const [reactions, setReactions] = useState<FloatingReaction[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const isPartyOpenRef = useRef(isPartyOpen);
+  isPartyOpenRef.current = isPartyOpen;
+  const isMinimizedRef = useRef(isMinimized);
+  isMinimizedRef.current = isMinimized;
+
   const togglePartyOpen = useCallback(() => setIsPartyOpen((prev) => !prev), []);
 
-  // Keep latest room ref for callbacks
-  const roomRef = useRef(room);
-  roomRef.current = room;
+  const resetUnreadCount = useCallback(() => {
+    setUnreadCount(0);
+  }, []);
 
   // Register PeerJS callbacks once
   useEffect(() => {
@@ -75,17 +101,19 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       onRoomCreated: (r) => {
         setRoom({ ...r });
         setMembers(Object.values(r.members).filter((m) => m.isActive));
+        setControlModeState(r.controlMode || 'all');
       },
       onJoined: (r, me) => {
         setRoom({ ...r });
         setMembers(Object.values(r.members).filter((m) => m.isActive));
         setMessages([...r.messages]);
         setMyId(me.id);
+        setControlModeState(r.controlMode || 'all');
         setStatus('connected');
+        soundFX.join();
       },
       onMemberJoined: (member) => {
         setMembers((prev) => {
-          // Remove any duplicate member with the same id, or same userId/name
           const filtered = prev.filter(
             (m) =>
               m.id !== member.id &&
@@ -96,15 +124,26 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           );
           return [...filtered, member];
         });
+        soundFX.join();
       },
       onMemberLeft: (memberId) => {
         setMembers((prev) => prev.filter((m) => m.id !== memberId));
+        soundFX.leave();
       },
       onMessage: (msg) => {
         setMessages((prev) => {
           if (prev.find((m) => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
+
+        // Increment unread count if popup is closed or minimized
+        if (!isPartyOpenRef.current || isMinimizedRef.current) {
+          setUnreadCount((c) => c + 1);
+        }
+
+        if (msg.memberId !== watchPartyService.getMyId()) {
+          soundFX.pop();
+        }
       },
       onSignal: (signal, senderName, senderId, alertText) => {
         setLatestSignal({
@@ -114,6 +153,29 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           alertText,
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         });
+      },
+      onSyncTime: (currentTime, isPlaying, timestamp) => {
+        setHostTimeSync({ currentTime, isPlaying, timestamp });
+      },
+      onMediaChange: (mediaInfo) => {
+        setRoom((prev) => prev ? { ...prev, mediaInfo } : null);
+        soundFX.success();
+      },
+      onControlModeChange: (mode) => {
+        setControlModeState(mode);
+        setRoom((prev) => prev ? { ...prev, controlMode: mode } : null);
+      },
+      onReaction: (reaction) => {
+        setReactions((prev) => [...prev.slice(-20), reaction]);
+        soundFX.pop();
+        // Auto-prune reaction after 3.8s
+        setTimeout(() => {
+          setReactions((prev) => prev.filter((r) => r.id !== reaction.id));
+        }, 3800);
+      },
+      onKicked: () => {
+        setStatus('disconnected');
+        setErrorMsg('kicked_by_host');
       },
       onHostLeft: () => {
         setStatus('disconnected');
@@ -142,7 +204,9 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setRoom({ ...r });
       setMembers(Object.values(r.members).filter((m) => m.isActive));
       setMessages([]);
+      setControlModeState('all');
       setStatus('connected');
+      soundFX.success();
     } catch (err) {
       setErrorMsg(String(err));
       setStatus('error');
@@ -172,6 +236,9 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsHost(false);
     setErrorMsg('');
     setLatestSignal(null);
+    setHostTimeSync(null);
+    setReactions([]);
+    setUnreadCount(0);
   }, []);
 
   const sendChat = useCallback((text: string) => {
@@ -181,11 +248,13 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (prev.find((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
+      soundFX.pop();
     }
   }, []);
 
-  const sendSignal = useCallback((signal: PlaybackSignal, customAlertText?: string) => {
-    watchPartyService.sendSignal(signal, customAlertText);
+  const sendSignal = useCallback((signal: PlaybackSignal, customAlertText?: string): boolean => {
+    const sent = watchPartyService.sendSignal(signal, customAlertText);
+    if (!sent) return false;
     // Also apply locally — sender gets confirmation feedback
     const me = members.find((m) => m.id === myId);
     const senderName = me?.name ?? 'Kamu';
@@ -196,7 +265,39 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       alertText: customAlertText,
       id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     });
+    return true;
   }, [members, myId]);
+
+  const sendTimeSync = useCallback((currentTime: number, isPlaying: boolean) => {
+    watchPartyService.sendTimeSync(currentTime, isPlaying);
+  }, []);
+
+  const changeMedia = useCallback((mediaInfo: PartyMediaInfo) => {
+    watchPartyService.changeMedia(mediaInfo);
+    setRoom((prev) => prev ? { ...prev, mediaInfo } : null);
+  }, []);
+
+  const setControlMode = useCallback((mode: ControlMode) => {
+    watchPartyService.setControlMode(mode);
+    setControlModeState(mode);
+    setRoom((prev) => prev ? { ...prev, controlMode: mode } : null);
+  }, []);
+
+  const sendReaction = useCallback((emoji: string, xOffset?: number) => {
+    const reaction = watchPartyService.sendReaction(emoji, xOffset);
+    if (reaction) {
+      setReactions((prev) => [...prev.slice(-20), reaction]);
+      soundFX.pop();
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== reaction.id));
+      }, 3800);
+    }
+  }, []);
+
+  const kickMember = useCallback((memberId: string) => {
+    watchPartyService.kickMember(memberId);
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+  }, []);
 
   const clearSignal = useCallback(() => setLatestSignal(null), []);
   const clearError = useCallback(() => setErrorMsg(''), []);
@@ -210,7 +311,10 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   return (
     <WatchPartyContext.Provider value={{
       status, room, members, messages, myId, isHost, errorMsg, latestSignal,
-      createParty, joinParty, leaveParty, sendChat, sendSignal, clearSignal, clearError,
+      controlMode, hostTimeSync, reactions, unreadCount, isMinimized,
+      createParty, joinParty, leaveParty, sendChat, sendSignal, sendTimeSync,
+      changeMedia, setControlMode, sendReaction, kickMember,
+      clearSignal, clearError, resetUnreadCount, setIsMinimized,
       isPartyOpen, setIsPartyOpen, togglePartyOpen, autoJoinCode, setAutoJoinCode,
       inviteLink, roomCode,
     }}>

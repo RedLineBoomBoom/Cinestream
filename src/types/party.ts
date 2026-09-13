@@ -35,9 +35,20 @@ export interface PartyMediaInfo {
   mediaTitle: string;
   mediaPoster: string;
   mediaType: string;
+  episodeId?: string;
   seasonNumber?: number;
   episodeNumber?: number;
   episodeTitle?: string;
+}
+
+export type ControlMode = 'host_only' | 'all';
+
+export interface FloatingReaction {
+  id: string;
+  emoji: string;
+  senderName: string;
+  timestamp: number;
+  xOffset: number; // random offset percentage across bottom of screen (10% to 90%)
 }
 
 export interface PartyRoom {
@@ -47,16 +58,23 @@ export interface PartyRoom {
   messages: PartyMessage[];
   mediaInfo: PartyMediaInfo;
   createdAt: number;
+  controlMode: ControlMode;
 }
 
 export type PartyStatus = 'idle' | 'creating' | 'joining' | 'connected' | 'error' | 'disconnected';
 
 export type PeerMessage =
-  | { event: 'welcome';      room: PartyRoom }
+  | { event: 'welcome';       room: PartyRoom }
   | { event: 'member_joined'; member: PartyMember }
-  | { event: 'member_left';  memberId: string; memberName: string }
-  | { event: 'chat';         message: PartyMessage }
-  | { event: 'signal';       signal: PlaybackSignal; senderName: string; senderId?: string; alertText?: string }
+  | { event: 'member_left';   memberId: string; memberName: string }
+  | { event: 'chat';          message: PartyMessage }
+  | { event: 'signal';        signal: PlaybackSignal; senderName: string; senderId?: string; alertText?: string }
+  | { event: 'sync_time';     currentTime: number; isPlaying: boolean; timestamp: number }
+  | { event: 'media_change';  mediaInfo: PartyMediaInfo }
+  | { event: 'control_mode';  mode: ControlMode }
+  | { event: 'reaction';      emoji: string; senderName: string; id: string; xOffset?: number }
+  | { event: 'kick';          memberId: string }
   | { event: 'host_left' }
   | { event: 'ping' }
   | { event: 'pong' };
+

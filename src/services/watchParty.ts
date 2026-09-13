@@ -6,6 +6,8 @@ import type {
   PartyMediaInfo,
   PlaybackSignal,
   PeerMessage,
+  ControlMode,
+  FloatingReaction,
 } from '../types/party';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -26,6 +28,11 @@ export interface WatchPartyCallbacks {
   onMemberLeft?: (memberId: string, memberName: string) => void;
   onMessage?: (message: PartyMessage) => void;
   onSignal?: (signal: PlaybackSignal, senderName: string, senderId?: string, alertText?: string) => void;
+  onSyncTime?: (currentTime: number, isPlaying: boolean, timestamp: number) => void;
+  onMediaChange?: (mediaInfo: PartyMediaInfo) => void;
+  onControlModeChange?: (mode: ControlMode) => void;
+  onReaction?: (reaction: FloatingReaction) => void;
+  onKicked?: () => void;
   onHostLeft?: () => void;
   onError?: (err: string) => void;
 }
@@ -86,6 +93,7 @@ export class WatchPartyService {
           messages: [],
           mediaInfo,
           createdAt: Date.now(),
+          controlMode: 'all',
         };
         this._startHostHeartbeat();
         this.cbs.onRoomCreated?.(this.room);
@@ -201,8 +209,14 @@ export class WatchPartyService {
   }
 
   /** Broadcast a playback signal (Play / Pause / Seek) and post a warning notification to all room participants */
-  sendSignal(signal: PlaybackSignal, customAlertText?: string) {
-    if (!this.room) return;
+  sendSignal(signal: PlaybackSignal, customAlertText?: string): boolean {
+    if (!this.room) return false;
+
+    // In host_only control mode, guests cannot send play/pause signals
+    if (this.room.controlMode === 'host_only' && !this.isHost) {
+      return false;
+    }
+
     const defaultAlertText =
       signal.type === 'pause'
         ? `⚠️ ${this.myName} meminta MENJEDA film/series yang sedang ditonton bersama`
@@ -240,6 +254,121 @@ export class WatchPartyService {
 
     // Also fire locally so sender UI gets instant feedback
     this.cbs.onSignal?.(signal, this.myName, this.myId, alertText);
+    return true;
+  }
+
+  /** Host: Broadcast playback time heartbeat so guests stay in sync */
+  sendTimeSync(currentTime: number, isPlaying: boolean) {
+    if (!this.room || !this.isHost) return;
+    this._broadcast({
+      event: 'sync_time',
+      currentTime,
+      isPlaying,
+      timestamp: Date.now(),
+    });
+  }
+
+  /** Host: Change movie or TV episode being watched by the whole room */
+  changeMedia(mediaInfo: PartyMediaInfo) {
+    if (!this.room || !this.isHost) return;
+    this.room.mediaInfo = mediaInfo;
+    const payload: PeerMessage = { event: 'media_change', mediaInfo };
+    this._broadcast(payload);
+
+    const epSuffix = mediaInfo.episodeTitle
+      ? ` - ${mediaInfo.seasonNumber ? `S${mediaInfo.seasonNumber}E${mediaInfo.episodeNumber || 1} ` : ''}${mediaInfo.episodeTitle}`
+      : '';
+    const sysMsg: PartyMessage = {
+      id: msgId(),
+      memberId: 'system',
+      memberName: 'System',
+      text: `🎬 Host mengalihkan tayangan ke: ${mediaInfo.mediaTitle}${epSuffix}`,
+      timestamp: Date.now(),
+      type: 'system',
+    };
+    this.room.messages.push(sysMsg);
+    this._broadcast({ event: 'chat', message: sysMsg });
+    this.cbs.onMessage?.(sysMsg);
+    this.cbs.onMediaChange?.(mediaInfo);
+  }
+
+  /** Host: Set room playback control permission (Host only vs Everyone) */
+  setControlMode(mode: ControlMode) {
+    if (!this.room || !this.isHost) return;
+    this.room.controlMode = mode;
+    this._broadcast({ event: 'control_mode', mode });
+
+    const modeText =
+      mode === 'host_only'
+        ? '👑 Mode Kontrol: Hanya Host yang dapat mengontrol pemutaran video'
+        : '👥 Mode Kontrol: Semua anggota bebas mengontrol pemutaran video';
+
+    const sysMsg: PartyMessage = {
+      id: msgId(),
+      memberId: 'system',
+      memberName: 'System',
+      text: modeText,
+      timestamp: Date.now(),
+      type: 'system',
+    };
+    this.room.messages.push(sysMsg);
+    this._broadcast({ event: 'chat', message: sysMsg });
+    this.cbs.onMessage?.(sysMsg);
+    this.cbs.onControlModeChange?.(mode);
+  }
+
+  /** Send a floating emoji reaction to all room members */
+  sendReaction(emoji: string, xOffset?: number) {
+    if (!this.room) return;
+    const reaction: FloatingReaction = {
+      id: msgId(),
+      emoji,
+      senderName: this.myName,
+      timestamp: Date.now(),
+      xOffset: xOffset ?? (Math.random() * 70 + 15),
+    };
+    const payload: PeerMessage = {
+      event: 'reaction',
+      emoji,
+      senderName: this.myName,
+      id: reaction.id,
+      xOffset: reaction.xOffset,
+    };
+    if (this.isHost) {
+      this._broadcast(payload);
+    } else {
+      this._sendToHost(payload);
+    }
+    this.cbs.onReaction?.(reaction);
+    return reaction;
+  }
+
+  /** Host: Kick a member from the room */
+  kickMember(memberId: string) {
+    if (!this.room || !this.isHost || memberId === this.myId) return;
+    const member = this.room.members[memberId];
+    const memberName = member?.name || 'Anggota';
+
+    const conn = this.guestConns.get(memberId);
+    if (conn && conn.open) {
+      try {
+        conn.send({ event: 'kick', memberId } satisfies PeerMessage);
+      } catch {}
+    }
+
+    this._handleGuestDisconnect(memberId);
+
+    const sysMsg: PartyMessage = {
+      id: msgId(),
+      memberId: 'system',
+      memberName: 'System',
+      text: `🚫 ${memberName} telah dikeluarkan dari room oleh Host`,
+      timestamp: Date.now(),
+      type: 'system',
+    };
+    this.room.messages.push(sysMsg);
+    this._broadcast({ event: 'chat', message: sysMsg });
+    this.cbs.onMessage?.(sysMsg);
   }
 
   /** Leave / destroy the party */
@@ -389,6 +518,11 @@ export class WatchPartyService {
         this._broadcastExcept({ event: 'chat', message: msg.message }, conn.peer);
         this.cbs.onMessage?.(msg.message);
       } else if (msg.event === 'signal') {
+        // In host-only control mode, guests cannot control playback
+        if (this.room?.controlMode === 'host_only') {
+          return;
+        }
+
         // Broadcast guest playback signal to all other guests
         this._broadcastExcept(msg, conn.peer);
         // Also publish system announcement to chat transcript so all room members see it
@@ -414,6 +548,17 @@ export class WatchPartyService {
 
         // Fire locally on host
         this.cbs.onSignal?.(msg.signal, msg.senderName, msg.senderId ?? conn.peer, alertText);
+      } else if (msg.event === 'reaction') {
+        // Broadcast reaction to all other guests
+        this._broadcastExcept(msg, conn.peer);
+        // Fire locally on host
+        this.cbs.onReaction?.({
+          id: msg.id,
+          emoji: msg.emoji,
+          senderName: msg.senderName,
+          timestamp: Date.now(),
+          xOffset: msg.xOffset ?? (Math.random() * 70 + 15),
+        });
       } else if (msg.event === 'ping') {
         conn.send({ event: 'pong' } satisfies PeerMessage);
       }
@@ -457,6 +602,36 @@ export class WatchPartyService {
         break;
       case 'signal':
         this.cbs.onSignal?.(msg.signal, msg.senderName, msg.senderId, msg.alertText);
+        break;
+      case 'sync_time':
+        this.cbs.onSyncTime?.(msg.currentTime, msg.isPlaying, msg.timestamp);
+        break;
+      case 'media_change':
+        if (this.room) {
+          this.room.mediaInfo = msg.mediaInfo;
+        }
+        this.cbs.onMediaChange?.(msg.mediaInfo);
+        break;
+      case 'control_mode':
+        if (this.room) {
+          this.room.controlMode = msg.mode;
+        }
+        this.cbs.onControlModeChange?.(msg.mode);
+        break;
+      case 'reaction':
+        this.cbs.onReaction?.({
+          id: msg.id,
+          emoji: msg.emoji,
+          senderName: msg.senderName,
+          timestamp: Date.now(),
+          xOffset: msg.xOffset ?? (Math.random() * 70 + 15),
+        });
+        break;
+      case 'kick':
+        if (msg.memberId === this.myId) {
+          this.leave();
+          this.cbs.onKicked?.();
+        }
         break;
       case 'host_left':
         this.cbs.onHostLeft?.();

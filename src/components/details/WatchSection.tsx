@@ -32,6 +32,7 @@ import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWatchParty } from '../../context/WatchPartyContext';
 import { fetchImdbDetails, getImdbUrl, type ImdbDetails } from '../../services/imdb';
 import {
   fetchTmdbRecommendations,
@@ -83,6 +84,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const isCompleted = Boolean(historyItems.find((h) => h.mediaId === media.id)?.completed);
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
+  const { status: partyStatus, isHost, changeMedia } = useWatchParty();
   const displayTitle = getMediaTitle(media, language);
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(media);
@@ -1120,6 +1122,20 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                     const targetUrl = getMediaWatchUrl(activeMedia.id, ep.id);
                     window.history.replaceState({ type: 'watch', mediaId: activeMedia.id, episodeId: ep.id }, '', targetUrl);
                   } catch {}
+
+                  // Synchronize new episode with all Watch Party participants if user is Host
+                  if (partyStatus === 'connected' && isHost) {
+                    changeMedia({
+                      mediaId: activeMedia.id,
+                      mediaTitle: activeMedia.title,
+                      mediaPoster: activeMedia.poster,
+                      mediaType: activeMedia.type,
+                      episodeId: ep.id,
+                      seasonNumber: ep.seasonNumber,
+                      episodeNumber: ep.episodeNumber,
+                      episodeTitle: ep.title,
+                    });
+                  }
 
                   window.scrollTo({ top: 120, behavior: 'smooth' });
                 }}

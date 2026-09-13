@@ -31,6 +31,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { WatchPartyButton } from '../party/WatchPartyButton';
+import { PartyReactionsOverlay } from '../party/PartyReactionsOverlay';
 import { resolveBestServer } from '../../services/serverResolver';
 
 export type SnapCorner = 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
@@ -214,7 +215,15 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const { updateProgress, continueWatching, historyItems, recordWatch } = useWatchlist();
   const { playClick, playHover } = useSound();
   const { t, language } = useLanguage();
-  const { status: partyStatus, sendSignal: sendPartySignal, latestSignal, isPartyOpen } = useWatchParty();
+  const {
+    status: partyStatus,
+    sendSignal: sendPartySignal,
+    latestSignal,
+    isPartyOpen,
+    isHost,
+    hostTimeSync,
+    sendTimeSync,
+  } = useWatchParty();
   const isRemoteSyncRef = useRef(false);
 
   // Available servers for failover and quick switching
@@ -1377,6 +1386,54 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     return () => clearTimeout(resetTimer);
   }, [latestSignal, partyStatus]);
 
+  // ── Host Periodic Playback Heartbeat (Keeps all guests synchronized) ────────
+  useEffect(() => {
+    if (partyStatus !== 'connected' || !isHost) return;
+
+    const heartbeatInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const currentPos = videoRef.current ? videoRef.current.currentTime : currentTimeRef.current;
+      if (typeof currentPos === 'number' && currentPos > 0) {
+        sendTimeSync(currentPos, isPlaying);
+      }
+    }, 5000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [partyStatus, isHost, isPlaying, sendTimeSync]);
+
+  // ── Guest Periodic Drift Correction (Soft alignment when drift > 3.5s) ─────
+  useEffect(() => {
+    if (partyStatus !== 'connected' || isHost || !hostTimeSync) return;
+
+    const hostPos = hostTimeSync.currentTime;
+    if (typeof hostPos !== 'number' || hostPos <= 0) return;
+
+    const currentPos = videoRef.current ? videoRef.current.currentTime : currentTimeRef.current;
+    const drift = Math.abs(currentPos - hostPos);
+
+    // If drifted by more than 3.5 seconds from host, softly align
+    if (drift > 3.5) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = hostPos;
+        if (hostTimeSync.isPlaying && videoRef.current.paused) {
+          videoRef.current.play().catch(() => {});
+        } else if (!hostTimeSync.isPlaying && !videoRef.current.paused) {
+          videoRef.current.pause();
+        }
+      } else if (iframeRef.current?.contentWindow) {
+        try {
+          iframeRef.current.contentWindow.postMessage({ type: 'seek', time: hostPos }, '*');
+          if (hostTimeSync.isPlaying) {
+            broadcastIframePlay(iframeRef.current.contentWindow);
+          } else {
+            broadcastIframePause(iframeRef.current.contentWindow);
+          }
+        } catch {}
+      }
+      setCurrentTime(hostPos);
+    }
+  }, [hostTimeSync, partyStatus, isHost]);
+
   const handleSkip = (seconds: number) => {
     playClick();
     let newTime = currentTime;
@@ -2381,6 +2438,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           ))}
         </div>
       )}
+
+      {/* Live Floating Watch Party Emoji Reactions Overlay */}
+      <PartyReactionsOverlay />
 
       {/* Bottom Controls Bar (For native HTML5 stream) */}
       {!isEmbedStream && !isMiniPlayer && (

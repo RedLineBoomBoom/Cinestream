@@ -519,21 +519,25 @@ const MainContent: React.FC = () => {
     }
   }, [selectedMedia, language]);
 
-  // Auto-sync guest/participant to room's media if not currently watching it
+  // Auto-sync guest/participant to room's media and episode if not currently watching it
   useEffect(() => {
     if (partyStatus === 'connected' && room?.mediaInfo?.mediaId) {
       const targetId = room.mediaInfo.mediaId;
-      if (!selectedMedia || selectedMedia.id !== targetId) {
+      const targetEpId = room.mediaInfo.episodeId;
+      const isDifferentMedia = !selectedMedia || selectedMedia.id !== targetId;
+      const isDifferentEp = Boolean(targetEpId && resumeEpisodeId !== targetEpId);
+
+      if (isDifferentMedia || isDifferentEp) {
         const found = fullCatalog.find((m) => m.id === targetId) || heroDisplayItems.find((m) => m.id === targetId);
         if (found) {
-          setSelectedMedia(found);
-          window.history.replaceState({ type: 'watch', mediaId: found.id }, '', getMediaWatchUrl(found.id));
+          handleOpenMedia(found, undefined, targetEpId, false);
+          window.history.replaceState({ type: 'watch', mediaId: found.id, episodeId: targetEpId }, '', getMediaWatchUrl(found.id, targetEpId));
         } else if (targetId.startsWith('tmdb-movie-')) {
           const tmdbId = Number(targetId.replace('tmdb-movie-', ''));
           if (tmdbId) {
             fetchFullMediaItem(tmdbId, 'movie').then((m) => {
               if (m) {
-                setSelectedMedia(m);
+                handleOpenMedia(m, undefined, undefined, false);
                 window.history.replaceState({ type: 'watch', mediaId: m.id }, '', getMediaWatchUrl(m.id));
               }
             });
@@ -543,15 +547,15 @@ const MainContent: React.FC = () => {
           if (tmdbId) {
             fetchFullMediaItem(tmdbId, 'tv').then((m) => {
               if (m) {
-                setSelectedMedia(m);
-                window.history.replaceState({ type: 'watch', mediaId: m.id }, '', getMediaWatchUrl(m.id));
+                handleOpenMedia(m, undefined, targetEpId, false);
+                window.history.replaceState({ type: 'watch', mediaId: m.id, episodeId: targetEpId }, '', getMediaWatchUrl(m.id, targetEpId));
               }
             });
           }
         }
       }
     }
-  }, [partyStatus, room?.mediaInfo?.mediaId, selectedMedia, fullCatalog, heroDisplayItems]);
+  }, [partyStatus, room?.mediaInfo?.mediaId, room?.mediaInfo?.episodeId, selectedMedia, resumeEpisodeId, fullCatalog, heroDisplayItems]);
 
   // Listen to browser navigation (back/forward buttons)
   useEffect(() => {
@@ -1119,12 +1123,28 @@ const MainContent: React.FC = () => {
       {isPartyOpen && (
         <WatchPartyModal
           onClose={() => setIsPartyOpen(false)}
-          mediaInfo={selectedMedia ? {
-            mediaId: selectedMedia.id,
-            mediaTitle: selectedMedia.title,
-            mediaPoster: selectedMedia.poster,
-            mediaType: selectedMedia.type,
-          } : undefined}
+          mediaInfo={selectedMedia ? (() => {
+            let activeEp: Episode | undefined;
+            if (selectedMedia.seasons && resumeEpisodeId) {
+              for (const s of selectedMedia.seasons) {
+                const found = s.episodes?.find((e) => e.id === resumeEpisodeId);
+                if (found) {
+                  activeEp = found;
+                  break;
+                }
+              }
+            }
+            return {
+              mediaId: selectedMedia.id,
+              mediaTitle: selectedMedia.title,
+              mediaPoster: selectedMedia.poster,
+              mediaType: selectedMedia.type,
+              episodeId: activeEp?.id || resumeEpisodeId,
+              seasonNumber: activeEp?.seasonNumber,
+              episodeNumber: activeEp?.episodeNumber,
+              episodeTitle: activeEp?.title,
+            };
+          })() : undefined}
           autoJoinCode={autoJoinCode || undefined}
         />
       )}

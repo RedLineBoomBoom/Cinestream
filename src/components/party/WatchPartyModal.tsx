@@ -4,7 +4,7 @@ import {
   Users, X, Copy, Check, Link2, QrCode, LogIn, Plus,
   Send, Crown, WifiOff, Play, Pause,
   AlertCircle, AlertTriangle, Radio, Loader2, Film, Tv, ChevronDown, ChevronUp, Minus,
-  Move, GripHorizontal,
+  Move, GripHorizontal, Share2, RefreshCw, UserMinus, Shield, Smile, MessageSquare, ExternalLink,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
@@ -84,7 +84,10 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const { playClick, playHover } = useSound();
   const {
     status, room, members, messages, myId, isHost, errorMsg,
-    createParty, joinParty, leaveParty, sendChat, sendSignal, clearError,
+    controlMode, hostTimeSync, unreadCount, isMinimized,
+    createParty, joinParty, leaveParty, sendChat, sendSignal,
+    setControlMode, sendReaction, kickMember,
+    clearError, resetUnreadCount, setIsMinimized,
     inviteLink, roomCode,
   } = useWatchParty();
   const { profile } = useUserProfile();
@@ -106,7 +109,8 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [showQr, setShowQr] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [isSyncingWithHost, setIsSyncingWithHost] = useState(false);
   const [membersExpanded, setMembersExpanded] = useState(false);
 
   // Drag and snap corner state
@@ -169,9 +173,10 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
   useEffect(() => {
     if (!isMinimized) {
+      resetUnreadCount();
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isMinimized]);
+  }, [messages, isMinimized, resetUnreadCount]);
 
   useEffect(() => {
     if (!inviteLink) { setQrDataUrl(''); return; }
@@ -244,8 +249,18 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
   const [signalFeedback, setSignalFeedback] = useState<string | null>(null);
 
+  const REACTION_EMOJIS = ['😂', '❤️', '🔥', '😱', '👏', '🍿', '🎉', '🤯'];
+
   const handleSignal = (type: 'play' | 'pause') => {
     playClick();
+
+    // Check control permission
+    if (controlMode === 'host_only' && !isHost) {
+      setSignalFeedback(t('partyHostOnlyNotice'));
+      setTimeout(() => setSignalFeedback(null), 3000);
+      return;
+    }
+
     let currTime: number | undefined = undefined;
     const videoEl = document.querySelector('video') as HTMLVideoElement | null;
     if (videoEl) {
@@ -278,11 +293,104 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             : `▶️ ${displayName} meminta MEMUTAR film/series yang sedang ditonton bersama`);
 
     // Send remote signal via watchPartyService
-    sendSignal({ type, currentTime: currTime, timestamp: Date.now() }, alertText);
+    const sent = sendSignal({ type, currentTime: currTime, timestamp: Date.now() }, alertText);
+    if (!sent) {
+      setSignalFeedback(t('partyHostOnlyNotice'));
+      setTimeout(() => setSignalFeedback(null), 3000);
+      return;
+    }
 
     // Provide instant feedback badge for sender
     setSignalFeedback(type === 'pause' ? t('partyPauseSent') : t('partyPlaySent'));
     setTimeout(() => setSignalFeedback(null), 3000);
+  };
+
+  const handleSyncWithHost = () => {
+    playClick();
+    setIsSyncingWithHost(true);
+
+    if (hostTimeSync && typeof hostTimeSync.currentTime === 'number') {
+      const targetTime = hostTimeSync.currentTime;
+      const targetPlaying = hostTimeSync.isPlaying;
+
+      const videoEl = document.querySelector('video') as HTMLVideoElement | null;
+      if (videoEl) {
+        videoEl.currentTime = targetTime;
+        if (targetPlaying) {
+          videoEl.play().catch(() => {});
+          setIsPlayingLocally(true);
+        } else {
+          videoEl.pause();
+          setIsPlayingLocally(false);
+        }
+      }
+
+      // Also send postMessage seek to iframe embed player
+      const iframe = document.querySelector('iframe') as HTMLIFrameElement | null;
+      if (iframe?.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage({ type: 'seek', time: targetTime }, '*');
+          iframe.contentWindow.postMessage(JSON.stringify({ type: 'seek', time: targetTime }), '*');
+          if (targetPlaying) {
+            iframe.contentWindow.postMessage({ type: 'play' }, '*');
+            iframe.contentWindow.postMessage(JSON.stringify({ type: 'play' }), '*');
+          } else {
+            iframe.contentWindow.postMessage({ type: 'pause' }, '*');
+            iframe.contentWindow.postMessage(JSON.stringify({ type: 'pause' }), '*');
+          }
+        } catch {}
+      }
+
+      setSignalFeedback(t('partySyncSuccess'));
+      setTimeout(() => setSignalFeedback(null), 3000);
+    } else {
+      setSignalFeedback(language === 'en' ? 'Already aligned with host ⏱️' : 'Sudah selaras dengan Host ⏱️');
+      setTimeout(() => setSignalFeedback(null), 2500);
+    }
+
+    setTimeout(() => setIsSyncingWithHost(false), 700);
+  };
+
+  const handleSendReaction = (emoji: string) => {
+    playClick();
+    sendReaction(emoji);
+  };
+
+  const handleKickMember = (memberId: string, memberName: string) => {
+    playClick();
+    if (window.confirm(`${t('partyKickConfirm')}\n\n${memberName}`)) {
+      kickMember(memberId);
+    }
+  };
+
+  const handleShare = async (platform: 'whatsapp' | 'telegram' | 'native') => {
+    playClick();
+    const mediaTitle = room?.mediaInfo?.mediaTitle || 'Film/Series';
+    const epSuffix = room?.mediaInfo?.episodeTitle
+      ? ` (${room.mediaInfo.seasonNumber ? `S${room.mediaInfo.seasonNumber}E${room.mediaInfo.episodeNumber || 1}` : ''})`
+      : '';
+    const shareText = `${t('partyShareText')} "${mediaTitle}${epSuffix}"`;
+
+    if (platform === 'whatsapp') {
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText}\n${inviteLink}`)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else if (platform === 'telegram') {
+      const url = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else if (platform === 'native') {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Watch Party: ${mediaTitle}`,
+            text: shareText,
+            url: inviteLink,
+          });
+        } catch {}
+      } else {
+        handleCopy('link');
+      }
+    }
+    setShowShareMenu(false);
   };
 
   const handleLeave = () => { playClick(); leaveParty(); };
@@ -411,6 +519,12 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
         {isConnected && (
           <span className="flex items-center gap-1 text-[11px] text-violet-200 font-mono">
             • {activeMembers.length}
+          </span>
+        )}
+        {unreadCount > 0 && (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse shadow-md">
+            <MessageSquare className="w-2.5 h-2.5" />
+            {unreadCount}
           </span>
         )}
         <ChevronUp className="w-3.5 h-3.5 opacity-80 ml-0.5" />
@@ -709,6 +823,47 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                 {copied === 'link' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Link2 className="w-3.5 h-3.5" />}
               </button>
 
+              {/* Share dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => { playClick(); setShowShareMenu((p) => !p); }}
+                  className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                    showShareMenu ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'bg-white/[0.04] border-white/[0.06] text-slate-400 hover:text-white'
+                  }`}
+                  title="Bagikan Ruangan"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
+
+                {showShareMenu && (
+                  <div className="absolute right-0 top-full mt-1.5 w-40 py-1.5 bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl z-50 flex flex-col animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      onClick={() => { setShowShareMenu(false); handleShare('whatsapp'); }}
+                      className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/[0.08] text-left transition-colors cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span>{t('partyShareWhatsApp')}</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowShareMenu(false); handleShare('telegram'); }}
+                      className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/[0.08] text-left transition-colors cursor-pointer"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-sky-400" />
+                      <span>{t('partyShareTelegram')}</span>
+                    </button>
+                    {typeof navigator !== 'undefined' && 'share' in navigator && (
+                      <button
+                        onClick={() => { setShowShareMenu(false); handleShare('native'); }}
+                        className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/[0.08] text-left transition-colors cursor-pointer border-t border-white/[0.06] mt-0.5 pt-1.5"
+                      >
+                        <ExternalLink className="w-3 h-3 text-violet-400" />
+                        <span>{language === 'en' ? 'More Options...' : 'Opsi Lainnya...'}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* QR toggle */}
               <button
                 onClick={() => { playClick(); setShowQr((p) => !p); }}
@@ -741,13 +896,33 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             </button>
 
             {membersExpanded ? (
-              <div className="flex flex-wrap gap-1.5 mt-1.5 pb-1 max-h-24 overflow-y-auto">
+              <div className="flex flex-col gap-1.5 mt-2 pb-1 max-h-32 overflow-y-auto pr-1">
                 {activeMembers.map((m) => (
-                  <div key={m.id} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.05]">
-                    <AvatarInitial name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
-                    <span className={`text-[10px] truncate max-w-[100px] ${m.id === myId ? 'text-violet-400 font-semibold' : 'text-slate-300'}`}>
-                      {m.id === myId ? t('partyYou') : m.name}
-                    </span>
+                  <div key={m.id} className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.05]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AvatarInitial name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
+                      <span className={`text-[11px] truncate max-w-[120px] ${m.id === myId ? 'text-violet-300 font-semibold' : 'text-slate-300'}`}>
+                        {m.id === myId ? t('partyYou') : m.name}
+                      </span>
+                      {m.isHost && (
+                        <span className="text-[9px] text-amber-300 bg-amber-400/15 px-1.5 py-0.5 rounded font-bold border border-amber-400/30 flex items-center gap-0.5">
+                          <Crown className="w-2 h-2 text-amber-400" /> Host
+                        </span>
+                      )}
+                    </div>
+
+                    {isHost && m.id !== myId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleKickMember(m.id, m.name);
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all cursor-pointer"
+                        title={`${t('partyKickMember')}: ${m.name}`}
+                      >
+                        <UserMinus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -765,11 +940,51 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
           {/* ── Real-time Playback Sync Controls ────────────── */}
           {isConnected && (
-            <div className="px-3 py-1.5 border-b border-white/[0.05] shrink-0 bg-violet-500/[0.05]">
+            <div className="px-3 py-2 border-b border-white/[0.05] shrink-0 bg-violet-500/[0.05] space-y-1.5">
+              {/* Permission & Mode bar */}
+              <div className="flex items-center justify-between gap-1 text-[9.5px]">
+                <div className="flex items-center gap-1 text-slate-400">
+                  {isHost ? <Crown className="w-3 h-3 text-amber-400" /> : <Users className="w-3 h-3 text-violet-400" />}
+                  <span className="font-semibold uppercase tracking-wider">{t('partySignalLabel')}</span>
+                </div>
+
+                {isHost ? (
+                  <button
+                    onClick={() => {
+                      playClick();
+                      const next = controlMode === 'all' ? 'host_only' : 'all';
+                      setControlMode(next);
+                    }}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold border transition-all cursor-pointer ${
+                      controlMode === 'host_only'
+                        ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                        : 'bg-white/[0.05] border-white/[0.1] text-slate-300 hover:text-white'
+                    }`}
+                    title={t('partyControlMode')}
+                  >
+                    {controlMode === 'host_only' ? (
+                      <>
+                        <Shield className="w-2.5 h-2.5 text-amber-400" />
+                        <span>{t('partyHostOnlyMode')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-2.5 h-2.5 text-violet-400" />
+                        <span>{t('partyAllMode')}</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                    controlMode === 'host_only' ? 'text-amber-400 bg-amber-400/10' : 'text-slate-400'
+                  }`}>
+                    {controlMode === 'host_only' ? `👑 ${t('partyHostOnlyMode')}` : `👥 ${t('partyAllMode')}`}
+                  </span>
+                )}
+              </div>
+
+              {/* Action buttons: Play, Pause, Sync with Host */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] text-violet-400 font-semibold uppercase tracking-wider flex items-center gap-1 shrink-0" title={t('partyPlaySignal')}>
-                  {isHost ? <Crown className="w-2.5 h-2.5 text-amber-400" /> : <Users className="w-2.5 h-2.5 text-violet-400" />} {t('partySignalLabel')}
-                </span>
                 <button
                   onClick={() => handleSignal('play')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95 ${
@@ -783,6 +998,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                   <span>Play</span>
                   {isPlayingLocally && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 </button>
+
                 <button
                   onClick={() => handleSignal('pause')}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer shadow-sm active:scale-95 ${
@@ -796,10 +1012,23 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                   <span>Pause</span>
                   {!isPlayingLocally && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
                 </button>
+
+                {!isHost && (
+                  <button
+                    onClick={handleSyncWithHost}
+                    disabled={isSyncingWithHost}
+                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/40 text-violet-200 transition-all active:scale-95 shadow-sm cursor-pointer disabled:opacity-50"
+                    title={t('partySyncWithHost')}
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isSyncingWithHost ? 'animate-spin text-amber-300' : ''}`} />
+                    <span className="hidden xs:inline">{t('partySyncWithHost')}</span>
+                    <span className="xs:hidden">Sync</span>
+                  </button>
+                )}
               </div>
 
               {signalFeedback && (
-                <div className="flex items-center justify-center gap-1.5 mt-1 py-0.5 text-[9px] text-violet-300 font-medium">
+                <div className="flex items-center justify-center gap-1.5 py-0.5 text-[9px] text-violet-300 font-medium animate-in fade-in duration-150">
                   <Radio className="w-2.5 h-2.5 text-violet-400 animate-pulse shrink-0" />
                   <span>{signalFeedback}</span>
                 </div>
@@ -875,6 +1104,25 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             <div ref={messagesEndRef} />
           </div>
 
+          {/* ── Quick Emoji Reactions Bar ───────────────────── */}
+          <div className="px-3 py-1.5 bg-white/[0.02] border-t border-white/[0.04] flex items-center justify-between gap-1 shrink-0 overflow-x-auto no-scrollbar">
+            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <Smile className="w-3 h-3 text-slate-400" />
+            </span>
+            <div className="flex items-center gap-1 flex-1 justify-around">
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleSendReaction(emoji)}
+                  className="p-1 text-sm hover:scale-125 active:scale-95 transition-transform cursor-pointer rounded-lg hover:bg-white/[0.08]"
+                  title={`${t('partyReactions')} ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* ── Chat input ──────────────────────────────────── */}
           <div className="px-2.5 py-2 border-t border-white/[0.06] flex items-center gap-1.5 shrink-0 bg-white/[0.01]">
             <input
@@ -917,11 +1165,21 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
       ═════════════════════════════════════════════════════ */}
       {status === 'disconnected' && (
         <div className="flex flex-col items-center justify-center flex-1 py-8 px-4 text-center gap-3">
-          <WifiOff className="w-7 h-7 text-slate-600" />
+          {errorMsg === 'kicked_by_host' ? (
+            <UserMinus className="w-8 h-8 text-rose-500" />
+          ) : (
+            <WifiOff className="w-7 h-7 text-slate-600" />
+          )}
           <div>
-            <p className="text-xs font-semibold text-white mb-0.5">{t('partyDisconnected')}</p>
+            <p className="text-xs font-semibold text-white mb-0.5">
+              {errorMsg === 'kicked_by_host' ? t('partyKickedByHost') : t('partyDisconnected')}
+            </p>
             <p className="text-[10px] text-slate-500">
-              {errorMsg === 'host_left' ? t('partyHostLeft') : t('partyDisconnectedDesc')}
+              {errorMsg === 'kicked_by_host'
+                ? (language === 'en' ? 'You have been removed from the room by the host.' : 'Anda telah dikeluarkan dari ruang nonton bersama oleh host.')
+                : errorMsg === 'host_left'
+                  ? t('partyHostLeft')
+                  : t('partyDisconnectedDesc')}
             </p>
           </div>
           <button
