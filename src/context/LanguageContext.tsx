@@ -352,6 +352,12 @@ export const translations = {
     episodeNavigation: 'Navigasi Episode',
     currentEpisodeBadge: 'Episode Saat Ini',
     allEpisodesLabel: 'Semua Episode',
+    autoNextEpisodeLabel: 'Putar Otomatis',
+    autoNextEpisodeOn: 'Putar Otomatis: Aktif',
+    autoNextEpisodeOff: 'Putar Otomatis: Nonaktif',
+    autoNextEpisodeTooltip: 'Nyalakan atau matikan putar otomatis episode berikutnya',
+    autoNextToastOn: 'Putar otomatis episode berikutnya diaktifkan ⚡',
+    autoNextToastOff: 'Putar otomatis episode berikutnya dinonaktifkan ⏸️',
 
     // Footer
     footerDesc: 'Platform penayangan sinema digital dengan kurasi terdepan, menyajikan karya film layar lebar, seri televisi pemenang penghargaan, drama Asia, dan animasi terpilih dalam resolusi tinggi.',
@@ -709,6 +715,12 @@ export const translations = {
     episodeNavigation: 'Episode Navigation',
     currentEpisodeBadge: 'Current Episode',
     allEpisodesLabel: 'All Episodes',
+    autoNextEpisodeLabel: 'Autoplay Next',
+    autoNextEpisodeOn: 'Autoplay Next: ON',
+    autoNextEpisodeOff: 'Autoplay Next: OFF',
+    autoNextEpisodeTooltip: 'Toggle autoplay next episode on or off',
+    autoNextToastOn: 'Autoplay next episode enabled ⚡',
+    autoNextToastOff: 'Autoplay next episode disabled ⏸️',
 
     // Footer
     footerDesc: 'World-class curated digital cinema platform, featuring blockbuster films, award-winning television series, Asian dramas, and select animation in high definition.',

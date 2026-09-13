@@ -303,6 +303,26 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     }
   }, [prevEpisode, playClick, handleSelectEpisode]);
 
+  // Auto Next Episode Preference State (persisted in localStorage)
+  const [isAutoNext, setIsAutoNext] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('cinestream_auto_next_episode');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true; // Default ON
+  });
+
+  const toggleAutoNext = React.useCallback(() => {
+    playClick();
+    setIsAutoNext((prev) => {
+      const nextVal = !prev;
+      try {
+        localStorage.setItem('cinestream_auto_next_episode', String(nextVal));
+      } catch {}
+      return nextVal;
+    });
+  }, [playClick]);
+
   // Synchronize target episode and server when resumeEpisodeId or media changes
   useEffect(() => {
     if (activeMedia.type === 'movie') {
@@ -893,30 +913,53 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               onPrevEpisode={handlePrevEpisode}
               nextEpisode={nextEpisode}
               prevEpisode={prevEpisode}
+              isAutoNext={isAutoNext}
+              onToggleAutoNext={toggleAutoNext}
             />
           </div>
 
           {/* Series Quick Episode Navigation Bar */}
           {!isMiniPlayer && !isFullscreen && activeMedia.type !== 'movie' && currentEpisode && (
-            <div className="flex items-center justify-between gap-2.5 p-3 sm:p-4 rounded-2xl bg-cinema-900/70 border border-white/[0.08] backdrop-blur-xl shadow-lg">
-              {/* Previous Episode Button */}
-              <button
-                onClick={handlePrevEpisode}
-                disabled={!prevEpisode}
-                onMouseEnter={playHover}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                  prevEpisode
-                    ? 'bg-white/5 hover:bg-white/15 text-slate-200 hover:text-brand-champagne border border-white/10 hover:border-brand-gold/40 shadow-sm active:scale-95'
-                    : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
-                }`}
-                title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
-              >
-                <SkipBack className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {prevEpisode ? `S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
-                </span>
-                <span className="sm:hidden">{t('prevEpisodeShort')}</span>
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 sm:p-4 rounded-2xl bg-cinema-900/70 border border-white/[0.08] backdrop-blur-xl shadow-lg">
+              {/* Left Controls Group: Prev Button & Auto-Next Toggle */}
+              <div className="flex items-center gap-2">
+                {/* Previous Episode Button */}
+                <button
+                  onClick={handlePrevEpisode}
+                  disabled={!prevEpisode}
+                  onMouseEnter={playHover}
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                    prevEpisode
+                      ? 'bg-white/5 hover:bg-white/15 text-slate-200 hover:text-brand-champagne border border-white/10 hover:border-brand-gold/40 shadow-sm active:scale-95'
+                      : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
+                  }`}
+                  title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
+                >
+                  <SkipBack className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {prevEpisode ? `S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
+                  </span>
+                  <span className="sm:hidden">{t('prevEpisodeShort')}</span>
+                </button>
+
+                {/* Auto Next Toggle Button */}
+                <button
+                  onClick={toggleAutoNext}
+                  onMouseEnter={playHover}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                    isAutoNext
+                      ? 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300 shadow-sm'
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-slate-200'
+                  }`}
+                  title={t('autoNextEpisodeTooltip')}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
+                  <span className="font-sans hidden md:inline">{t('autoNextEpisodeLabel')}:</span>
+                  <span className={`font-mono font-bold text-[11px] ${isAutoNext ? 'text-amber-300' : 'text-slate-400'}`}>
+                    {isAutoNext ? 'ON' : 'OFF'}
+                  </span>
+                </button>
+              </div>
 
               {/* Current Episode Info Badge & Drawer/Tab Launcher */}
               <button

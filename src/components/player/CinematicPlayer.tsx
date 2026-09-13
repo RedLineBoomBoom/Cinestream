@@ -60,6 +60,8 @@ interface CinematicPlayerProps {
   onPrevEpisode?: () => void;
   nextEpisode?: Episode;
   prevEpisode?: Episode;
+  isAutoNext?: boolean;
+  onToggleAutoNext?: () => void;
 }
 
 export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string {
@@ -216,6 +218,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   onPrevEpisode,
   nextEpisode,
   prevEpisode,
+  isAutoNext: propIsAutoNext,
+  onToggleAutoNext: propOnToggleAutoNext,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -225,6 +229,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const { updateProgress, continueWatching, historyItems, recordWatch } = useWatchlist();
   const { playClick, playHover } = useSound();
   const { t, language } = useLanguage();
+
+  // Auto Next Episode Preference State (persisted in localStorage)
+  const [localIsAutoNext, setLocalIsAutoNext] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('cinestream_auto_next_episode');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true; // Default ON
+  });
+
+  const isAutoNext = propIsAutoNext !== undefined ? propIsAutoNext : localIsAutoNext;
 
   // Next Episode Auto-Prompt and Countdown State
   const [showNextPrompt, setShowNextPrompt] = useState(false);
@@ -247,6 +262,29 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       countdownIntervalRef.current = null;
     }
   }, []);
+
+  const toggleAutoNext = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    playClick();
+    if (isAutoNext) {
+      // If turning off while countdown is running, immediately cancel the timer
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }
+    if (propOnToggleAutoNext) {
+      propOnToggleAutoNext();
+    } else {
+      setLocalIsAutoNext((prev) => {
+        const nextVal = !prev;
+        try {
+          localStorage.setItem('cinestream_auto_next_episode', String(nextVal));
+        } catch {}
+        return nextVal;
+      });
+    }
+  }, [isAutoNext, propOnToggleAutoNext, playClick]);
 
   const triggerNextEpisode = useCallback(() => {
     cancelNextCountdown();
@@ -1915,21 +1953,30 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     // Auto-prompt countdown for series next episode
     if (nextEpisode && onNextEpisode) {
-      setNextCountdown(8);
       setShowNextPrompt(true);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = setInterval(() => {
-        setNextCountdown((prev) => {
-          if (prev <= 1) {
-            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-            setShowNextPrompt(false);
-            onNextEpisode();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+
+      if (isAutoNext) {
+        setNextCountdown(8);
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = setInterval(() => {
+          setNextCountdown((prev) => {
+            if (prev <= 1) {
+              if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+              setShowNextPrompt(false);
+              onNextEpisode();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        // Auto countdown disabled: keep card visible without timer
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+      }
     }
   };
 
@@ -2233,6 +2280,21 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                       title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
                     >
                       <SkipForward className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Auto Next Toggle */}
+                    <button
+                      onClick={toggleAutoNext}
+                      onMouseEnter={playHover}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono border transition-all cursor-pointer ${
+                        isAutoNext
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-black/40 text-slate-400 border-white/10 hover:text-slate-200'
+                      }`}
+                      title={`${t('autoNextEpisodeTooltip')} (${isAutoNext ? 'ON' : 'OFF'})`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
+                      <span>Auto: {isAutoNext ? 'ON' : 'OFF'}</span>
                     </button>
                   </div>
                 )}
@@ -2693,6 +2755,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                 </button>
               )}
 
+              {/* Auto-Next Episode Toggle (Series Only) */}
+              {media.type !== 'movie' && (
+                <button
+                  onClick={toggleAutoNext}
+                  onMouseEnter={playHover}
+                  className={`px-2 py-1 rounded-md transition-all hidden sm:flex items-center gap-1.5 text-[10px] font-mono border cursor-pointer ${
+                    isAutoNext
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 shadow-sm'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
+                  }`}
+                  title={`${t('autoNextEpisodeTooltip')} (${isAutoNext ? 'ON' : 'OFF'})`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
+                  <span className="font-semibold">AUTO</span>
+                </button>
+              )}
+
               <button
                 onClick={() => handleSkip(-10)}
                 onMouseEnter={playHover}
@@ -2855,9 +2934,31 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             </button>
           </div>
 
-          <p className="text-xs text-slate-300 mb-3 font-light">
-            {t('autoNextEpisodePrompt')} <span className="font-mono text-brand-gold font-bold">{nextCountdown}s</span>...
-          </p>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            {isAutoNext ? (
+              <p className="text-xs text-slate-300 font-light">
+                {t('autoNextEpisodePrompt')} <span className="font-mono text-brand-gold font-bold">{nextCountdown}s</span>...
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 font-light">
+                {language === 'en' ? 'Autoplay is paused' : 'Putar otomatis dinonaktifkan'}
+              </p>
+            )}
+
+            {/* Quick Toggle Inside Prompt */}
+            <button
+              onClick={toggleAutoNext}
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono border transition-all cursor-pointer ${
+                isAutoNext
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200'
+              }`}
+              title={t('autoNextEpisodeTooltip')}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
+              <span>Auto: {isAutoNext ? 'ON' : 'OFF'}</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
