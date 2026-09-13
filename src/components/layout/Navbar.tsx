@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
           </div>
 
-          <span className="font-display font-black text-2xl sm:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
+          <span className="font-display font-black text-xl sm:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
             CINESTREAM
           </span>
         </a>
@@ -138,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Quick Search */}
           <button
             onClick={() => {
@@ -146,7 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onOpenSearch();
             }}
             onMouseEnter={playHover}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs"
+            aria-label={t('searchQuick')}
+            className="flex items-center justify-center gap-2 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs"
           >
             <Search className="w-3.5 h-3.5 text-white" />
             <span className="hidden sm:inline font-normal text-slate-200">{t('searchQuick')}</span>
@@ -163,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             onMouseEnter={playHover}
             aria-label={t('switchLang')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group"
+            className="flex items-center justify-center gap-1 sm:gap-1.5 h-8 px-2 sm:px-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group"
             title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
           >
             <Globe className="w-3.5 h-3.5 text-white/90 group-hover:rotate-12 transition-transform duration-300" />
@@ -207,9 +208,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="lg:hidden p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors"
+            aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
       </div>

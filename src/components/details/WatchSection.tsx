@@ -1297,7 +1297,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
           </div>
 
           {/* Navigation Tabs */}
-          <div id="watch-section-tabs" className="flex items-center gap-2 border-b border-white/[0.08] pb-3 overflow-x-auto no-scrollbar">
+          <div id="watch-section-tabs" className="flex items-center gap-1.5 sm:gap-2 border-b border-white/[0.08] pb-3 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0 scroll-smooth">
             {media.seasons && media.seasons.length > 0 && (
               <button
                 onClick={() => {
@@ -1305,7 +1305,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   setActiveTab('episodes');
                 }}
                 onMouseEnter={playHover}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all shrink-0 whitespace-nowrap ${
                   activeTab === 'episodes'
                     ? 'bg-[#E50914] text-white shadow-glow-red'
                     : 'text-slate-400 hover:text-white bg-white/[0.04]'
@@ -1322,7 +1322,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 setActiveTab('info');
               }}
               onMouseEnter={playHover}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all shrink-0 whitespace-nowrap ${
                 activeTab === 'info'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white bg-white/[0.04]'
@@ -1338,7 +1338,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 setActiveTab('trailer');
               }}
               onMouseEnter={playHover}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all shrink-0 whitespace-nowrap ${
                 activeTab === 'trailer'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white bg-white/[0.04]'
@@ -1354,7 +1354,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 setActiveTab('reviews');
               }}
               onMouseEnter={playHover}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all shrink-0 whitespace-nowrap ${
                 activeTab === 'reviews'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white bg-white/[0.04]'

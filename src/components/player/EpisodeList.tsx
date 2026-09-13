@@ -81,18 +81,18 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   });
 
   return (
-    <div className="bg-cinema-900/70 border border-white/[0.06] rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+    <div className="bg-cinema-900/70 border border-white/[0.06] rounded-2xl p-3 sm:p-6 backdrop-blur-xl">
       {/* Header & Season Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-white/[0.05]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 sm:pb-4 border-b border-white/[0.05]">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-brand-gold/10 text-brand-champagne">
+          <div className="p-2 rounded-lg bg-brand-gold/10 text-brand-champagne shrink-0">
             <Tv className="w-4 h-4" />
           </div>
           <div>
             <h4 className="font-display font-medium text-white text-xs sm:text-sm tracking-wider uppercase">
               {t('episodeListTitle')}
             </h4>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 mt-1">
               <p className="text-[11px] text-slate-400 font-light">
                 {language === 'en'
                   ? `${currentSeason.episodes.length} Episodes available this season`
@@ -101,18 +101,18 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
               {seriesStatus && (
                 seriesStatus.completedSeasonsLabel && seriesStatus.ongoingSeasonLabel ? (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm">
+                    <span className="text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm whitespace-nowrap">
                       <span className="text-[9px] leading-none">✓</span>
                       <span>{seriesStatus.completedSeasonsLabel}</span>
                     </span>
-                    <span className="text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm">
+                    <span className="text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm whitespace-nowrap">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                       <span>{seriesStatus.ongoingSeasonLabel}</span>
                     </span>
                   </div>
                 ) : (
                   <span
-                    className={`text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 ${seriesStatus.badgeClass}`}
+                    className={`text-[8.5px] uppercase font-sans tracking-wider px-2 py-0.5 rounded font-semibold border flex items-center gap-1 whitespace-nowrap ${seriesStatus.badgeClass}`}
                   >
                     {seriesStatus.isOngoing ? (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -129,7 +129,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
         {/* Season Pill Buttons with Complete / On Going Indicators */}
         {seasons.length > 1 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 sm:mx-0 sm:px-0 scroll-smooth">
             {seasons.map((season, idx) => {
               const sNum = season.seasonNumber;
               const isThisSeasonOngoing = Boolean(
@@ -146,7 +146,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                     setSelectedSeasonIdx(idx);
                   }}
                   onMouseEnter={playHover}
-                  className={`px-3 py-1.5 rounded-full text-xs transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap ${
                     isSelected
                       ? 'bg-[#E50914] text-white font-bold shadow-glow-red'
                       : 'bg-white/[0.04] text-slate-300 hover:text-white border border-white/[0.06]'
@@ -199,14 +199,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 });
               }}
               onMouseEnter={playHover}
-              className={`group flex items-center gap-3.5 p-2.5 rounded-xl cursor-pointer border transition-all duration-300 no-underline block ${
+              className={`group flex items-start sm:items-center gap-2.5 sm:gap-3.5 p-2 sm:p-2.5 rounded-xl cursor-pointer border transition-all duration-300 no-underline block ${
                 isCurrent
                   ? 'bg-brand-gold/10 border-brand-gold/40 shadow-glow-gold'
                   : 'bg-white/[0.02] border-white/[0.04] hover:bg-white/[0.05] hover:border-white/10'
               }`}
             >
               {/* Thumbnail */}
-              <div className="relative w-28 h-18 sm:w-32 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850">
+              <div className="relative w-24 h-16 sm:w-32 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850">
                 <img
                   src={ep.thumbnail}
                   alt={ep.title}
@@ -219,25 +219,25 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                   }`}
                 >
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center ${
                       isCurrent ? 'bg-[#E50914] text-white shadow-md' : 'bg-white/90 text-black'
                     }`}
                   >
-                    <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+                    <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5 fill-current" />
                   </div>
                 </div>
 
-                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[9px] text-slate-300 font-mono flex items-center gap-1">
+                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[8.5px] sm:text-[9px] text-slate-300 font-mono flex items-center gap-1">
                   <Clock className="w-2.5 h-2.5 text-slate-400" />
                   {ep.duration}
                 </div>
               </div>
 
               {/* Episode Info */}
-              <div className="flex-1 min-w-0 pr-1">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-sans font-medium tracking-[0.18em] uppercase text-brand-champagne">
+              <div className="flex-1 min-w-0 pr-0.5 sm:pr-1">
+                <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider uppercase text-brand-champagne whitespace-nowrap">
                       {t('episode')} {ep.episodeNumber}
                     </span>
                     {mediaId && (
@@ -255,16 +255,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                             window.open(url, '_blank', 'noopener,noreferrer');
                           }
                         }}
-                        className="px-2 py-0.5 rounded-full bg-white/[0.05] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/40 text-[10px] font-medium transition-all flex items-center gap-1 cursor-pointer"
+                        className="px-1.5 py-0.5 rounded-full bg-white/[0.05] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/40 text-[9px] font-medium transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
                         title={t('openInFullTabTooltip')}
                       >
-                        <ExternalLink className="w-2.5 h-2.5 text-amber-300" />
+                        <ExternalLink className="w-2.5 h-2.5 text-amber-300 shrink-0" />
                         <span>{language === 'en' ? 'Full Tab ↗' : 'Tab Penuh ↗'}</span>
                       </button>
                     )}
                   </div>
                   {isCurrent && (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E50914] text-white font-bold uppercase tracking-wider shadow-sm">
+                    <span className="text-[8.5px] sm:text-[9px] px-2 py-0.5 rounded-full bg-[#E50914] text-white font-bold uppercase tracking-wider shadow-sm shrink-0 whitespace-nowrap">
                       {t('nowPlaying')}
                     </span>
                   )}
@@ -278,7 +278,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                   {ep.title}
                 </h5>
 
-                <p className="text-[11px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed">
+                <p className="text-[10.5px] sm:text-[11px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed">
                   {ep.synopsis}
                 </p>
               </div>

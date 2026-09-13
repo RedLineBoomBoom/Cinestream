@@ -348,22 +348,22 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   };
 
   return (
-    <section className="relative w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 py-8 sm:py-12 z-20">
+    <section className="relative w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-8 lg:px-12 3xl:px-16 py-5 sm:py-12 z-20">
       {/* Background Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#E50914]/5 blur-[120px] pointer-events-none -z-10" />
 
       {/* Main Search Bar Card */}
-      <div className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl shadow-black">
+      <div className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black">
         <div className="max-w-3xl mx-auto flex flex-col items-center">
           {/* Multi-Database Connected Indicator */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] sm:text-[11px] font-mono tracking-widest uppercase text-neutral-300">
               {t('multiDatabaseConnected')}
             </span>
           </div>
 
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-display font-black text-white text-center mb-6 tracking-wider uppercase">
+          <h3 className="text-lg sm:text-2xl md:text-3xl font-display font-black text-white text-center mb-4 sm:mb-6 tracking-wider uppercase">
             {language === 'en'
               ? 'Discover Global Cinema, Series & Anime'
               : 'Eksplorasi Sinema Dunia, Serial & Anime'}
@@ -371,11 +371,11 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
           {/* Input Box */}
           <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-neutral-400">
+            <div className="absolute inset-y-0 left-0 pl-3.5 sm:pl-5 flex items-center pointer-events-none text-neutral-400">
               {isSearching ? (
-                <Loader2 className="w-5 h-5 text-[#E50914] animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#E50914] animate-spin" />
               ) : (
-                <Search className="w-5 h-5 text-neutral-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-400" />
               )}
             </div>
 
@@ -391,26 +391,26 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                     : 'Cari anime berdasarkan judul Romaji atau Jepang (Frieren, Kimetsu)...'
                   : t('searchPlaceholderMulti')
               }
-              className="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl bg-[#141414] border border-white/15 text-white placeholder:text-neutral-500 text-sm sm:text-base focus:outline-none focus:border-[#E50914] focus:ring-2 focus:ring-[#E50914]/20 shadow-inner font-light transition-all"
+              className="w-full pl-10 sm:pl-14 pr-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#141414] border border-white/15 text-white placeholder:text-neutral-500 text-xs sm:text-base focus:outline-none focus:border-[#E50914] focus:ring-2 focus:ring-[#E50914]/20 shadow-inner font-light transition-all"
             />
 
             {query && (
               <button
                 onClick={handleClearQuery}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-white transition-colors"
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-white transition-colors"
                 title={language === 'en' ? 'Clear search' : 'Hapus pencarian'}
                 aria-label={language === 'en' ? 'Clear search' : 'Hapus pencarian'}
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-4 flex-wrap">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-3.5 sm:mt-4 flex-wrap">
             <button
               onClick={() => handleSelectFilter('all')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
                 activeFilter === 'all'
                   ? 'bg-white text-black border-white font-bold shadow-md'
                   : 'bg-white/[0.06] text-neutral-300 border-white/[0.08] hover:bg-white/15 hover:text-white'
@@ -422,7 +422,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
             <button
               onClick={() => handleSelectFilter('movie')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
                 activeFilter === 'movie'
                   ? 'bg-[#E50914] text-white border-[#E50914] font-bold shadow-glow-red'
                   : 'bg-white/[0.06] text-neutral-300 border-white/[0.08] hover:bg-white/15 hover:text-white'
@@ -434,7 +434,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
             <button
               onClick={() => handleSelectFilter('tv')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
                 activeFilter === 'tv'
                   ? 'bg-[#E50914] text-white border-[#E50914] font-bold shadow-glow-red'
                   : 'bg-white/[0.06] text-neutral-300 border-white/[0.08] hover:bg-white/15 hover:text-white'
@@ -446,7 +446,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
             <button
               onClick={() => handleSelectFilter('anime')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border cursor-pointer ${
                 activeFilter === 'anime'
                   ? 'bg-fuchsia-600 text-white border-fuchsia-600 font-bold shadow-md'
                   : 'bg-white/[0.06] text-neutral-300 border-white/[0.08] hover:bg-white/15 hover:text-white'
@@ -458,17 +458,17 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
           </div>
 
           {/* Trending suggestions tags */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-4">
-            <span className="text-[11px] text-neutral-400 font-light flex items-center gap-1 mr-1">
-              <Sparkles className="w-3 h-3 text-[#E50914]" />
-              {language === 'en' ? 'Trending:' : 'Populer:'}
+          <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 mt-3.5 sm:mt-4 overflow-x-auto no-scrollbar w-full max-w-full pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 scroll-smooth">
+            <span className="text-[10px] sm:text-[11px] text-neutral-400 font-light flex items-center gap-1 mr-1 shrink-0">
+              <Sparkles className="w-3 h-3 text-[#E50914] shrink-0" />
+              <span>{language === 'en' ? 'Trending:' : 'Populer:'}</span>
             </span>
             {POPULAR_SUGGESTIONS.map((tag) => (
               <button
                 key={tag}
                 onClick={() => handleSuggestionClick(tag)}
                 onMouseEnter={playHover}
-                className="px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-[#E50914]/20 text-neutral-300 hover:text-white border border-white/[0.08] hover:border-[#E50914]/40 text-[11px] font-sans transition-all cursor-pointer"
+                className="px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-[#E50914]/20 text-neutral-300 hover:text-white border border-white/[0.08] hover:border-[#E50914]/40 text-[10.5px] sm:text-[11px] font-sans transition-all cursor-pointer shrink-0 whitespace-nowrap"
               >
                 {tag}
               </button>

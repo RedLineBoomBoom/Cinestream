@@ -1166,14 +1166,19 @@ const MainContent: React.FC = () => {
         <button
           onClick={() => { playClick(); setAutoJoinCode(''); setIsPartyOpen(true); }}
           onMouseEnter={playHover}
-          className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 ${
+          className={`fixed bottom-20 sm:bottom-6 right-3.5 sm:right-6 z-50 flex items-center justify-center sm:justify-start gap-2 w-11 h-11 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-full sm:rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 ${
             partyStatus === 'connected'
               ? 'bg-violet-500 text-white border-violet-400/60 shadow-violet-500/40 animate-pulse-slow'
               : 'bg-cinema-900/95 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 border-violet-500/25 hover:border-violet-500/50 backdrop-blur-xl'
           } ${isTheaterMode ? 'opacity-20 blur-[1px] hover:opacity-100 hover:blur-none' : ''}`}
           title="Watch Party — Nonton bareng teman"
         >
-          <Users className={`w-4 h-4 ${partyStatus === 'connected' ? 'fill-white/20' : ''}`} />
+          <div className="relative flex items-center justify-center">
+            <Users className={`w-4 h-4 ${partyStatus === 'connected' ? 'fill-white/20' : ''}`} />
+            {partyStatus === 'connected' && (
+              <span className="sm:hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </div>
           <span className="hidden sm:inline">Watch Party</span>
         </button>
       )}
