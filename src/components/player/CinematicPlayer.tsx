@@ -127,10 +127,21 @@ export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en', autoPlay
 }
 
 export const getCreditLeadTime = (totalDur: number): number => {
-  if (totalDur >= 1800) return 180; // 3 minutes for >= 30m episodes
-  if (totalDur >= 900) return 150;  // 2.5 minutes for 15-30m episodes (anime/sitcoms)
-  if (totalDur >= 300) return 75;   // 1m 15s for 5-15m episodes
-  return Math.max(15, Math.min(45, Math.floor(totalDur * 0.15)));
+  try {
+    const saved = localStorage.getItem('cinestream_credit_lead_time');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (parsed >= 15 && parsed <= 180) {
+        return Math.min(parsed, Math.floor(totalDur * 0.25));
+      }
+    }
+  } catch {}
+
+  // Calibrated to appear precisely when end credits roll (not minutes before during the climax/story!)
+  if (totalDur >= 1800) return 55; // 55s for >= 30m episodes (matches actual end credits timing)
+  if (totalDur >= 900) return 45;  // 45s for 15-30m episodes
+  if (totalDur >= 300) return 25;   // 25s for 5-15m episodes
+  return Math.max(10, Math.min(20, Math.floor(totalDur * 0.08)));
 };
 
 export const isNearEndOrCredits = (time: number, totalDur: number): boolean => {
@@ -942,7 +953,16 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   }, [currentEpisode?.id, autoPlay]);
 
   const handleEpisodeEnded = useCallback((isExplicitEnded = false, force = false) => {
-    if (hasTriggeredEndRef.current) return;
+    if (hasTriggeredEndRef.current) {
+      if (isExplicitEnded) {
+        // Video file actually finished playing (e.g. after watching full credits to completion)
+        setShowNextPrompt(false);
+        if (isAutoNextRef.current && nextEpisodeRef.current && onNextEpisodeRef.current) {
+          onNextEpisodeRef.current();
+        }
+      }
+      return;
+    }
 
     // Must have actually had playback in this session, unless explicitly forced by seek/user action
     if (!hasPlayedThisSession.current && !isExplicitEnded && !force) return;
