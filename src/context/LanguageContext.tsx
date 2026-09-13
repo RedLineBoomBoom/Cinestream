@@ -49,6 +49,10 @@ export const translations = {
     emptyWatchedDesc: 'Tandai film atau serial sebagai selesai dari halaman Riwayat Tonton atau saat menonton.',
     markAsUnwatched: 'Tandai Belum Selesai',
     watchedOn: 'Ditonton pada',
+    watchedEpisodesDropdown: 'Episode Selesai',
+    unmarkAllEpisodes: 'Tandai Semua Belum Selesai',
+    playLatestEpisode: 'Putar Episode Terakhir',
+    episodesWatched: 'Episode Ditonton',
 
     // Watch Party
     partyTitle: 'Watch Party',
@@ -413,6 +417,10 @@ export const translations = {
     emptyWatchedDesc: 'Mark movies or series as watched from your Watch History or while playing.',
     markAsUnwatched: 'Mark as In Progress',
     watchedOn: 'Watched on',
+    watchedEpisodesDropdown: 'Completed Episodes',
+    unmarkAllEpisodes: 'Mark All as In Progress',
+    playLatestEpisode: 'Play Latest Episode',
+    episodesWatched: 'Episodes Watched',
 
     // Watch Party
     partyTitle: 'Watch Party',
