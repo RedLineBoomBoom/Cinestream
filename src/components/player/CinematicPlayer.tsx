@@ -278,6 +278,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   // Next Episode Auto-Prompt and Countdown State
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [nextCountdown, setNextCountdown] = useState(8);
+  const [nextThumbError, setNextThumbError] = useState(false);
+
+  useEffect(() => {
+    setNextThumbError(false);
+  }, [nextEpisode?.id]);
 
   const cancelNextCountdown = useCallback(() => {
     setShowNextPrompt(false);
@@ -3279,74 +3284,181 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         </div>
       )}
 
-      {/* Floating Auto-Next Episode Prompt Card (Series Only) */}
+      {/* Floating Auto-Next Episode Prompt Card (Series Only) - Fully Responsive for Mobile, Tablet, & Desktop */}
       {showNextPrompt && nextEpisode && (
-        <div className={`absolute ${isMiniPlayer ? 'bottom-2 right-2 p-2.5 max-w-[240px]' : 'bottom-16 sm:bottom-20 right-4 sm:right-6 p-4 max-w-sm'} z-[60] animate-in fade-in slide-in-from-bottom-5 duration-300 bg-cinema-950/95 border border-brand-gold/40 backdrop-blur-xl rounded-2xl shadow-2xl w-auto text-left pointer-events-auto`}>
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center text-brand-gold flex-shrink-0">
-                <SkipForward className="w-4 h-4" />
+        isMiniPlayer ? (
+          /* Mini Player Compact Layout */
+          <div className="absolute bottom-2 right-2 p-3 max-w-[260px] z-[60] animate-in fade-in slide-in-from-bottom-2 duration-300 bg-cinema-950/95 border border-brand-gold/40 backdrop-blur-xl rounded-2xl shadow-2xl text-left pointer-events-auto ring-1 ring-white/10">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[10px] font-mono text-brand-champagne uppercase font-bold tracking-wider">
+                  {t('nextEpisodeShort')}
+                </span>
+                <span className="text-xs font-semibold text-white truncate">
+                  S{nextEpisode.seasonNumber ?? 1}:E{nextEpisode.episodeNumber}
+                </span>
               </div>
-              <div>
-                <span className="text-[10px] font-mono text-brand-champagne uppercase tracking-wider block">
-                  {t('nextEpisode')}
-                </span>
-                <span className="text-xs font-semibold text-white truncate max-w-[200px] block">
-                  S{nextEpisode.seasonNumber ?? 1}:E{nextEpisode.episodeNumber} - {nextEpisode.title}
-                </span>
+              <button
+                onClick={cancelNextCountdown}
+                className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-300 mb-2 font-medium">
+              <span>{t('autoNextEpisodePrompt')} <strong className="text-brand-gold font-mono">{nextCountdown}s</strong></span>
+              <button
+                onClick={toggleAutoNext}
+                className="text-[10px] text-amber-300 font-mono px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 cursor-pointer"
+              >
+                {isAutoNext ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={triggerNextEpisode}
+                className="flex-1 py-1.5 px-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>{t('playNow')}</span>
+              </button>
+              <button
+                onClick={cancelNextCountdown}
+                className="py-1.5 px-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-medium cursor-pointer"
+              >
+                {t('cancelAutoPlay')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Responsive Layout for Mobile, Tablet, and Desktop */
+          <div
+            className="absolute z-[60] animate-in fade-in slide-in-from-bottom-5 duration-300 bg-cinema-950/95 border border-brand-gold/40 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/90 text-left pointer-events-auto ring-1 ring-white/10 inset-x-3 sm:inset-x-auto bottom-20 sm:bottom-24 md:bottom-28 sm:right-6 md:right-8 lg:right-10 w-[calc(100%-24px)] sm:w-[420px] md:w-[460px] lg:w-[490px] p-3.5 sm:p-4 md:p-5"
+          >
+            {/* Header / Media Preview Row */}
+            <div className="flex gap-3 sm:gap-4 items-start mb-3 sm:mb-3.5">
+              {/* Episode Thumbnail Preview (if available) or Glowing Icon */}
+              {!nextThumbError && nextEpisode.thumbnail ? (
+                <div className="relative w-24 h-16 sm:w-28 sm:h-18 md:w-32 md:h-20 rounded-xl overflow-hidden flex-shrink-0 bg-cinema-900 border border-white/10 shadow-md">
+                  <img
+                    src={nextEpisode.thumbnail}
+                    alt={nextEpisode.title}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                    onError={() => setNextThumbError(true)}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end p-1 sm:p-1.5">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold text-amber-300 bg-black/80 px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/10">
+                      S{nextEpisode.seasonNumber ?? 1}:E{nextEpisode.episodeNumber}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-brand-gold/20 border border-brand-gold/40 flex items-center justify-center text-brand-gold flex-shrink-0 shadow-glow-gold/25">
+                  <SkipForward className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+                </div>
+              )}
+
+              {/* Info & Title */}
+              <div className="flex-1 min-w-0 pr-0.5">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] sm:text-xs font-mono font-bold tracking-wider uppercase text-brand-champagne bg-brand-gold/15 border border-brand-gold/30 px-2 py-0.5 rounded-md">
+                      {t('nextEpisode')}
+                    </span>
+                    {(nextThumbError || !nextEpisode.thumbnail) && (
+                      <span className="text-xs sm:text-sm font-mono font-bold text-amber-300">
+                        S{nextEpisode.seasonNumber ?? 1}:E{nextEpisode.episodeNumber}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={cancelNextCountdown}
+                    className="text-slate-400 hover:text-white p-1 sm:p-1.5 rounded-xl hover:bg-white/10 active:scale-95 transition-all cursor-pointer flex-shrink-0"
+                    title={language === 'en' ? 'Close' : 'Tutup'}
+                  >
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </div>
+
+                {/* Episode Title */}
+                <h4 className="text-sm sm:text-base md:text-lg font-bold text-white leading-snug line-clamp-2 mt-0.5">
+                  {nextEpisode.title}
+                </h4>
+
+                {/* Synopsis preview (hidden on small mobile, visible on sm+) */}
+                {nextEpisode.synopsis && (
+                  <p className="text-xs text-slate-400 line-clamp-1 mt-1 hidden sm:block font-light">
+                    {nextEpisode.synopsis}
+                  </p>
+                )}
               </div>
             </div>
-            <button
-              onClick={cancelNextCountdown}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
 
-          <div className="flex items-center justify-between gap-2 mb-3">
-            {isAutoNext ? (
-              <p className="text-xs text-slate-300 font-light">
-                {t('autoNextEpisodePrompt')} <span className="font-mono text-brand-gold font-bold">{nextCountdown}s</span>...
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400 font-light">
-                {language === 'en' ? 'Autoplay is paused' : 'Putar otomatis dinonaktifkan'}
-              </p>
-            )}
+            {/* Countdown Progress & Autoplay Status Row */}
+            <div className="space-y-2 mb-3.5 sm:mb-4">
+              <div className="flex items-center justify-between gap-2">
+                {isAutoNext ? (
+                  <p className="text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-1.5 min-w-0">
+                    <span className="truncate">{t('autoNextEpisodePrompt')}</span>
+                    <span className="font-mono text-brand-gold font-extrabold text-xs sm:text-sm px-2 py-0.5 rounded-lg bg-brand-gold/15 border border-brand-gold/30 shrink-0">
+                      {nextCountdown}s
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                    {language === 'en' ? 'Autoplay is paused' : 'Putar otomatis dijeda'}
+                  </p>
+                )}
 
-            {/* Quick Toggle Inside Prompt */}
-            <button
-              onClick={toggleAutoNext}
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono border transition-all cursor-pointer ${
-                isAutoNext
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                  : 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200'
-              }`}
-              title={t('autoNextEpisodeTooltip')}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
-              <span>Auto: {isAutoNext ? 'ON' : 'OFF'}</span>
-            </button>
-          </div>
+                {/* Quick Toggle Auto: ON / OFF */}
+                <button
+                  onClick={toggleAutoNext}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold border transition-all cursor-pointer shrink-0 ${
+                    isAutoNext
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 shadow-sm shadow-amber-950/40'
+                      : 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200'
+                  }`}
+                  title={t('autoNextEpisodeTooltip')}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isAutoNext ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
+                  <span>Auto: {isAutoNext ? 'ON' : 'OFF'}</span>
+                </button>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={triggerNextEpisode}
-              className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-[#E50914] to-red-600 hover:brightness-110 text-white text-xs font-bold transition-all shadow-md shadow-red-950/50 border border-red-500/30 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <Play className="w-3.5 h-3.5 fill-current text-white" />
-              <span>{t('playNow')}</span>
-            </button>
-            <button
-              onClick={cancelNextCountdown}
-              className="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
-              title={language === 'en' ? 'Stay and watch the full end credits' : 'Tetap tonton kredit penutup hingga selesai'}
-            >
-              {language === 'en' ? 'Watch Credits' : 'Tonton Kredit'}
-            </button>
+              {/* Visual Animated Countdown Progress Bar */}
+              {isAutoNext && (
+                <div className="w-full h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-brand-gold transition-all duration-1000 ease-linear rounded-full shadow-glow-gold"
+                    style={{ width: `${Math.max(0, Math.min(100, (nextCountdown / 8) * 100))}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              {/* Play Now Primary Button */}
+              <button
+                onClick={triggerNextEpisode}
+                className="flex-1 py-2.5 sm:py-3 px-4 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#E50914] to-red-600 hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm md:text-base font-bold transition-all shadow-lg shadow-red-950/60 border border-red-500/40 flex items-center justify-center gap-2 cursor-pointer min-h-[42px] sm:min-h-[46px]"
+              >
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current text-white flex-shrink-0" />
+                <span>{t('playNow')}</span>
+              </button>
+
+              {/* Watch Credits Secondary Button */}
+              <button
+                onClick={cancelNextCountdown}
+                className="py-2.5 sm:py-3 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white text-xs sm:text-sm md:text-base font-semibold border border-white/10 transition-colors cursor-pointer flex-shrink-0 min-h-[42px] sm:min-h-[46px]"
+                title={language === 'en' ? 'Stay and watch the full end credits' : 'Tetap tonton kredit penutup hingga selesai'}
+              >
+                {language === 'en' ? 'Watch Credits' : 'Tonton Kredit'}
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
 
