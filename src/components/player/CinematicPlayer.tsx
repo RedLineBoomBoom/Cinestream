@@ -921,18 +921,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     setNextCountdown(8);
   }, [currentEpisode?.id]);
 
-  const handleEpisodeEnded = useCallback((force = false) => {
+  const handleEpisodeEnded = useCallback(() => {
     if (hasTriggeredEndRef.current) return;
 
-    if (!force) {
-      // Must have actually had playback in this session
-      if (!hasPlayedThisSession.current) return;
+    // Must have actually had playback in this session
+    if (!hasPlayedThisSession.current) return;
 
-      const curDur = durationRef.current || initialDuration;
-      const curTime = currentTimeRef.current;
+    const curDur = durationRef.current || initialDuration;
+    const curTime = currentTimeRef.current;
 
-      // Reject unforced triggers if too early in duration
-      if (curDur > 60 && curTime > 0 && curTime < Math.min(curDur - 30, curDur * 0.8)) {
+    // Absolute safety guard: An episode can NEVER end in the early or middle part of playback.
+    // Must be genuinely near the end (within the last 75 seconds or past 80% of duration).
+    // This strictly rejects midroll ads, HLS chunk events, and premature triggers in the middle of the episode!
+    if (curDur > 120) {
+      const isNearEnd = curTime >= curDur - 75 || curTime >= curDur * 0.8;
+      if (!isNearEnd) {
+        return;
+      }
+    } else if (curDur > 30) {
+      if (curTime < curDur - 10) {
         return;
       }
     }
@@ -941,7 +948,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     setIsPlaying(false);
     setIsActivelyWatching(false);
 
-    const curDur = durationRef.current || initialDuration;
     if (curDur > 0) {
       updateProgressRef.current(
         {
@@ -987,13 +993,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (curDur <= 0) return;
 
       // If we don't have a verified postMessage time, advance natural playback time
+      // Capped at 95% — an unverified fallback timer must NEVER guess or trigger episode completion
       if (!hasVerifiedTime) {
         hasPlayedThisSession.current = true;
-        currentTimeRef.current = Math.min(curDur, currentTimeRef.current + 1);
+        currentTimeRef.current = Math.min(curDur * 0.95, currentTimeRef.current + 1);
         setCurrentTime(currentTimeRef.current);
-        if (curDur > 60 && currentTimeRef.current >= curDur - 6) {
-          handleEpisodeEnded(true);
-        }
       }
     }, 1000);
 
@@ -1084,16 +1088,12 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
           if (
             lower === 'ended' ||
-            lower === 'complete' ||
-            lower === 'completed' ||
-            lower === 'finish' ||
-            lower === 'finished' ||
             lower === 'player:ended' ||
             lower === 'video:ended' ||
             lower === 'media:ended' ||
             lower === 'plyr:ended'
           ) {
-            handleEpisodeEnded(true);
+            handleEpisodeEnded();
             return;
           } else if (lower === 'pause') {
             setIsPlaying(false);
@@ -1149,23 +1149,19 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           return;
         }
 
+        // Only genuine video end events (exclude broad 'complete' or 'finish' which ad SDKs and buffer managers emit)
         const isEndedEvent =
-          eventName === 'ended' ||
-          eventName === 'complete' ||
-          eventName === 'completed' ||
-          eventName === 'finish' ||
-          eventName === 'finished' ||
-          eventName === 'video_ended' ||
-          eventName === 'playback_ended' ||
-          eventName === 'player:ended' ||
-          eventName === 'media:ended' ||
-          eventName === 'plyr:ended' ||
-          data.ended === true ||
-          data.isEnded === true ||
-          data.status === 'ended' ||
-          payload.ended === true ||
-          payload.isEnded === true ||
-          payload.status === 'ended';
+          (eventName === 'ended' ||
+            eventName === 'video_ended' ||
+            eventName === 'playback_ended' ||
+            eventName === 'player:ended' ||
+            eventName === 'media:ended' ||
+            eventName === 'plyr:ended' ||
+            data.ended === true ||
+            data.isEnded === true ||
+            payload.ended === true ||
+            payload.isEnded === true) &&
+          !isAdEvent;
 
         if (eventName === 'play' || eventName === 'playing' || eventName === 'start') {
           hasPlayedThisSession.current = true;
@@ -1175,7 +1171,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           setIsPlaying(false);
           setIsActivelyWatching(false);
         } else if (isEndedEvent) {
-          handleEpisodeEnded(true);
+          handleEpisodeEnded();
         }
 
         const time =
@@ -1224,19 +1220,28 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? payload.duration
             : undefined;
 
+        // Only accept duration if it represents a genuine full-length episode (>= 180s) and not a short ad clip
+        const isValidDuration =
+          typeof dur === 'number' &&
+          dur >= 180 &&
+          !isAdEvent &&
+          (initialDuration <= 300 || dur >= initialDuration * 0.35);
+
+        if (isValidDuration) {
+          durationRef.current = dur;
+          setDuration(dur);
+        }
+
         if (typeof time === 'number' && time > 0) {
           hasPlayedThisSession.current = true;
           setHasVerifiedTime(true);
           currentTimeRef.current = time;
           setCurrentTime(time);
-          const resolvedDur = typeof dur === 'number' && dur > 0 ? dur : (durationRef.current || initialDuration);
-          if (typeof dur === 'number' && dur > 0) {
-            durationRef.current = dur;
-            setDuration(dur);
-          }
+          const resolvedDur = durationRef.current || initialDuration;
+
           // Check if playback reached near the end of the episode (within 4s of duration)
-          if (resolvedDur > 30 && time >= resolvedDur - 4) {
-            handleEpisodeEnded(true);
+          if (resolvedDur > 180 && time >= resolvedDur - 4) {
+            handleEpisodeEnded();
           }
           // Throttle progress updates to context/storage every 4 seconds
           if (Math.floor(time) % 4 === 0 && resolvedDur > 0) {
@@ -2131,7 +2136,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   };
 
   const handleNativeEnded = () => {
-    handleEpisodeEnded(true);
+    if (videoRef.current) {
+      currentTimeRef.current = videoRef.current.duration || currentTimeRef.current;
+    }
+    handleEpisodeEnded();
   };
 
 
