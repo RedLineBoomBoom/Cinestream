@@ -120,7 +120,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     if (epId) {
       for (const season of seasons) {
         const found = season.episodes?.find((ep) => ep.id === epId || ep.id.toLowerCase() === epId.toLowerCase());
-        if (found) return found;
+        if (found) {
+          return {
+            ...found,
+            seasonNumber: found.seasonNumber ?? season.seasonNumber ?? 1,
+          };
+        }
       }
       const match = epId.match(/s(\d+)[-_eE]+(\d+)/i) || epId.match(/(\d+)x(\d+)/i);
       if (match) {
@@ -129,7 +134,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         for (const season of seasons) {
           if (season.seasonNumber === parsedS) {
             const found = season.episodes?.find((ep) => ep.episodeNumber === parsedE);
-            if (found) return found;
+            if (found) {
+              return {
+                ...found,
+                seasonNumber: found.seasonNumber ?? season.seasonNumber ?? parsedS,
+              };
+            }
           }
         }
       }
@@ -138,7 +148,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       for (const season of seasons) {
         if (season.seasonNumber === sNum) {
           const found = season.episodes?.find((ep) => ep.episodeNumber === epNum);
-          if (found) return found;
+          if (found) {
+            return {
+              ...found,
+              seasonNumber: found.seasonNumber ?? season.seasonNumber ?? sNum,
+            };
+          }
         }
       }
     }
@@ -181,7 +196,11 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     // 4. Default to first episode
     for (const season of seasons) {
       if (season.episodes && season.episodes.length > 0) {
-        return season.episodes[0];
+        const firstEp = season.episodes[0];
+        return {
+          ...firstEp,
+          seasonNumber: firstEp.seasonNumber ?? season.seasonNumber ?? 1,
+        };
       }
     }
     return undefined;
@@ -216,7 +235,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         const sortedEpisodes = [...season.episodes].sort(
           (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
         );
-        eps.push(...sortedEpisodes);
+        for (const ep of sortedEpisodes) {
+          eps.push({
+            ...ep,
+            seasonNumber: ep.seasonNumber ?? season.seasonNumber ?? 1,
+          });
+        }
       }
     }
     return eps;
@@ -225,10 +249,11 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   // Current episode index in flattened list
   const currentEpisodeIndex = React.useMemo(() => {
     if (!currentEpisode || allEpisodes.length === 0) return -1;
+    const currentSeasonNum = currentEpisode.seasonNumber ?? 1;
     return allEpisodes.findIndex(
       (ep) =>
         ep.id === currentEpisode.id ||
-        (ep.seasonNumber === currentEpisode.seasonNumber && ep.episodeNumber === currentEpisode.episodeNumber)
+        ((ep.seasonNumber ?? 1) === currentSeasonNum && ep.episodeNumber === currentEpisode.episodeNumber)
     );
   }, [allEpisodes, currentEpisode]);
 
@@ -930,14 +955,14 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   onMouseEnter={playHover}
                   className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                     prevEpisode
-                      ? 'bg-white/5 hover:bg-white/15 text-slate-200 hover:text-brand-champagne border border-white/10 hover:border-brand-gold/40 shadow-sm active:scale-95'
+                      ? 'bg-white/10 hover:bg-white/20 text-white border border-white/15 hover:border-white/30 shadow-sm active:scale-95'
                       : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
                   }`}
-                  title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
+                  title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} - ${prevEpisode.title}` : t('noPrevEpisode')}
                 >
-                  <SkipBack className="w-4 h-4" />
+                  <SkipBack className="w-4 h-4 text-slate-200 shrink-0" />
                   <span className="hidden sm:inline">
-                    {prevEpisode ? `S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
+                    {prevEpisode ? `S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} ${t('prevEpisodeShort')}` : t('prevEpisodeShort')}
                   </span>
                   <span className="sm:hidden">{t('prevEpisodeShort')}</span>
                 </button>
@@ -976,7 +1001,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <Tv className="w-3.5 h-3.5 text-brand-gold shrink-0 group-hover/badge:scale-110 transition-transform" />
                 <div className="flex items-center gap-1.5 min-w-0 truncate">
                   <span className="font-mono font-bold text-white shrink-0">
-                    S{currentEpisode.seasonNumber}:E{currentEpisode.episodeNumber}
+                    S{currentEpisode.seasonNumber ?? 1}:E{currentEpisode.episodeNumber}
                   </span>
                   <span className="text-slate-300 font-light truncate hidden md:inline">
                     • {currentEpisode.title}
@@ -990,18 +1015,18 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 onClick={handleNextEpisode}
                 disabled={!nextEpisode}
                 onMouseEnter={playHover}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   nextEpisode
-                    ? 'bg-gradient-to-r from-brand-gold to-amber-500 hover:brightness-110 text-cinema-950 font-semibold shadow-glow-gold active:scale-95'
+                    ? 'bg-gradient-to-r from-[#E50914] via-[#ee1d28] to-[#b80710] hover:brightness-110 text-white shadow-lg shadow-red-950/60 border border-red-500/40 active:scale-95'
                     : 'bg-white/[0.02] text-slate-600 border border-white/5 cursor-not-allowed opacity-40'
                 }`}
-                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title}` : t('noNextEpisode')}
+                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber} - ${nextEpisode.title}` : t('noNextEpisode')}
               >
                 <span className="hidden sm:inline">
-                  {nextEpisode ? `${t('nextEpisodeShort')} S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber}` : t('nextEpisodeShort')}
+                  {nextEpisode ? `${t('nextEpisodeShort')} S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber}` : t('nextEpisodeShort')}
                 </span>
                 <span className="sm:hidden">{t('nextEpisodeShort')}</span>
-                <SkipForward className="w-4 h-4" />
+                <SkipForward className="w-4 h-4 text-white fill-current shrink-0" />
               </button>
             </div>
           )}

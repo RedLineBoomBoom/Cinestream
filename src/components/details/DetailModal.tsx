@@ -104,7 +104,12 @@ export const DetailModal: React.FC<DetailModalProps> = ({
         const sortedEpisodes = [...season.episodes].sort(
           (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
         );
-        eps.push(...sortedEpisodes);
+        for (const ep of sortedEpisodes) {
+          eps.push({
+            ...ep,
+            seasonNumber: ep.seasonNumber ?? season.seasonNumber ?? 1,
+          });
+        }
       }
     }
     return eps;
@@ -112,10 +117,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
   const currentEpisodeIndex = React.useMemo(() => {
     if (!currentEpisode || allEpisodes.length === 0) return -1;
+    const currentSeasonNum = currentEpisode.seasonNumber ?? 1;
     return allEpisodes.findIndex(
       (ep) =>
         ep.id === currentEpisode.id ||
-        (ep.seasonNumber === currentEpisode.seasonNumber && ep.episodeNumber === currentEpisode.episodeNumber)
+        ((ep.seasonNumber ?? 1) === currentSeasonNum && ep.episodeNumber === currentEpisode.episodeNumber)
     );
   }, [allEpisodes, currentEpisode]);
 

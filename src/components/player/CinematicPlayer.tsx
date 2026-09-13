@@ -2083,7 +2083,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               {media.title}
               {currentEpisode && (
                 <span className="text-brand-champagne/90 ml-1 font-mono text-[10px]">
-                  S{currentEpisode.seasonNumber}E{currentEpisode.episodeNumber}
+                  S{currentEpisode.seasonNumber ?? 1}E{currentEpisode.episodeNumber}
                 </span>
               )}
             </span>
@@ -2091,7 +2091,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
           {/* Active Snap Badge preview while dragging */}
           {isDraggingPlayer && activeSnapCorner && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-gold text-cinema-950 font-bold text-[9px] shadow-glow-gold animate-pulse pointer-events-none">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#E50914] text-white font-bold text-[9px] shadow-glow-red animate-pulse pointer-events-none">
               <Check className="w-2.5 h-2.5 stroke-[3]" />
               <span>
                 Snap: {activeSnapCorner === 'top-left' ? (language === 'en' ? 'Top Left' : 'Kiri Atas') :
@@ -2110,11 +2110,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             <button
               type="button"
               onClick={cycleMiniPlayerSize}
-              className="px-2 py-1 rounded-md bg-black/60 hover:bg-brand-gold hover:text-cinema-950 text-slate-300 transition-all cursor-pointer flex items-center gap-1 text-[10px] font-mono border border-white/10 hover:border-brand-gold/50 group/size"
+              className="px-2 py-1 rounded-md bg-black/60 hover:bg-[#E50914] hover:text-white text-slate-300 transition-all cursor-pointer flex items-center gap-1 text-[10px] font-mono border border-white/10 hover:border-red-500/50 group/size"
               title={language === 'en' ? 'Change Size (S / M / L / XL)' : 'Ubah Ukuran (S / M / L / XL)'}
             >
-              <Scaling className="w-3 h-3 text-brand-champagne group-hover/size:text-cinema-950 transition-colors" />
-              <span className="font-semibold text-white group-hover/size:text-cinema-950 transition-colors">{getSizeLabel(miniPlayerWidth)}</span>
+              <Scaling className="w-3 h-3 text-brand-champagne group-hover/size:text-white transition-colors" />
+              <span className="font-semibold text-white group-hover/size:text-white transition-colors">{getSizeLabel(miniPlayerWidth)}</span>
             </button>
 
             <button
@@ -2128,10 +2128,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             <button
               type="button"
               onClick={onToggleMiniPlayer}
-              className="p-1 rounded-md bg-black/60 hover:bg-brand-gold hover:text-cinema-950 text-slate-300 transition-all cursor-pointer border border-white/10"
+              className="p-1 rounded-md bg-black/60 hover:bg-[#E50914] hover:text-white text-slate-300 transition-all cursor-pointer border border-white/10"
               title={t('restorePlayer')}
             >
-              <Maximize2 className="w-3.5 h-3.5 text-brand-champagne hover:text-cinema-950" />
+              <Maximize2 className="w-3.5 h-3.5 text-brand-champagne hover:text-white" />
             </button>
             <button
               type="button"
@@ -2245,7 +2245,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                           ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
                           : 'text-slate-600 opacity-30 cursor-not-allowed'
                       }`}
-                      title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
+                      title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
                     >
                       <SkipBack className="w-3.5 h-3.5" />
                     </button>
@@ -2261,7 +2261,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                     >
                       <Tv className="w-3 h-3 text-brand-champagne" />
                       <span className="font-bold text-brand-champagne">
-                        S{currentEpisode.seasonNumber}:E{currentEpisode.episodeNumber}
+                        S{currentEpisode.seasonNumber ?? 1}:E{currentEpisode.episodeNumber}
                       </span>
                       <span className="hidden xl:inline max-w-[120px] truncate text-slate-300 font-sans text-[10px]">
                         • {currentEpisode.title}
@@ -2277,7 +2277,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                           ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
                           : 'text-slate-600 opacity-30 cursor-not-allowed'
                       }`}
-                      title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
+                      title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
                     >
                       <SkipForward className="w-3.5 h-3.5" />
                     </button>
@@ -2318,12 +2318,12 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                         }}
                         className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer whitespace-nowrap ${
                           isActive
-                            ? 'bg-brand-gold text-cinema-950 font-semibold shadow-glow-gold'
+                            ? 'bg-[#E50914] text-white font-bold shadow-glow-red'
                             : 'hover:bg-white/15 text-slate-300'
                         }`}
                         title={`${formatServerName(srv.name, language)} (${srv.quality})`}
                       >
-                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cinema-950 animate-pulse" />}
+                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                         <span>{label}</span>
                         {isActive && (
                           <span className="hidden sm:inline text-[9px] opacity-90 max-w-[130px] truncate font-medium">
@@ -2388,14 +2388,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                     onClick={toggleTheaterMode}
                     className={`flex items-center gap-1.5 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer ${
                       isTheaterMode
-                        ? 'bg-brand-gold text-cinema-950 border-brand-gold shadow-glow-gold font-semibold'
+                        ? 'bg-[#E50914] text-white border-[#E50914] shadow-glow-red font-bold'
                         : 'bg-cinema-950/85 hover:bg-white/20 text-slate-300 border-white/10'
                     }`}
                     title={isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}
                   >
-                    <Tv className={`w-3 h-3 ${isTheaterMode ? 'text-cinema-950 stroke-[2.5]' : 'text-brand-champagne'}`} />
+                    <Tv className={`w-3 h-3 ${isTheaterMode ? 'text-white stroke-[2.5]' : 'text-brand-champagne'}`} />
                     <span className="hidden md:inline">{isTheaterMode ? t('exitTheaterMode') : t('theaterMode')}</span>
-                    {isTheaterMode && <span className="w-1.5 h-1.5 rounded-full bg-cinema-950" />}
+                    {isTheaterMode && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </button>
                 )}
 
@@ -2560,7 +2560,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                     ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
                     : 'text-slate-600 opacity-30 cursor-not-allowed'
                 }`}
-                title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
+                title={prevEpisode ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)` : t('noPrevEpisode')}
               >
                 <SkipBack className="w-3.5 h-3.5" />
               </button>
@@ -2574,7 +2574,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                     ? 'text-slate-200 hover:text-brand-gold hover:bg-white/15 cursor-pointer'
                     : 'text-slate-600 opacity-30 cursor-not-allowed'
                 }`}
-                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
+                title={nextEpisode ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)` : t('noNextEpisode')}
               >
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
@@ -2648,7 +2648,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               onMouseEnter={playHover}
               className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${
                 playbackRate === s
-                  ? 'bg-brand-gold text-cinema-950 font-semibold'
+                  ? 'bg-[#E50914] text-white font-bold'
                   : 'text-slate-300 hover:bg-white/10'
               }`}
             >
@@ -2717,7 +2717,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   }`}
                   title={
                     prevEpisode
-                      ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)`
+                      ? `${t('prevEpisode')}: S${prevEpisode.seasonNumber ?? 1}:E${prevEpisode.episodeNumber} - ${prevEpisode.title} (Shift + P)`
                       : t('noPrevEpisode')
                   }
                 >
@@ -2747,7 +2747,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   }`}
                   title={
                     nextEpisode
-                      ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)`
+                      ? `${t('nextEpisode')}: S${nextEpisode.seasonNumber ?? 1}:E${nextEpisode.episodeNumber} - ${nextEpisode.title} (Shift + N)`
                       : t('noNextEpisode')
                   }
                 >
@@ -2922,7 +2922,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   {t('nextEpisode')}
                 </span>
                 <span className="text-xs font-semibold text-white truncate max-w-[200px] block">
-                  S{nextEpisode.seasonNumber}:E{nextEpisode.episodeNumber} - {nextEpisode.title}
+                  S{nextEpisode.seasonNumber ?? 1}:E{nextEpisode.episodeNumber} - {nextEpisode.title}
                 </span>
               </div>
             </div>
@@ -2963,9 +2963,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={triggerNextEpisode}
-              className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-brand-gold to-amber-500 hover:brightness-110 text-cinema-950 text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-[#E50914] to-red-600 hover:brightness-110 text-white text-xs font-bold transition-all shadow-md shadow-red-950/50 border border-red-500/30 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
+              <Play className="w-3.5 h-3.5 fill-current text-white" />
               <span>{t('playNow')}</span>
             </button>
             <button

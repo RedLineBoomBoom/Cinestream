@@ -126,21 +126,21 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                   onMouseEnter={playHover}
                   className={`px-3 py-1.5 rounded-full text-xs transition-all duration-300 flex items-center gap-1.5 shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-brand-gold text-cinema-950 font-semibold shadow-glow-gold'
+                      ? 'bg-[#E50914] text-white font-bold shadow-glow-red'
                       : 'bg-white/[0.04] text-slate-300 hover:text-white border border-white/[0.06]'
                   }`}
                 >
                   <span>{season.title}</span>
                   {isThisSeasonOngoing ? (
                     <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5 tracking-wider uppercase ${
-                      isSelected ? 'bg-black/20 text-cinema-950' : 'bg-amber-500/20 text-amber-300'
+                      isSelected ? 'bg-black/30 text-amber-200' : 'bg-amber-500/20 text-amber-300'
                     }`}>
                       <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
                       ON GOING
                     </span>
                   ) : (
                     <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5 tracking-wider uppercase ${
-                      isSelected ? 'bg-black/20 text-cinema-950' : 'bg-emerald-500/20 text-emerald-300'
+                      isSelected ? 'bg-black/30 text-emerald-200' : 'bg-emerald-500/20 text-emerald-300'
                     }`}>
                       ✓ COMPLETE
                     </span>
@@ -153,7 +153,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
       </div>
 
       {/* Episode Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[480px] overflow-y-auto pr-1 custom-scrollbar">
         {currentSeason.episodes.map((ep) => {
           const isCurrent = ep.id === activeEpisodeId;
 
@@ -167,7 +167,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 }
                 e.preventDefault();
                 playClick();
-                onSelectEpisode(ep);
+                onSelectEpisode({
+                  ...ep,
+                  seasonNumber: ep.seasonNumber ?? currentSeason.seasonNumber ?? 1,
+                });
               }}
               onMouseEnter={playHover}
               className={`group flex items-center gap-3.5 p-2.5 rounded-xl cursor-pointer border transition-all duration-300 no-underline block ${
@@ -191,7 +194,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 >
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                      isCurrent ? 'bg-brand-gold text-cinema-950' : 'bg-white/90 text-black'
+                      isCurrent ? 'bg-[#E50914] text-white shadow-md' : 'bg-white/90 text-black'
                     }`}
                   >
                     <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
@@ -235,7 +238,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                     )}
                   </div>
                   {isCurrent && (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-brand-gold text-cinema-950 font-semibold uppercase tracking-wider">
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E50914] text-white font-bold uppercase tracking-wider shadow-sm">
                       {t('nowPlaying')}
                     </span>
                   )}
