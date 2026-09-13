@@ -12,7 +12,7 @@
 ![License MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 <p align="center">
-  <strong>Next-Generation Cinematic Streaming Platform with Awwwards-Caliber Visuals</strong><br />
+  <strong>Next-Generation Cinematic Streaming Platform</strong><br />
   Featuring curated blockbuster movies, award-winning series, Asian dramas, and anime with blazing performance, multi-server streaming with automated failover, serverless P2P Watch Party, and intelligent Netflix-style Autoplay Next.
 </p>
 
