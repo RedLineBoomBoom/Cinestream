@@ -130,15 +130,14 @@ export const getCreditLeadTime = (totalDur: number): number => {
   if (totalDur >= 1800) return 180; // 3 minutes for >= 30m episodes
   if (totalDur >= 900) return 150;  // 2.5 minutes for 15-30m episodes (anime/sitcoms)
   if (totalDur >= 300) return 75;   // 1m 15s for 5-15m episodes
-  return 30;
+  return Math.max(15, Math.min(45, Math.floor(totalDur * 0.15)));
 };
 
 export const isNearEndOrCredits = (time: number, totalDur: number): boolean => {
   if (!totalDur || totalDur <= 0) return false;
   if (totalDur <= 30) return time >= totalDur - 5;
   const leadTime = getCreditLeadTime(totalDur);
-  const percentThreshold = totalDur >= 1800 ? 0.88 : 0.85;
-  return time >= totalDur - leadTime || (totalDur > 120 && time >= totalDur * percentThreshold);
+  return time >= totalDur - leadTime;
 };
 
 const broadcastIframePlay = (targetWin: Window) => {
@@ -931,12 +930,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const isAutoNextRef = useRef(isAutoNext);
   isAutoNextRef.current = isAutoNext;
   const hasTriggeredEndRef = useRef(false);
+  const retriggerThresholdRef = useRef(0);
 
   // Reset completion trigger when episode changes
   useEffect(() => {
     hasTriggeredEndRef.current = false;
     setShowNextPrompt(false);
     setNextCountdown(8);
+    retriggerThresholdRef.current = 0;
     hasPlayedThisSession.current = Boolean(autoPlay);
   }, [currentEpisode?.id, autoPlay]);
 
@@ -1296,6 +1297,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }
 
         if (typeof parsedTime === 'number' && parsedTime > 0) {
+          const prevTime = currentTimeRef.current;
+          const isBackward = parsedTime < prevTime - 2;
+
           hasPlayedThisSession.current = true;
           hasVerifiedTimeRef.current = true;
           setHasVerifiedTime(true);
@@ -1305,11 +1309,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
           // Check if playback reached the end credit scene (Netflix-style credits detection)
           if (resolvedDur > 60 && media.type !== 'movie' && currentEpisode) {
-            if (isNearEndOrCredits(parsedTime, resolvedDur)) {
-              handleEpisodeEnded(false, true);
-            } else if (parsedTime < resolvedDur * 0.75) {
+            if (isBackward) {
+              // User scrubbed or skipped backward: immediately hide popup and reset countdown
+              setShowNextPrompt(false);
+              setNextCountdown(8);
+              hasTriggeredEndRef.current = false;
+              if (isNearEndOrCredits(parsedTime, resolvedDur)) {
+                retriggerThresholdRef.current = Math.max(retriggerThresholdRef.current, prevTime);
+              } else {
+                retriggerThresholdRef.current = 0;
+              }
+            } else if (isNearEndOrCredits(parsedTime, resolvedDur)) {
+              if (!hasTriggeredEndRef.current && parsedTime >= retriggerThresholdRef.current) {
+                handleEpisodeEnded(false, true);
+              }
+            } else {
               hasTriggeredEndRef.current = false;
               setShowNextPrompt(false);
+              setNextCountdown(8);
+              retriggerThresholdRef.current = 0;
             }
           }
           // Throttle progress updates to context/storage every 4 seconds
@@ -1780,6 +1798,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   const handleSkip = (seconds: number) => {
     playClick();
+    const prevTime = currentTimeRef.current;
     let newTime = currentTime;
     const curDur =
       (videoRef.current?.duration && !isNaN(videoRef.current.duration) && videoRef.current.duration > 0)
@@ -1804,11 +1823,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     // Immediately trigger end credits / autoplay next prompt if user skipped into credits window
     if (curDur > 60 && media.type !== 'movie' && currentEpisode) {
-      if (isNearEndOrCredits(newTime, curDur)) {
-        handleEpisodeEnded(false, true);
-      } else if (newTime < curDur * 0.75) {
+      if (seconds < 0 || newTime < prevTime - 1.5) {
+        // User skipped backward: immediately dismiss popup and reset countdown
+        setShowNextPrompt(false);
+        setNextCountdown(8);
+        hasTriggeredEndRef.current = false;
+        if (isNearEndOrCredits(newTime, curDur)) {
+          retriggerThresholdRef.current = Math.max(retriggerThresholdRef.current, prevTime);
+        } else {
+          retriggerThresholdRef.current = 0;
+        }
+      } else if (isNearEndOrCredits(newTime, curDur)) {
+        if (newTime >= retriggerThresholdRef.current) {
+          handleEpisodeEnded(false, true);
+        }
+      } else {
         hasTriggeredEndRef.current = false;
         setShowNextPrompt(false);
+        setNextCountdown(8);
+        retriggerThresholdRef.current = 0;
       }
     }
 
@@ -2081,6 +2114,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
+    const prevTime = currentTimeRef.current;
+    const isBackward = val < prevTime - 1.5;
+
     currentTimeRef.current = val;
     setCurrentTime(val);
     hasPlayedThisSession.current = true;
@@ -2103,11 +2139,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         : durationRef.current || duration || initialDuration;
 
     if (curDur > 60 && media.type !== 'movie' && currentEpisode) {
-      if (isNearEndOrCredits(val, curDur)) {
-        handleEpisodeEnded(false, true);
-      } else if (val < curDur * 0.75) {
+      if (isBackward) {
+        // User scrubbed backward (e.g. 5-10s): immediately dismiss popup and reset countdown
+        setShowNextPrompt(false);
+        setNextCountdown(8);
+        hasTriggeredEndRef.current = false;
+        if (isNearEndOrCredits(val, curDur)) {
+          retriggerThresholdRef.current = Math.max(retriggerThresholdRef.current, prevTime);
+        } else {
+          retriggerThresholdRef.current = 0;
+        }
+      } else if (isNearEndOrCredits(val, curDur)) {
+        if (val >= retriggerThresholdRef.current) {
+          handleEpisodeEnded(false, true);
+        }
+      } else {
         hasTriggeredEndRef.current = false;
         setShowNextPrompt(false);
+        setNextCountdown(8);
+        retriggerThresholdRef.current = 0;
       }
     }
 
@@ -2237,10 +2287,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     if (curDur > 60 && media.type !== 'movie' && currentEpisode) {
       if (isNearEndOrCredits(curr, curDur)) {
-        handleEpisodeEnded();
-      } else if (curr < curDur * 0.75) {
+        if (!hasTriggeredEndRef.current && curr >= retriggerThresholdRef.current) {
+          handleEpisodeEnded();
+        }
+      } else {
         hasTriggeredEndRef.current = false;
         setShowNextPrompt(false);
+        setNextCountdown(8);
+        retriggerThresholdRef.current = 0;
       }
     }
 
