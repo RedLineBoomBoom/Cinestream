@@ -931,10 +931,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     const curTime = currentTimeRef.current;
 
     // Absolute safety guard: An episode can NEVER end in the early or middle part of playback.
-    // Must be genuinely near the end (within the last 75 seconds or past 80% of duration).
+    // Must be genuinely near the end (within the end credits window or past 80% of duration).
     // This strictly rejects midroll ads, HLS chunk events, and premature triggers in the middle of the episode!
+    const creditLeadTime = curDur >= 2400 ? 55 : curDur >= 1200 ? 45 : 30;
     if (curDur > 120) {
-      const isNearEnd = curTime >= curDur - 75 || curTime >= curDur * 0.8;
+      const isNearEnd = curTime >= curDur - creditLeadTime || curTime >= curDur * 0.8;
       if (!isNearEnd) {
         return;
       }
@@ -945,9 +946,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     }
 
     hasTriggeredEndRef.current = true;
-    setIsPlaying(false);
-    setIsActivelyWatching(false);
 
+    // Sync full completion to Watch History
     if (curDur > 0) {
       updateProgressRef.current(
         {
@@ -961,7 +961,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       );
     }
 
-    // Auto-prompt countdown for series next episode
+    // Auto-prompt countdown for series next episode (video continues rolling in background)
     if (nextEpisodeRef.current && onNextEpisodeRef.current) {
       setNextCountdown(8);
       setShowNextPrompt(true);
@@ -1239,8 +1239,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           setCurrentTime(time);
           const resolvedDur = durationRef.current || initialDuration;
 
-          // Check if playback reached near the end of the episode (within 4s of duration)
-          if (resolvedDur > 180 && time >= resolvedDur - 4) {
+          // Check if playback reached the end credit scene (Netflix-style credits detection)
+          const creditLeadTime = resolvedDur >= 2400 ? 45 : resolvedDur >= 1200 ? 35 : 25;
+          if (resolvedDur > 180 && time >= resolvedDur - creditLeadTime) {
             handleEpisodeEnded();
           }
           // Throttle progress updates to context/storage every 4 seconds
@@ -2107,6 +2108,15 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     if (curr > 0) {
       hasPlayedThisSession.current = true;
+    }
+
+    // Proactively trigger end credits prompt for series episodes when entering credits scene
+    const curDur = videoRef.current.duration || durationRef.current || initialDuration;
+    if (curDur > 180 && media.type !== 'movie' && currentEpisode) {
+      const creditLeadTime = curDur >= 2400 ? 45 : curDur >= 1200 ? 35 : 25;
+      if (curr >= curDur - creditLeadTime) {
+        handleEpisodeEnded();
+      }
     }
 
     if (Math.floor(curr) % 4 === 0 && duration > 0 && curr > 0) {
@@ -3131,8 +3141,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             <button
               onClick={cancelNextCountdown}
               className="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+              title={language === 'en' ? 'Stay and watch the full end credits' : 'Tetap tonton kredit penutup hingga selesai'}
             >
-              {t('cancelAutoPlay')}
+              {language === 'en' ? 'Watch Credits' : 'Tonton Kredit'}
             </button>
           </div>
         </div>
