@@ -378,8 +378,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasVerifiedTime, setHasVerifiedTime] = useState(false);
+  const hasVerifiedTimeRef = useRef(false);
 
   useEffect(() => {
+    hasVerifiedTimeRef.current = false;
     setHasVerifiedTime(false);
   }, [media.id, currentEpisode?.id, activeServer.id]);
 
@@ -869,6 +871,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     currentTimeRef.current = epSavedTime;
     setCurrentTime(epSavedTime);
+    hasVerifiedTimeRef.current = false;
     setHasVerifiedTime(false);
 
     if (videoRef.current && !isEmbedStream && epSavedTime > 5) {
@@ -921,7 +924,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     setNextCountdown(8);
   }, [currentEpisode?.id]);
 
-  const handleEpisodeEnded = useCallback(() => {
+  const handleEpisodeEnded = useCallback((isExplicitEnded = false) => {
     if (hasTriggeredEndRef.current) return;
 
     // Must have actually had playback in this session
@@ -930,18 +933,27 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     const curDur = durationRef.current || initialDuration;
     const curTime = currentTimeRef.current;
 
+    // Credit lead time for end scene / credits detection:
+    // >= 30m (1800s): 125s (comfortably triggers for the last 2 minutes)
+    // >= 15m (900s): 100s (catches anime ED + preview)
+    // < 15m: 55s
+    const creditLeadTime = curDur >= 1800 ? 125 : curDur >= 900 ? 100 : 55;
+
     // Absolute safety guard: An episode can NEVER end in the early or middle part of playback.
     // Must be genuinely near the end (within the end credits window or past 80% of duration).
     // This strictly rejects midroll ads, HLS chunk events, and premature triggers in the middle of the episode!
-    const creditLeadTime = curDur >= 2400 ? 55 : curDur >= 1200 ? 45 : 30;
     if (curDur > 120) {
       const isNearEnd = curTime >= curDur - creditLeadTime || curTime >= curDur * 0.8;
       if (!isNearEnd) {
-        return;
+        if (!isExplicitEnded || hasVerifiedTimeRef.current) {
+          return;
+        }
       }
     } else if (curDur > 30) {
       if (curTime < curDur - 10) {
-        return;
+        if (!isExplicitEnded || hasVerifiedTimeRef.current) {
+          return;
+        }
       }
     }
 
@@ -1093,7 +1105,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             lower === 'media:ended' ||
             lower === 'plyr:ended'
           ) {
-            handleEpisodeEnded();
+            handleEpisodeEnded(true);
             return;
           } else if (lower === 'pause') {
             setIsPlaying(false);
@@ -1167,11 +1179,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           hasPlayedThisSession.current = true;
           setIsPlaying(true);
           setIsActivelyWatching(true);
+        } else if (isEndedEvent) {
+          handleEpisodeEnded(true);
         } else if (eventName === 'pause') {
           setIsPlaying(false);
           setIsActivelyWatching(false);
-        } else if (isEndedEvent) {
-          handleEpisodeEnded();
         }
 
         const time =
@@ -1183,6 +1195,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? data.position
             : typeof data.seconds === 'number'
             ? data.seconds
+            : typeof data.offset === 'number'
+            ? data.offset
             : typeof data.data?.currentTime === 'number'
             ? data.data.currentTime
             : typeof data.data?.time === 'number'
@@ -1191,6 +1205,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? data.data.position
             : typeof data.data?.seconds === 'number'
             ? data.data.seconds
+            : typeof data.data?.offset === 'number'
+            ? data.data.offset
             : typeof data.progress?.currentTime === 'number'
             ? data.progress.currentTime
             : typeof data.progress?.position === 'number'
@@ -1205,6 +1221,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? payload.position
             : typeof payload.seconds === 'number'
             ? payload.seconds
+            : typeof payload.offset === 'number'
+            ? payload.offset
             : undefined;
 
         const dur =
@@ -1234,15 +1252,24 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
         if (typeof time === 'number' && time > 0) {
           hasPlayedThisSession.current = true;
+          hasVerifiedTimeRef.current = true;
           setHasVerifiedTime(true);
           currentTimeRef.current = time;
           setCurrentTime(time);
           const resolvedDur = durationRef.current || initialDuration;
 
           // Check if playback reached the end credit scene (Netflix-style credits detection)
-          const creditLeadTime = resolvedDur >= 2400 ? 45 : resolvedDur >= 1200 ? 35 : 25;
-          if (resolvedDur > 180 && time >= resolvedDur - creditLeadTime) {
-            handleEpisodeEnded();
+          // For episodes >= 30m: 125s lead time (covers last 2 minutes)
+          // For episodes >= 15m: 100s lead time (covers anime ED + preview)
+          // For short episodes: 55s lead time
+          const creditLeadTime = resolvedDur >= 1800 ? 125 : resolvedDur >= 900 ? 100 : 55;
+          if (resolvedDur > 180 && media.type !== 'movie' && currentEpisode) {
+            if (time >= resolvedDur - creditLeadTime) {
+              handleEpisodeEnded();
+            } else if (time < resolvedDur * 0.7) {
+              hasTriggeredEndRef.current = false;
+              setShowNextPrompt(false);
+            }
           }
           // Throttle progress updates to context/storage every 4 seconds
           if (Math.floor(time) % 4 === 0 && resolvedDur > 0) {
@@ -1713,17 +1740,31 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const handleSkip = (seconds: number) => {
     playClick();
     let newTime = currentTime;
+    const curDur = videoRef.current?.duration || durationRef.current || duration || initialDuration;
     if (videoRef.current) {
-      newTime = Math.min(Math.max(0, videoRef.current.currentTime + seconds), duration);
+      newTime = Math.min(Math.max(0, videoRef.current.currentTime + seconds), curDur);
       videoRef.current.currentTime = newTime;
     } else {
-      newTime = Math.min(Math.max(0, currentTime + seconds), duration);
+      newTime = Math.min(Math.max(0, currentTime + seconds), curDur);
       setCurrentTime(newTime);
       if (iframeRef.current?.contentWindow) {
         try {
           iframeRef.current.contentWindow.postMessage({ type: 'seek', time: newTime }, '*');
           iframeRef.current.contentWindow.postMessage(JSON.stringify({ type: 'seek', time: newTime }), '*');
         } catch {}
+      }
+    }
+    currentTimeRef.current = newTime;
+    hasPlayedThisSession.current = true;
+
+    // Immediately trigger end credits / autoplay next prompt if user skipped into the last 2 minutes
+    if (curDur > 180 && media.type !== 'movie' && currentEpisode) {
+      const creditLeadTime = curDur >= 1800 ? 125 : curDur >= 900 ? 100 : 55;
+      if (newTime >= curDur - creditLeadTime) {
+        handleEpisodeEnded();
+      } else if (newTime < curDur * 0.7) {
+        hasTriggeredEndRef.current = false;
+        setShowNextPrompt(false);
       }
     }
 
@@ -1996,9 +2037,38 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
+    currentTimeRef.current = val;
     setCurrentTime(val);
+    hasPlayedThisSession.current = true;
+
     if (videoRef.current) {
       videoRef.current.currentTime = val;
+    }
+    if (iframeRef.current?.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage({ type: 'seek', time: val }, '*');
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({ type: 'seek', time: val }), '*');
+      } catch {}
+    }
+
+    // Immediately trigger end credits / autoplay next prompt if user sought into the last 2 minutes
+    const curDur = videoRef.current?.duration || durationRef.current || duration || initialDuration;
+    if (curDur > 180 && media.type !== 'movie' && currentEpisode) {
+      const creditLeadTime = curDur >= 1800 ? 125 : curDur >= 900 ? 100 : 55;
+      if (val >= curDur - creditLeadTime) {
+        handleEpisodeEnded();
+      } else if (val < curDur * 0.7) {
+        hasTriggeredEndRef.current = false;
+        setShowNextPrompt(false);
+      }
+    }
+
+    if (partyStatus === 'connected' && !isRemoteSyncRef.current) {
+      sendPartySignal({
+        type: 'seek',
+        currentTime: val,
+        timestamp: Date.now(),
+      });
     }
   };
 
@@ -2099,6 +2169,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     const curr = videoRef.current.currentTime;
     currentTimeRef.current = curr;
     setCurrentTime(curr);
+    hasVerifiedTimeRef.current = true;
     setHasVerifiedTime(true);
 
     if (videoRef.current.buffered.length > 0) {
@@ -2113,9 +2184,12 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     // Proactively trigger end credits prompt for series episodes when entering credits scene
     const curDur = videoRef.current.duration || durationRef.current || initialDuration;
     if (curDur > 180 && media.type !== 'movie' && currentEpisode) {
-      const creditLeadTime = curDur >= 2400 ? 45 : curDur >= 1200 ? 35 : 25;
+      const creditLeadTime = curDur >= 1800 ? 125 : curDur >= 900 ? 100 : 55;
       if (curr >= curDur - creditLeadTime) {
         handleEpisodeEnded();
+      } else if (curr < curDur * 0.7) {
+        hasTriggeredEndRef.current = false;
+        setShowNextPrompt(false);
       }
     }
 
@@ -2149,7 +2223,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     if (videoRef.current) {
       currentTimeRef.current = videoRef.current.duration || currentTimeRef.current;
     }
-    handleEpisodeEnded();
+    handleEpisodeEnded(true);
   };
 
 
