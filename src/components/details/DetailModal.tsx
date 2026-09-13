@@ -111,7 +111,12 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     });
   }, [currentEpisode, media.seasons, allEpisodes]);
 
-  const handleSelectEpisode = (ep: Episode) => {
+  const [autoPlayNext, setAutoPlayNext] = useState(false);
+
+  const handleSelectEpisode = (ep: Episode, shouldAutoPlay = false) => {
+    if (shouldAutoPlay) {
+      setAutoPlayNext(true);
+    }
     const resolvedSNum = resolveEpisodeSeasonNumber(ep, media.seasons);
     const resolvedEpNum = resolveEpisodeNumber(ep);
     const safeEp: Episode = {
@@ -133,14 +138,16 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   const handleNextEpisode = () => {
     if (nextEpisode) {
       playClick();
-      handleSelectEpisode(nextEpisode);
+      setAutoPlayNext(true);
+      handleSelectEpisode(nextEpisode, true);
     }
   };
 
   const handlePrevEpisode = () => {
     if (prevEpisode) {
       playClick();
-      handleSelectEpisode(prevEpisode);
+      setAutoPlayNext(true);
+      handleSelectEpisode(prevEpisode, true);
     }
   };
 
@@ -235,7 +242,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               media={media}
               currentEpisode={currentEpisode}
               activeServer={activeServer}
-              autoPlay={false}
+              autoPlay={autoPlayNext}
               isTheaterMode={isTheaterMode}
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
               onNextEpisode={handleNextEpisode}
@@ -491,7 +498,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               status={media.status}
               isOngoing={media.isOngoing}
               totalEpisodes={media.totalEpisodes}
-              onSelectEpisode={handleSelectEpisode}
+              onSelectEpisode={(ep) => handleSelectEpisode(ep, true)}
             />
           )}
 

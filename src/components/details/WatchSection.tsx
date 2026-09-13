@@ -248,9 +248,15 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     });
   }, [currentEpisode, activeMedia.seasons, allEpisodes]);
 
+  const [autoPlayNext, setAutoPlayNext] = useState(false);
+
   // Unified Episode Selection Handler
   const handleSelectEpisode = React.useCallback(
-    (ep: Episode, autoScroll = true) => {
+    (ep: Episode, autoScroll = true, shouldAutoPlay = false) => {
+      if (shouldAutoPlay) {
+        setAutoPlayNext(true);
+      }
+
       const resolvedSNum = resolveEpisodeSeasonNumber(ep, activeMedia.seasons);
       const resolvedEpNum = resolveEpisodeNumber(ep);
       const safeEp: Episode = {
@@ -310,14 +316,16 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const handleNextEpisode = React.useCallback(() => {
     if (nextEpisode) {
       playClick();
-      handleSelectEpisode(nextEpisode, false);
+      setAutoPlayNext(true);
+      handleSelectEpisode(nextEpisode, false, true);
     }
   }, [nextEpisode, playClick, handleSelectEpisode]);
 
   const handlePrevEpisode = React.useCallback(() => {
     if (prevEpisode) {
       playClick();
-      handleSelectEpisode(prevEpisode, false);
+      setAutoPlayNext(true);
+      handleSelectEpisode(prevEpisode, false, true);
     }
   }, [prevEpisode, playClick, handleSelectEpisode]);
 
@@ -934,7 +942,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 const el = document.getElementById('media-tabs-section');
                 el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              autoPlay={false}
+              autoPlay={autoPlayNext}
               resumeTime={resumeTime}
               isTheaterMode={isTheaterMode}
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
@@ -1369,7 +1377,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 isOngoing={activeMedia.isOngoing}
                 totalEpisodes={activeMedia.totalEpisodes}
                 onSelectEpisode={(ep) => {
-                  handleSelectEpisode(ep, true);
+                  handleSelectEpisode(ep, true, true);
                 }}
               />
             </div>

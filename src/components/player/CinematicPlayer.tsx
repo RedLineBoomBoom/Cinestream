@@ -64,7 +64,7 @@ interface CinematicPlayerProps {
   onToggleAutoNext?: () => void;
 }
 
-export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string {
+export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en', autoPlay = false): string {
   if (!rawUrl || !rawUrl.startsWith('http')) return rawUrl;
   try {
     const parsed = new URL(rawUrl);
@@ -107,13 +107,22 @@ export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en'): string 
     parsed.searchParams.set('autoMute', '0');
     parsed.searchParams.set('primaryColor', 'E50914');
 
+    if (autoPlay) {
+      parsed.searchParams.set('autoplay', '1');
+      parsed.searchParams.set('autoPlay', '1');
+      parsed.searchParams.set('autostart', 'true');
+      parsed.searchParams.set('auto_play', '1');
+      parsed.searchParams.set('play', '1');
+    }
+
     return parsed.toString();
   } catch {
     const sep = rawUrl.includes('?') ? '&' : '?';
     const isId = lang === 'id';
     const subCode = isId ? 'id' : 'en';
     const subTitle = isId ? 'Indonesian' : 'English';
-    return `${rawUrl}${sep}subtitleLang=${subTitle}&sub_lang=${subCode}&subLabel=${subTitle}&default_sub=${subTitle}&sub=${subTitle}&lang=${subCode}&cc=1&pref_lang=${subCode}`;
+    const autoFlags = autoPlay ? '&autoplay=1&autoPlay=1&autostart=true' : '';
+    return `${rawUrl}${sep}subtitleLang=${subTitle}&sub_lang=${subCode}&subLabel=${subTitle}&default_sub=${subTitle}&sub=${subTitle}&lang=${subCode}&cc=1&pref_lang=${subCode}${autoFlags}`;
   }
 }
 
@@ -244,35 +253,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   // Next Episode Auto-Prompt and Countdown State
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [nextCountdown, setNextCountdown] = useState(8);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Clear countdown on unmount or episode change
-  useEffect(() => {
-    setShowNextPrompt(false);
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-  }, [currentEpisode?.id]);
 
   const cancelNextCountdown = useCallback(() => {
     setShowNextPrompt(false);
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
   }, []);
 
   const toggleAutoNext = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
     playClick();
-    if (isAutoNext) {
-      // If turning off while countdown is running, immediately cancel the timer
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
-    }
     if (propOnToggleAutoNext) {
       propOnToggleAutoNext();
     } else {
@@ -284,7 +272,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         return nextVal;
       });
     }
-  }, [isAutoNext, propOnToggleAutoNext, playClick]);
+  }, [propOnToggleAutoNext, playClick]);
 
   const triggerNextEpisode = useCallback(() => {
     cancelNextCountdown();
@@ -297,6 +285,29 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     playClick();
     onPrevEpisode?.();
   }, [cancelNextCountdown, onPrevEpisode, playClick]);
+
+  // Robust countdown effect: when showNextPrompt is active and isAutoNext is ON
+  useEffect(() => {
+    if (!showNextPrompt || !nextEpisode) return;
+
+    if (!isAutoNext) {
+      // Countdown is paused when auto-next is OFF: prompt card stays visible
+      return;
+    }
+
+    if (nextCountdown <= 0) {
+      setShowNextPrompt(false);
+      onNextEpisode?.();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setNextCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [showNextPrompt, isAutoNext, nextEpisode, nextCountdown, onNextEpisode]);
+
   const {
     status: partyStatus,
     sendSignal: sendPartySignal,
@@ -313,7 +324,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   // Always prioritize the selected active server's URL with automatic subtitle language selection
   const rawSource = activeServer?.url || (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
-  const videoSource = activeServer?.isEmbed ? appendSubtitleParams(rawSource, language) : rawSource;
+  const videoSource = activeServer?.isEmbed ? appendSubtitleParams(rawSource, language, autoPlay) : rawSource;
   const isEmbedStream =
     Boolean(activeServer.isEmbed) ||
     (typeof videoSource === 'string' &&
@@ -823,6 +834,29 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     return () => clearTimeout(t);
   }, []);
 
+  // Automatically start active watch tracking if autoPlay is enabled
+  useEffect(() => {
+    if (autoPlay) {
+      setIsActivelyWatching(true);
+      setIsPlaying(true);
+      hasPlayedThisSession.current = true;
+    }
+  }, [autoPlay, currentEpisode?.id]);
+
+  // If autoPlay is enabled on embed iframe, broadcast play signals after mount
+  useEffect(() => {
+    if (!isEmbedStream || !autoPlay) return;
+    const delays = [500, 1200, 2500];
+    const timers = delays.map((d) =>
+      setTimeout(() => {
+        if (iframeRef.current?.contentWindow) {
+          broadcastIframePlay(iframeRef.current.contentWindow);
+        }
+      }, d)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [isEmbedStream, autoPlay, videoSource]);
+
   // Load last watched progress or explicit resumeTime when media or episode changes
   useEffect(() => {
     const epSavedTime = (() => {
@@ -883,6 +917,49 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     return () => clearInterval(checkFocus);
   }, []);
 
+  // End of episode handler for both embed iframe and native player
+  const nextEpisodeRef = useRef(nextEpisode);
+  nextEpisodeRef.current = nextEpisode;
+  const onNextEpisodeRef = useRef(onNextEpisode);
+  onNextEpisodeRef.current = onNextEpisode;
+  const isAutoNextRef = useRef(isAutoNext);
+  isAutoNextRef.current = isAutoNext;
+  const hasTriggeredEndRef = useRef(false);
+
+  // Reset completion trigger when episode changes
+  useEffect(() => {
+    hasTriggeredEndRef.current = false;
+    setShowNextPrompt(false);
+    setNextCountdown(8);
+  }, [currentEpisode?.id]);
+
+  const handleEpisodeEnded = useCallback(() => {
+    if (hasTriggeredEndRef.current) return;
+    hasTriggeredEndRef.current = true;
+    setIsPlaying(false);
+    setIsActivelyWatching(false);
+
+    const curDur = durationRef.current || initialDuration;
+    if (curDur > 0) {
+      updateProgressRef.current(
+        {
+          mediaId: mediaRef.current.id,
+          episodeId: currentEpisode?.id,
+          currentTime: curDur,
+          duration: curDur,
+          lastWatched: Date.now(),
+        },
+        mediaRef.current
+      );
+    }
+
+    // Auto-prompt countdown for series next episode
+    if (nextEpisodeRef.current && onNextEpisodeRef.current) {
+      setNextCountdown(8);
+      setShowNextPrompt(true);
+    }
+  }, [currentEpisode?.id, initialDuration]);
+
   // Register watch session in Watch History
   useEffect(() => {
     const safeEpisode = media.type === 'movie' ? undefined : currentEpisode;
@@ -909,8 +986,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       // If we don't have a verified postMessage time, advance natural playback time
       if (!hasVerifiedTime) {
         hasPlayedThisSession.current = true;
-        currentTimeRef.current = Math.min(curDur * 0.98, currentTimeRef.current + 1);
+        currentTimeRef.current = Math.min(curDur, currentTimeRef.current + 1);
         setCurrentTime(currentTimeRef.current);
+        if (curDur > 60 && currentTimeRef.current >= curDur - 10) {
+          handleEpisodeEnded();
+        }
       }
     }, 1000);
 
@@ -997,13 +1077,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
         // Detect embed player play/pause state
         const eventName = (data.event || data.type || data.action || '').toLowerCase();
+        const isEndedEvent =
+          eventName === 'ended' ||
+          eventName === 'complete' ||
+          eventName === 'completed' ||
+          eventName === 'finish' ||
+          eventName === 'finished' ||
+          eventName === 'video_ended' ||
+          eventName === 'playback_ended' ||
+          eventName.includes('ended');
+
         if (eventName === 'play' || eventName === 'playing' || eventName === 'start') {
           hasPlayedThisSession.current = true;
           setIsPlaying(true);
         } else if (eventName === 'pause') {
           setIsPlaying(false);
-        } else if (eventName === 'ended' || eventName === 'complete') {
-          setIsPlaying(false);
+        } else if (isEndedEvent) {
+          handleEpisodeEnded();
         }
 
         const time =
@@ -1050,6 +1140,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           if (typeof dur === 'number' && dur > 0) {
             setDuration(dur);
           }
+          // Check if playback reached near the end of the episode (within 4s of duration)
+          if (resolvedDur > 30 && time >= resolvedDur - 4) {
+            handleEpisodeEnded();
+          }
           // Throttle progress updates to context/storage every 4 seconds
           if (Math.floor(time) % 4 === 0 && resolvedDur > 0) {
             updateProgress(
@@ -1071,7 +1165,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [media.id, currentEpisode?.id]);
+  }, [media.id, currentEpisode?.id, handleEpisodeEnded, initialDuration, updateProgress]);
 
   // Staged multi-protocol postMessage subtitle synchronization for embedded players
   useEffect(() => {
@@ -1941,43 +2035,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   };
 
   const handleNativeEnded = () => {
-    setIsPlaying(false);
-    const curDur = durationRef.current || duration;
-    updateProgress({
-      mediaId: media.id,
-      episodeId: currentEpisode?.id,
-      currentTime: curDur,
-      duration: curDur,
-      lastWatched: Date.now(),
-    }, media);
-
-    // Auto-prompt countdown for series next episode
-    if (nextEpisode && onNextEpisode) {
-      setShowNextPrompt(true);
-
-      if (isAutoNext) {
-        setNextCountdown(8);
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = setInterval(() => {
-          setNextCountdown((prev) => {
-            if (prev <= 1) {
-              if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-              countdownIntervalRef.current = null;
-              setShowNextPrompt(false);
-              onNextEpisode();
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        // Auto countdown disabled: keep card visible without timer
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-      }
-    }
+    handleEpisodeEnded();
   };
 
 
