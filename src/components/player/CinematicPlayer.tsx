@@ -137,10 +137,10 @@ export const getCreditLeadTime = (totalDur: number): number => {
     }
   } catch {}
 
-  // Calibrated to appear precisely when end credits roll (not minutes before during the climax/story!)
-  if (totalDur >= 1800) return 55; // 55s for >= 30m episodes (matches actual end credits timing)
-  if (totalDur >= 900) return 45;  // 45s for 15-30m episodes
-  if (totalDur >= 300) return 25;   // 25s for 5-15m episodes
+  // Khusus serial panjang (>= 30 menit / 1800s), aktif tepat pada 2 menit (120 detik) sebelum episode berakhir
+  if (totalDur >= 1800) return 120; // 120s (2 menit) untuk serial panjang
+  if (totalDur >= 900) return 60;   // 60s (1 menit) untuk serial sedang (15-30 menit)
+  if (totalDur >= 300) return 30;   // 30s untuk episode pendek (5-15 menit)
   return Math.max(10, Math.min(20, Math.floor(totalDur * 0.08)));
 };
 
