@@ -32,8 +32,17 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
   const { t, language } = useLanguage();
 
   const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'movie' | 'series'>('all');
 
   const watchedItems = historyItems.filter((h) => h.completed);
+  const movieCount = watchedItems.filter((h) => h.media?.type === 'movie' && !h.episodeId).length;
+  const seriesCount = watchedItems.filter((h) => h.media?.type !== 'movie' || Boolean(h.episodeId)).length;
+
+  const displayedItems = watchedItems.filter((h) => {
+    if (filter === 'movie') return h.media?.type === 'movie' && !h.episodeId;
+    if (filter === 'series') return h.media?.type !== 'movie' || Boolean(h.episodeId);
+    return true;
+  });
 
   const handleUnmark = (item: (typeof watchedItems)[number]) => {
     playClick();
@@ -84,6 +93,45 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
         </button>
       </div>
 
+      {/* Filter Tabs */}
+      {watchedItems.length > 0 && (
+        <div className="flex items-center gap-2 border-b border-white/[0.06] pb-3 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => { playClick(); setFilter('all'); }}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              filter === 'all'
+                ? 'bg-white text-black font-bold shadow-md'
+                : 'bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            {language === 'en' ? 'All' : 'Semua'} ({watchedItems.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => { playClick(); setFilter('movie'); }}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+              filter === 'movie'
+                ? 'bg-[#E50914] text-white font-bold shadow-glow-red'
+                : 'bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>{t('filterMovies')} ({movieCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { playClick(); setFilter('series'); }}
+            className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+              filter === 'series'
+                ? 'bg-[#E50914] text-white font-bold shadow-glow-red'
+                : 'bg-white/[0.04] text-neutral-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>{t('filterSeries')} ({seriesCount})</span>
+          </button>
+        </div>
+      )}
+
       {/* Empty State */}
       {watchedItems.length === 0 ? (
         <div className="py-24 text-center text-slate-400 space-y-4 max-w-md mx-auto">
@@ -113,9 +161,23 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
             </button>
           </div>
         </div>
+      ) : displayedItems.length === 0 ? (
+        <div className="py-20 text-center text-slate-400 space-y-3">
+          <p className="text-sm text-slate-300">
+            {language === 'en'
+              ? `No completed ${filter === 'movie' ? 'movies' : 'series'} found.`
+              : `Tidak ada ${filter === 'movie' ? 'film' : 'series'} yang telah selesai ditonton.`}
+          </p>
+          <button
+            onClick={() => { playClick(); setFilter('all'); }}
+            className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white text-xs font-semibold transition-all cursor-pointer"
+          >
+            {language === 'en' ? 'Show All' : 'Tampilkan Semua'}
+          </button>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
-          {watchedItems.map((histItem) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 gap-4 sm:gap-6">
+          {displayedItems.map((histItem) => {
             const media = histItem.media;
             if (!media) return null;
             const itemKey = histItem.historyId || (histItem.episodeId ? `${histItem.mediaId}__ep_${histItem.episodeId}` : histItem.mediaId);
@@ -125,9 +187,10 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
             return (
               <div
                 key={itemKey}
-                className={`group relative flex flex-col rounded-md sm:rounded-lg overflow-hidden bg-[#181818] border border-emerald-500/30 hover:border-emerald-400/60 transition-all duration-300 shadow-netflix-card hover:-translate-y-1 ${isReverting ? 'opacity-40 scale-95' : ''}`}
+                className={`group relative flex flex-col rounded-lg sm:rounded-xl overflow-hidden bg-[#181818] border border-emerald-500/30 hover:border-emerald-400/70 transition-all duration-300 shadow-netflix-card hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/25 ${isReverting ? 'opacity-40 scale-95' : ''}`}
               >
-                <div className="relative aspect-[2/3] overflow-hidden">
+                {/* Poster & Badges Container */}
+                <div className="relative aspect-[2/3] overflow-hidden bg-[#1f1f1f]">
                   <img
                     src={histItem.episodeThumbnail || getMediaPoster(media, language) || getMediaBackdrop(media, language) || media.poster || media.backdrop}
                     alt={getMediaTitle(media, language)}
@@ -139,38 +202,45 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-black/20 to-transparent group-hover:from-black/80 transition-all" />
-                  <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded font-bold bg-emerald-600 backdrop-blur-md text-[9px] text-white uppercase tracking-wide">
-                    <CheckCircle2 className="w-2.5 h-2.5" />
+
+                  {/* Top Right: Completed Badge */}
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-md sm:rounded-lg font-bold bg-emerald-600/90 text-white border border-emerald-400/40 backdrop-blur-md text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>{t('completed')}</span>
                   </div>
-                  {isSeriesEpisode && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md border border-emerald-400/30 text-[9.5px] font-mono font-bold text-emerald-300">
+
+                  {/* Top Left: Series Episode Badge or Movie Rating */}
+                  {isSeriesEpisode ? (
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2.5 py-1 rounded-md sm:rounded-lg bg-black/80 backdrop-blur-md border border-emerald-400/40 text-[11px] sm:text-xs font-mono font-bold text-emerald-300 shadow-md">
                       S{histItem.seasonNumber ?? 1}:E{histItem.episodeNumber ?? 1}
                     </div>
-                  )}
-                  {!isSeriesEpisode && media.rating > 0 && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md border border-white/10 text-[9.5px] font-bold text-white">
-                      <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                      {media.rating.toFixed(1)}
+                  ) : media.rating > 0 ? (
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-md sm:rounded-lg bg-black/80 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-bold text-white shadow-md">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>{media.rating.toFixed(1)}</span>
                     </div>
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-[2px]">
+                  ) : null}
+
+                  {/* Hover Overlay Action Buttons */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 p-3 sm:p-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/65 backdrop-blur-[2px]">
                     <button
                       onClick={() => handlePlay(histItem)}
                       onMouseEnter={playHover}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-white hover:bg-white/85 text-black font-black text-xs shadow-xl hover:scale-105 transition-transform cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white hover:bg-white/90 text-black font-bold text-xs sm:text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
-                      <Play className="w-3.5 h-3.5 fill-black text-black" />
+                      <Play className="w-4 h-4 fill-black text-black" />
                       <span>{language === 'en' ? 'Play Again' : 'Tonton Ulang'}</span>
                     </button>
+
                     <button
                       onClick={() => handleUnmark(histItem)}
                       onMouseEnter={playHover}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-medium text-xs transition-all hover:scale-105 cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
-                      <RotateCcw className="w-3 h-3" />
+                      <RotateCcw className="w-3.5 h-3.5" />
                       <span>{t('markAsUnwatched')}</span>
                     </button>
+
                     <a
                       href={getAbsoluteWatchUrl(media.id, histItem.episodeId)}
                       target="_blank"
@@ -181,37 +251,52 @@ export const WatchedView: React.FC<WatchedViewProps> = ({
                       }}
                       onMouseEnter={playHover}
                       title={t('openInNewTabTooltip')}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-brand-gold/20 hover:border-brand-gold/40 border border-white/10 text-slate-300 hover:text-brand-gold font-medium text-xs transition-all hover:scale-105 no-underline cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-black/50 hover:bg-brand-gold/20 hover:border-brand-gold/40 border border-white/15 text-slate-200 hover:text-brand-gold font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 no-underline cursor-pointer"
                     >
-                      <ExternalLink className="w-3 h-3 text-brand-gold" />
+                      <ExternalLink className="w-3.5 h-3.5 text-brand-gold" />
                       <span>{t('openInNewTab')}</span>
                     </a>
                   </div>
                 </div>
-                <div className="p-2.5 space-y-1">
-                  <h4 className="font-display font-medium text-white text-xs line-clamp-1 group-hover:text-emerald-300 transition-colors">
-                    {getMediaTitle(media, language)}
-                  </h4>
-                  {isSeriesEpisode && histItem.episodeTitle ? (
-                    <p className="text-[10px] text-emerald-400/90 truncate font-mono">
-                      S{histItem.seasonNumber ?? 1}:E{histItem.episodeNumber ?? 1} • {histItem.episodeTitle}
-                    </p>
-                  ) : null}
-                  <div className="flex items-center gap-2 text-[9.5px] text-slate-500">
-                    <span className="flex items-center gap-0.5">
+
+                {/* Card Info Footer (Larger, highly legible title & typography) */}
+                <div className="p-3.5 sm:p-4 space-y-2 flex-1 flex flex-col justify-between bg-[#181818]">
+                  <div>
+                    {/* Media Title */}
+                    <h4 className="font-sans font-bold text-white text-sm sm:text-base line-clamp-1 leading-snug group-hover:text-emerald-300 transition-colors">
+                      {getMediaTitle(media, language)}
+                    </h4>
+
+                    {/* Series Episode Subtitle */}
+                    {isSeriesEpisode && (
+                      <div className="mt-1.5 flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10.5px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+                          S{histItem.seasonNumber ?? 1}:E{histItem.episodeNumber ?? 1}
+                        </span>
+                        <p className="text-xs sm:text-[13px] text-emerald-400/95 font-medium truncate">
+                          {histItem.episodeTitle || `${t('episodeProgress')} ${histItem.episodeNumber ?? 1}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Metadata Row: Media Type, Year & Relative Timestamp */}
+                  <div className="flex items-center gap-2.5 text-xs sm:text-[12.5px] text-slate-400 font-normal pt-1.5 border-t border-white/[0.06]">
+                    <span className="flex items-center gap-1.5 text-slate-300 font-medium shrink-0">
                       {media.type === 'movie' ? (
-                        <Film className="w-2.5 h-2.5" />
+                        <Film className="w-3.5 h-3.5 text-slate-400" />
                       ) : (
-                        <Tv className="w-2.5 h-2.5" />
+                        <Tv className="w-3.5 h-3.5 text-emerald-400/80" />
                       )}
-                      {media.year}
+                      <span>{media.year}</span>
                     </span>
+
                     {histItem.lastWatched && (
                       <>
-                        <span className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                        <span className="flex items-center gap-0.5">
-                          <Calendar className="w-2.5 h-2.5" />
-                          {formatRelativeDate(histItem.lastWatched, language)}
+                        <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
+                        <span className="flex items-center gap-1.5 text-slate-400 truncate">
+                          <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span>{formatRelativeDate(histItem.lastWatched, language)}</span>
                         </span>
                       </>
                     )}
