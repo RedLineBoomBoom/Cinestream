@@ -17,6 +17,8 @@ export interface ImdbDetails {
   boxOffice?: string;
   rated?: string;
   metascore?: string;
+  ratings?: Array<{ Source: string; Value: string }>;
+  Ratings?: Array<{ Source: string; Value: string }>;
 }
 
 const OMDB_API_KEY = 'trilogy';
@@ -87,6 +89,8 @@ export async function fetchImdbDetails(imdbId: string): Promise<ImdbDetails | nu
       boxOffice: data.BoxOffice && data.BoxOffice !== 'N/A' ? data.BoxOffice : undefined,
       rated: data.Rated && data.Rated !== 'N/A' ? data.Rated : undefined,
       metascore: data.Metascore && data.Metascore !== 'N/A' ? data.Metascore : undefined,
+      ratings: Array.isArray(data.Ratings) ? data.Ratings : undefined,
+      Ratings: Array.isArray(data.Ratings) ? data.Ratings : undefined,
     };
 
     cache[imdbId] = details;

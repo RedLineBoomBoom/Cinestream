@@ -716,7 +716,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     let isMounted = true;
     setLoadingPortalReviews(true);
 
-    fetchAllPortalReviews(media, imdbData)
+    fetchAllPortalReviews(media, imdbData, language)
       .then((data) => {
         if (isMounted) {
           setPortalBadges(data.portalBadges);
@@ -732,7 +732,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [media.id, imdbData]);
+  }, [media.id, imdbData, language]);
 
   const activeImdbId = imdbData?.imdbId || media.imdbId;
   const activeImdbUrl = imdbData?.imdbUrl || media.imdbUrl || (activeImdbId ? getImdbUrl(activeImdbId) : 'https://www.imdb.com');

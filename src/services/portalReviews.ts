@@ -98,26 +98,80 @@ const PORTAL_STYLES: Record<
 
 /**
  * Fetch official portal badges and score overview
+ * Strictly verifies scores against live API data. If a portal has not recorded or rated the title,
+ * it displays 'N/A' and 'Belum Ada Skor' / 'No Official Score Yet' instead of fake simulations.
  */
-export function getPortalBadges(media: MediaItem, omdbData?: any): PortalBadgeInfo[] {
+export function getPortalBadges(media: MediaItem, omdbData?: any, lang: 'id' | 'en' = 'id'): PortalBadgeInfo[] {
   const links = getPortalLinks(media);
-  const ratingNum = media.rating || 8.0;
 
-  // Defaults
-  let rtScore = `${Math.min(98, Math.max(75, Math.round(ratingNum * 10.5)))}%`;
-  let metaScore = `${Math.min(95, Math.max(70, Math.round(ratingNum * 9.8)))}/100`;
-  let imdbScore = `${ratingNum.toFixed(1)}/10`;
-
-  if (omdbData?.Ratings && Array.isArray(omdbData.Ratings)) {
-    const rtEntry = omdbData.Ratings.find((r: any) => r.Source === 'Rotten Tomatoes');
-    if (rtEntry?.Value) rtScore = rtEntry.Value;
-    const metaEntry = omdbData.Ratings.find((r: any) => r.Source === 'Metacritic');
-    if (metaEntry?.Value) metaScore = metaEntry.Value;
-    const imdbEntry = omdbData.Ratings.find((r: any) => r.Source === 'Internet Movie Database');
-    if (imdbEntry?.Value) imdbScore = imdbEntry.Value;
-  } else if (omdbData?.Metascore && omdbData.Metascore !== 'N/A') {
-    metaScore = `${omdbData.Metascore}/100`;
+  // 1. Rotten Tomatoes
+  let rtScore = 'N/A';
+  let rtAvailable = false;
+  const ratingsList = omdbData?.Ratings || omdbData?.ratings;
+  if (Array.isArray(ratingsList)) {
+    const rtEntry = ratingsList.find((r: any) => r.Source === 'Rotten Tomatoes');
+    if (rtEntry?.Value && rtEntry.Value !== 'N/A') {
+      rtScore = rtEntry.Value;
+      rtAvailable = true;
+    }
   }
+
+  // 2. Metacritic
+  let metaScore = 'N/A';
+  let metaAvailable = false;
+  if (Array.isArray(ratingsList)) {
+    const metaEntry = ratingsList.find((r: any) => r.Source === 'Metacritic');
+    if (metaEntry?.Value && metaEntry.Value !== 'N/A') {
+      metaScore = metaEntry.Value;
+      metaAvailable = true;
+    }
+  }
+  if (!metaAvailable && omdbData?.Metascore && omdbData.Metascore !== 'N/A') {
+    metaScore = `${omdbData.Metascore}/100`;
+    metaAvailable = true;
+  } else if (!metaAvailable && omdbData?.metascore && omdbData.metascore !== 'N/A') {
+    metaScore = `${omdbData.metascore}/100`;
+    metaAvailable = true;
+  }
+
+  // 3. IMDb
+  let imdbScore = 'N/A';
+  let imdbAvailable = false;
+  if (Array.isArray(ratingsList)) {
+    const imdbEntry = ratingsList.find((r: any) => r.Source === 'Internet Movie Database');
+    if (imdbEntry?.Value && imdbEntry.Value !== 'N/A') {
+      imdbScore = imdbEntry.Value;
+      imdbAvailable = true;
+    }
+  }
+  if (!imdbAvailable && typeof omdbData?.rating === 'number' && omdbData.rating > 0) {
+    imdbScore = `${omdbData.rating.toFixed(1)}/10`;
+    imdbAvailable = true;
+  } else if (!imdbAvailable && omdbData?.imdbRating && omdbData.imdbRating !== 'N/A') {
+    const parsed = parseFloat(omdbData.imdbRating);
+    if (!isNaN(parsed) && parsed > 0) {
+      imdbScore = `${parsed.toFixed(1)}/10`;
+      imdbAvailable = true;
+    }
+  }
+
+  // 4. Letterboxd
+  let letterboxdScore = 'N/A';
+  let letterboxdAvailable = false;
+  if ((media as any).letterboxdRating && typeof (media as any).letterboxdRating === 'number') {
+    letterboxdScore = `${(media as any).letterboxdRating.toFixed(1)} / 5 ★`;
+    letterboxdAvailable = true;
+  }
+
+  // 5. Montase Film
+  let montaseScore = 'N/A';
+  let montaseAvailable = false;
+  if ((media as any).montaseRating && typeof (media as any).montaseRating === 'number') {
+    montaseScore = `${(media as any).montaseRating.toFixed(1)} / 5 ★`;
+    montaseAvailable = true;
+  }
+
+  const naLabel = lang === 'en' ? 'No Score Yet' : 'Belum Ada Skor';
 
   return [
     {
@@ -126,11 +180,13 @@ export function getPortalBadges(media: MediaItem, omdbData?: any): PortalBadgeIn
       url: links.rottenTomatoes,
       scoreText: rtScore,
       scoreLabel: 'Tomatometer',
-      badgeBg: 'bg-red-500/10 hover:bg-red-500/20',
-      badgeBorder: 'border-red-500/30 hover:border-red-500/60',
-      textColor: 'text-red-400',
+      badgeBg: rtAvailable ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05]',
+      badgeBorder: rtAvailable ? 'border-red-500/30 hover:border-red-500/60' : 'border-white/[0.08] hover:border-white/20',
+      textColor: rtAvailable ? 'text-red-400' : 'text-slate-400',
       iconType: 'tomato',
-      tagline: 'Certified Fresh & Critic Reviews',
+      tagline: rtAvailable
+        ? (parseInt(rtScore) >= 60 ? 'Certified Fresh & Critic Reviews' : 'Rotten Tomatoes Verified')
+        : naLabel,
     },
     {
       id: 'imdb',
@@ -138,11 +194,13 @@ export function getPortalBadges(media: MediaItem, omdbData?: any): PortalBadgeIn
       url: links.imdb,
       scoreText: imdbScore,
       scoreLabel: 'IMDb Rating',
-      badgeBg: 'bg-[#F5C518]/10 hover:bg-[#F5C518]/20',
-      badgeBorder: 'border-[#F5C518]/30 hover:border-[#F5C518]/60',
-      textColor: 'text-[#F5C518]',
+      badgeBg: imdbAvailable ? 'bg-[#F5C518]/10 hover:bg-[#F5C518]/20' : 'bg-white/[0.02] hover:bg-white/[0.05]',
+      badgeBorder: imdbAvailable ? 'border-[#F5C518]/30 hover:border-[#F5C518]/60' : 'border-white/[0.08] hover:border-white/20',
+      textColor: imdbAvailable ? 'text-[#F5C518]' : 'text-slate-400',
       iconType: 'imdb',
-      tagline: 'Internet Movie Database Verified',
+      tagline: imdbAvailable
+        ? (omdbData?.votes ? `${omdbData.votes} votes verified` : 'Internet Movie Database Verified')
+        : naLabel,
     },
     {
       id: 'metacritic',
@@ -150,35 +208,37 @@ export function getPortalBadges(media: MediaItem, omdbData?: any): PortalBadgeIn
       url: links.metacritic,
       scoreText: metaScore,
       scoreLabel: 'Metascore',
-      badgeBg: 'bg-emerald-500/10 hover:bg-emerald-500/20',
-      badgeBorder: 'border-emerald-500/30 hover:border-emerald-500/60',
-      textColor: 'text-emerald-400',
+      badgeBg: metaAvailable ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05]',
+      badgeBorder: metaAvailable ? 'border-emerald-500/30 hover:border-emerald-500/60' : 'border-white/[0.08] hover:border-white/20',
+      textColor: metaAvailable ? 'text-emerald-400' : 'text-slate-400',
       iconType: 'meta',
-      tagline: 'Universal Critic Acclaim',
+      tagline: metaAvailable
+        ? (parseInt(metaScore) >= 61 ? 'Universal Critic Acclaim' : 'Metacritic Reviews')
+        : naLabel,
     },
     {
       id: 'letterboxd',
       name: 'Letterboxd',
       url: links.letterboxd,
-      scoreText: `${(ratingNum / 2).toFixed(1)} / 5 ★`,
+      scoreText: letterboxdScore,
       scoreLabel: 'Cinephile Score',
-      badgeBg: 'bg-orange-500/10 hover:bg-orange-500/20',
-      badgeBorder: 'border-orange-500/30 hover:border-orange-500/60',
-      textColor: 'text-orange-400',
+      badgeBg: letterboxdAvailable ? 'bg-orange-500/10 hover:bg-orange-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05]',
+      badgeBorder: letterboxdAvailable ? 'border-orange-500/30 hover:border-orange-500/60' : 'border-white/[0.08] hover:border-white/20',
+      textColor: letterboxdAvailable ? 'text-orange-400' : 'text-slate-400',
       iconType: 'letterboxd',
-      tagline: 'Global Cinephile Community Logs',
+      tagline: letterboxdAvailable ? 'Global Cinephile Community Logs' : naLabel,
     },
     {
       id: 'montasefilm',
       name: 'Montase Film',
       url: links.montasefilm,
-      scoreText: '4.5 / 5 ★',
+      scoreText: montaseScore,
       scoreLabel: 'Telaah Sinema',
-      badgeBg: 'bg-cyan-500/10 hover:bg-cyan-500/20',
-      badgeBorder: 'border-cyan-500/30 hover:border-cyan-500/60',
-      textColor: 'text-cyan-400',
+      badgeBg: montaseAvailable ? 'bg-cyan-500/10 hover:bg-cyan-500/20' : 'bg-white/[0.02] hover:bg-white/[0.05]',
+      badgeBorder: montaseAvailable ? 'border-cyan-500/30 hover:border-cyan-500/60' : 'border-white/[0.08] hover:border-white/20',
+      textColor: montaseAvailable ? 'text-cyan-400' : 'text-slate-400',
       iconType: 'montase',
-      tagline: 'Jurnal & Kajian Sinema Indonesia',
+      tagline: montaseAvailable ? 'Jurnal & Kajian Sinema Indonesia' : naLabel,
     },
   ];
 }
@@ -189,9 +249,10 @@ export function getPortalBadges(media: MediaItem, omdbData?: any): PortalBadgeIn
  */
 export async function fetchAllPortalReviews(
   media: MediaItem,
-  omdbData?: any
+  omdbData?: any,
+  lang: 'id' | 'en' = 'id'
 ): Promise<{ portalBadges: PortalBadgeInfo[]; reviews: PortalReviewItem[] }> {
-  const portalBadges = getPortalBadges(media, omdbData);
+  const portalBadges = getPortalBadges(media, omdbData, lang);
   const links = getPortalLinks(media);
   const apiKey = getTmdbApiKey();
 
