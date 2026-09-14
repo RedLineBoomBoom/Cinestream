@@ -5,7 +5,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRemainingTime, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop } from '../../utils/formatters';
-import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface ContinueWatchingRowProps {
   onPlayMedia: (media: MediaItem, resumeTime?: number, episodeId?: string) => void;
@@ -122,15 +122,29 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
               className="w-[82vw] max-w-[320px] xs:w-[76vw] sm:w-auto shrink-0 snap-start group relative flex flex-col rounded-xl sm:rounded-lg overflow-hidden bg-[#181818] border border-white/[0.08] hover:border-white/30 transition-all duration-300 sm:hover:scale-[1.03] shadow-lg sm:hover:shadow-2xl hover:shadow-black/95"
             >
               {/* Thumbnail Container */}
-              <a
-                href={getMediaWatchUrl(item.media.id, item.episodeId)}
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
-                  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                    window.open(getAbsoluteWatchUrl(item.media.id, item.episodeId), '_blank', 'noopener,noreferrer');
                     return;
                   }
-                  e.preventDefault();
                   playWhoosh();
                   onPlayMedia(item.media, item.currentTime, item.episodeId);
+                }}
+                onAuxClick={(e) => {
+                  if (e.button === 1) {
+                    e.preventDefault();
+                    window.open(getAbsoluteWatchUrl(item.media.id, item.episodeId), '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    playWhoosh();
+                    onPlayMedia(item.media, item.currentTime, item.episodeId);
+                  }
                 }}
                 className="relative aspect-video w-full overflow-hidden bg-[#141414] cursor-pointer block no-underline text-inherit"
               >
@@ -164,20 +178,19 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
 
                   <div className="flex items-center gap-1.5">
                     {/* Open in New Tab Button */}
-                    <button
-                      type="button"
+                    <a
+                      href={getAbsoluteWatchUrl(item.media.id, item.episodeId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                         playClick();
-                        const url = getAbsoluteWatchUrl(item.media.id, item.episodeId);
-                        window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                       title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
-                      className="pointer-events-auto w-7 h-7 rounded-full bg-black/60 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/20 hover:border-white cursor-pointer"
+                      className="pointer-events-auto w-7 h-7 rounded-full bg-black/60 hover:bg-white/20 text-white flex items-center justify-center transition-all border border-white/20 hover:border-white cursor-pointer no-underline"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    </a>
 
                     {/* Dismiss / Remove Button */}
                     <button
@@ -196,7 +209,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Remaining Time Tag */}
+                {/* Remaining Time Badge at Bottom Right */}
                 <div className="absolute bottom-2.5 right-2.5 pointer-events-none">
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/80 text-white backdrop-blur-md border border-white/10 font-medium">
                     {remainingText}
@@ -210,7 +223,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
                     style={{ width: `${barWidthPercent}%` }}
                   />
                 </div>
-              </a>
+              </div>
 
               {/* Info & Action Row */}
               <div className="p-3.5 flex flex-col justify-between gap-2 flex-1">

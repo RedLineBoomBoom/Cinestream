@@ -6,7 +6,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop, formatMediaDuration, getMediaSynopsis } from '../../utils/formatters';
 import { useAutoTranslateSynopsis } from '../../services/translator';
-import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 
 interface MovieCardProps {
   media: MediaItem;
@@ -78,16 +78,31 @@ export const MovieCard: React.FC<MovieCardProps> = ({
   };
 
   return (
-    <a
-      href={getMediaWatchUrl(media.id)}
+    <div
+      role="article"
+      tabIndex={0}
       onClick={(e) => {
-        // If holding modifier key (Ctrl, Cmd, Shift) or middle click, allow native browser new tab behavior
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+        // If holding modifier key (Ctrl, Cmd, Shift), open in new tab
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          window.open(getAbsoluteWatchUrl(media.id), '_blank', 'noopener,noreferrer');
           return;
         }
-        e.preventDefault();
         playClick();
         onOpenDetails(media);
+      }}
+      onAuxClick={(e) => {
+        // Middle click (scroll-wheel click) opens in new tab
+        if (e.button === 1) {
+          e.preventDefault();
+          window.open(getAbsoluteWatchUrl(media.id), '_blank', 'noopener,noreferrer');
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          playClick();
+          onOpenDetails(media);
+        }
       }}
       onMouseEnter={playHover}
       className="group relative flex flex-col h-full rounded-md sm:rounded-lg overflow-hidden cursor-pointer select-none transition-all duration-300 hover:scale-[1.04] hover:z-20 hover:shadow-2xl hover:shadow-black/95 border border-white/[0.08] hover:border-white/30 bg-[#181818] block no-underline text-inherit"
@@ -194,20 +209,19 @@ export const MovieCard: React.FC<MovieCardProps> = ({
           </button>
 
           {/* Open in New Tab Button */}
-          <button
-            type="button"
+          <a
+            href={getAbsoluteWatchUrl(media.id)}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
               playClick();
-              const url = getAbsoluteWatchUrl(media.id);
-              window.open(url, '_blank', 'noopener,noreferrer');
             }}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 border border-white/30 text-white hover:bg-white/20 hover:border-white flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/60 border border-white/30 text-white hover:bg-white/20 hover:border-white flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg cursor-pointer no-underline"
             title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
           >
             <ExternalLink className="w-3.5 h-3.5" />
-          </button>
+          </a>
 
           {/* Bookmark Button */}
           <button
@@ -241,6 +255,21 @@ export const MovieCard: React.FC<MovieCardProps> = ({
 
         {/* Mobile Quick Action Buttons (Compact, non-intrusive bottom-right controls on poster) */}
         <div className="md:hidden absolute bottom-2 right-2 z-10 flex items-center gap-1.5 pointer-events-auto">
+          {/* Open in New Tab Button (Mobile) */}
+          <a
+            href={getAbsoluteWatchUrl(media.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation();
+              playClick();
+            }}
+            className="w-7 h-7 rounded-full bg-black/60 border border-white/25 text-white/90 active:bg-white/20 flex items-center justify-center shadow-md backdrop-blur-md transition-all active:scale-90 no-underline cursor-pointer"
+            title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+
           {/* Bookmark Button */}
           <button
             type="button"
@@ -276,7 +305,23 @@ export const MovieCard: React.FC<MovieCardProps> = ({
       <div className="p-3 sm:p-3.5 flex flex-col justify-between gap-1.5 flex-1 bg-[#181818]">
         <div className="flex items-start gap-2">
           <h4 className="font-sans font-bold text-white text-xs sm:text-sm line-clamp-2 group-hover:text-white transition-colors tracking-normal flex-1 leading-snug">
-            {displayTitle}
+            <a
+              href={getAbsoluteWatchUrl(media.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                // If normal left-click without modifier keys, trigger in-app details instead of navigating current tab
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  playClick();
+                  onOpenDetails(media);
+                }
+              }}
+              className="hover:underline text-inherit no-underline"
+            >
+              {displayTitle}
+            </a>
           </h4>
         </div>
 
@@ -345,6 +390,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({
           </div>
         ) : null}
       </div>
-    </a>
+    </div>
   );
 };

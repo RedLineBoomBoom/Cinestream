@@ -610,20 +610,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
                     {/* Actions: Open in New Tab + Play Trigger */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        type="button"
+                      <a
+                        href={getAbsoluteWatchUrl(item.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={(e) => {
-                          e.preventDefault();
                           e.stopPropagation();
                           playClick();
-                          const url = getAbsoluteWatchUrl(item.id);
-                          window.open(url, '_blank', 'noopener,noreferrer');
                         }}
-                        className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer"
+                        className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer no-underline"
                         title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
+                      </a>
 
                       {isLoadingThis ? (
                         <div className="w-9 h-9 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center">
@@ -753,20 +752,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
                   {/* Actions: Open in New Tab + Play Trigger */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      type="button"
+                    <a
+                      href={getAbsoluteWatchUrl(item.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                         playClick();
-                        const url = getAbsoluteWatchUrl(item.id);
-                        window.open(url, '_blank', 'noopener,noreferrer');
                       }}
-                      className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer"
+                      className="w-8 h-8 rounded-full bg-white/[0.04] hover:bg-[#E50914] hover:text-white text-slate-400 hover:border-[#E50914] border border-white/10 flex items-center justify-center transition-all duration-200 cursor-pointer no-underline"
                       title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    </a>
 
                     <div className="w-9 h-9 rounded-full bg-white/[0.05] text-slate-300 group-hover:bg-[#E50914] group-hover:text-white group-hover:shadow-glow-red flex items-center justify-center transition-all duration-300 flex-shrink-0">
                       <Play className="w-4 h-4 ml-0.5 fill-current" />

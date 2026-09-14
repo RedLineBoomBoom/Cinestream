@@ -21,7 +21,7 @@ import {
   fetchTmdbTrending,
   getGenreNames,
 } from '../../services/tmdb';
-import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
+import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
   searchHybrid,
   resolveToPlayableMediaItem,
@@ -629,15 +629,30 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
   const displaySynopsis = autoCardSynopsis || (language === 'en' ? (item.synopsisEn || item.synopsis) : (item.synopsisId || item.synopsis));
 
   return (
-    <a
-      href={getMediaWatchUrl(item.id)}
+    <div
+      role="article"
+      tabIndex={0}
       onClick={(e) => {
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+          window.open(getAbsoluteWatchUrl(item.id), '_blank', 'noopener,noreferrer');
           return;
         }
-        e.preventDefault();
         if (!isLoadingThis) {
           handleSelectMedia(item, 'details');
+        }
+      }}
+      onAuxClick={(e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          window.open(getAbsoluteWatchUrl(item.id), '_blank', 'noopener,noreferrer');
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!isLoadingThis) {
+            handleSelectMedia(item, 'details');
+          }
         }
       }}
       onMouseEnter={playHover}
@@ -764,21 +779,20 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
           </button>
 
           {/* Open in New Tab Button */}
-          <button
-            type="button"
+          <a
+            href={getAbsoluteWatchUrl(item.id)}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
               playClick();
-              const url = getAbsoluteWatchUrl(item.id);
-              window.open(url, '_blank', 'noopener,noreferrer');
             }}
-            className="w-full py-2 px-3 rounded-md bg-white/10 hover:bg-[#E50914] text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-150 hover:scale-105 cursor-pointer"
+            className="w-full py-2 px-3 rounded-md bg-white/10 hover:bg-[#E50914] text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-150 hover:scale-105 cursor-pointer no-underline"
             title={t('openInNewTabTooltip') || (language === 'en' ? 'Open in new tab' : 'Buka di tab baru')}
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>{language === 'en' ? 'Open in New Tab' : 'Buka di Tab Baru'}</span>
-          </button>
+          </a>
 
           {/* Add to Watchlist Button */}
           <button
@@ -789,19 +803,18 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
             }}
             className={`w-full py-2 px-3 rounded-md font-medium text-xs flex items-center justify-center gap-1.5 transition-all duration-150 hover:scale-105 cursor-pointer ${
               isInWatchlist(item.id)
-                ? 'bg-[#E50914] text-white font-bold'
+                ? 'bg-[#E50914] text-white shadow-glow-red'
                 : 'bg-white/10 hover:bg-white/20 text-white'
             }`}
-            title={isInWatchlist(item.id) ? t('removeWatchlistTooltip') : t('addWatchlistTooltip')}
           >
             {isInWatchlist(item.id) ? (
               <>
-                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{t('inWatchlist')}</span>
+                <Check className="w-3.5 h-3.5 text-white" />
+                <span>{language === 'en' ? 'Saved to Watchlist' : 'Tersimpan'}</span>
               </>
             ) : (
               <>
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <Plus className="w-3.5 h-3.5 text-white" />
                 <span>{t('addToWatchlist')}</span>
               </>
             )}
@@ -858,7 +871,23 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
       {/* Card Info Footer */}
       <div className="p-3 sm:p-3.5 flex flex-col justify-between gap-1">
         <h4 className="font-sans font-bold text-white text-xs sm:text-sm line-clamp-1 group-hover:text-red-400 transition-colors tracking-tight leading-snug">
-          {itemTitle}
+          <a
+            href={getAbsoluteWatchUrl(item.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isLoadingThis) {
+                  handleSelectMedia(item, 'details');
+                }
+              }
+            }}
+            className="hover:underline text-inherit no-underline"
+          >
+            {itemTitle}
+          </a>
         </h4>
 
         <div className="flex items-center justify-between gap-2 min-w-0 text-[11px] font-medium mt-0.5">
@@ -886,6 +915,6 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
           </p>
         )}
       </div>
-    </a>
+    </div>
   );
 };
