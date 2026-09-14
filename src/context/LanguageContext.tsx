@@ -281,6 +281,7 @@ export const translations = {
     secsLabel: 'Detik',
     episodeLockedHint: 'Episode ini belum resmi dirilis oleh studio/penyiar. Nantikan penayangannya.',
     scheduleTba: 'Jadwal rilis episode berikutnya segera diumumkan',
+    episodeSynopsisNotAvailable: 'Sinopsis episode belum tersedia.',
 
     // Watchlist Modal
     myWatchlistTitle: 'Daftar Tonton Saya',
@@ -659,6 +660,7 @@ export const translations = {
     secsLabel: 'Secs',
     episodeLockedHint: 'This episode has not been officially released by the broadcaster yet. Stay tuned.',
     scheduleTba: 'Next episode air date will be announced soon',
+    episodeSynopsisNotAvailable: 'Episode synopsis is not yet available.',
 
     // Watchlist Modal
     myWatchlistTitle: 'My Watchlist',

@@ -6,6 +6,81 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 import { useReleaseCountdown } from '../../hooks/useReleaseCountdown';
+import { translateText } from '../../services/translator';
+
+export function isDefaultOrEmptySynopsis(text?: string): boolean {
+  if (!text) return true;
+  const clean = text.trim().toLowerCase();
+  return (
+    clean === '' ||
+    clean.includes('belum tersedia') ||
+    clean.includes('not yet available') ||
+    clean.includes('not available') ||
+    clean.includes('no overview') ||
+    clean.includes('tba') ||
+    /^episode\s+\d+\s+dari\s+serial/i.test(clean) ||
+    /^episode\s+\d+\s+of\s+series/i.test(clean)
+  );
+}
+
+export function formatEpisodeDuration(durationStr?: string, lang: 'id' | 'en' = 'id'): string {
+  if (!durationStr) return lang === 'en' ? '45 Mins' : '45 Menit';
+  const numMatch = durationStr.match(/(\d+)/);
+  if (!numMatch) return durationStr;
+  const mins = numMatch[1];
+  return lang === 'en' ? `${mins} Mins` : `${mins} Menit`;
+}
+
+interface EpisodeSynopsisProps {
+  synopsis?: string;
+  language: 'id' | 'en';
+  className?: string;
+}
+
+const EpisodeSynopsis: React.FC<EpisodeSynopsisProps> = ({ synopsis, language, className }) => {
+  const { t } = useLanguage();
+  const [translatedText, setTranslatedText] = useState<string>('');
+
+  const isDefault = isDefaultOrEmptySynopsis(synopsis);
+
+  useEffect(() => {
+    if (isDefault || !synopsis?.trim()) {
+      setTranslatedText('');
+      return;
+    }
+
+    const clean = synopsis.trim();
+    let isMounted = true;
+
+    translateText(clean, language)
+      .then((res) => {
+        if (isMounted && res) {
+          setTranslatedText(res);
+        }
+      })
+      .catch(() => {
+        // keep original text on error
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [synopsis, language, isDefault]);
+
+  if (isDefault || !synopsis?.trim()) {
+    return (
+      <p className={className}>
+        {t('episodeSynopsisNotAvailable')}
+      </p>
+    );
+  }
+
+  return (
+    <p className={className}>
+      {translatedText || synopsis}
+    </p>
+  );
+};
 
 interface UpcomingEpisodeCardProps {
   airDate?: string;
@@ -38,8 +113,8 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
     `${t('episode')} ${epNumber}`;
   const epThumbnail = thumbnail || episodeInfo?.stillPath;
   const epSynopsis =
-    (synopsis && !synopsis.includes('belum tersedia') ? synopsis : undefined) ||
-    episodeInfo?.overview ||
+    (synopsis && !isDefaultOrEmptySynopsis(synopsis) ? synopsis : undefined) ||
+    (episodeInfo?.overview && !isDefaultOrEmptySynopsis(episodeInfo.overview) ? episodeInfo.overview : undefined) ||
     synopsis;
 
   return (
@@ -99,11 +174,11 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
           {epTitle}
         </h5>
 
-        {epSynopsis && (
-          <p className="text-[10px] sm:text-[10.5px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed">
-            {epSynopsis}
-          </p>
-        )}
+        <EpisodeSynopsis
+          synopsis={epSynopsis}
+          language={language}
+          className="text-[10px] sm:text-[10.5px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed"
+        />
 
         {/* Countdown display */}
         {countdown.isValid && !countdown.isPassed && !countdown.isToday ? (
@@ -216,9 +291,11 @@ const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language
           {episode.title}
         </h5>
 
-        <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-light line-clamp-2 mt-0.5 leading-relaxed">
-          {episode.synopsis}
-        </p>
+        <EpisodeSynopsis
+          synopsis={episode.synopsis}
+          language={language}
+          className="text-[10.5px] sm:text-[11px] text-slate-500 font-light line-clamp-2 mt-0.5 leading-relaxed"
+        />
       </div>
     </div>
   );
@@ -560,7 +637,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
                 <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[8.5px] sm:text-[9px] text-slate-300 font-mono flex items-center gap-1">
                   <Clock className="w-2.5 h-2.5 text-slate-400" />
-                  {ep.duration}
+                  {formatEpisodeDuration(ep.duration, language)}
                 </div>
               </div>
 
@@ -609,9 +686,11 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                   {ep.title}
                 </h5>
 
-                <p className="text-[10.5px] sm:text-[11px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed">
-                  {ep.synopsis}
-                </p>
+                <EpisodeSynopsis
+                  synopsis={ep.synopsis}
+                  language={language}
+                  className="text-[10.5px] sm:text-[11px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed"
+                />
               </div>
             </a>
           );

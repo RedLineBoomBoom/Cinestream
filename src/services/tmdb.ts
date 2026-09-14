@@ -913,7 +913,7 @@ export async function fetchFullMediaItem(
                 thumbnail: ep.still_path
                   ? `${IMAGE_BASE_W500}${ep.still_path}`
                   : (data.backdrop_path ? `${IMAGE_BASE_W500}${data.backdrop_path}` : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop'),
-                synopsis: ep.overview || 'Sinopsis episode belum tersedia.',
+                synopsis: ep.overview || '',
                 airDate: ep.air_date,
                 videoUrl: `https://vidlink.pro/tv/${tmdbId}/${sNum}/${ep.episode_number}`,
                 servers: createTvServers(tmdbId, sNum, ep.episode_number),
@@ -937,7 +937,7 @@ export async function fetchFullMediaItem(
               thumbnail: data.backdrop_path
                 ? `${IMAGE_BASE_W500}${data.backdrop_path}`
                 : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop',
-              synopsis: `Episode ${e} dari serial ${title}.`,
+              synopsis: '',
               videoUrl: `https://vidlink.pro/tv/${tmdbId}/${sNum}/${e}`,
               servers: createTvServers(tmdbId, sNum, e),
             });
