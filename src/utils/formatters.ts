@@ -390,10 +390,43 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
 }
 
 /**
- * Resolves the default server for watching movies or TV series.
- * Prioritizes Server 2 (AutoEmbed Ultra / index 1), with graceful fallback to index 0.
+ * Detects whether a media item is an anime (Japanese animation).
  */
-export function getDefaultServer(servers?: Server[], fallback?: Server[]): Server {
+export function isAnimeMedia(
+  media?: { type?: string; mediaType?: string; genres?: string[]; country?: string } | null
+): boolean {
+  if (!media) return false;
+  const mediaType = (media.type || media.mediaType || '').toLowerCase();
+  if (mediaType === 'anime') return true;
+  const genres = media.genres || [];
+  if (
+    genres.some((g) => {
+      const l = g.toLowerCase();
+      return l.includes('anime') || l.includes('animasi jepang');
+    })
+  ) {
+    return true;
+  }
+  const country = (media.country || '').toLowerCase();
+  if (
+    (country.includes('jepang') || country.includes('japan')) &&
+    (mediaType === 'series' || genres.some((g) => g.toLowerCase().includes('anim')))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Resolves the default server for watching movies, TV series, or anime.
+ * - For Anime: Prioritizes Server 3 (2Embed: Original Japanese Audio & Asian Cinema), then Server 5 (SmashyStream: Sub Indo / JP Audio).
+ * - For Standard Movies/Series: Prioritizes Server 2 (AutoEmbed Ultra / index 1), with graceful fallback to index 0.
+ */
+export function getDefaultServer(
+  servers?: Server[],
+  fallback?: Server[],
+  media?: { type?: string; mediaType?: string; genres?: string[]; country?: string } | null
+): Server {
   const list = servers && servers.length > 0 ? servers : (fallback && fallback.length > 0 ? fallback : []);
   if (list.length === 0) {
     return {
@@ -407,7 +440,24 @@ export function getDefaultServer(servers?: Server[], fallback?: Server[]): Serve
     };
   }
 
-  // 1. Explicitly prioritize Server 2 (AutoEmbed Ultra)
+  // 1. If media is Anime, prioritize Server 3 (2Embed: Original Japanese Audio), then Server 5 (SmashyStream: Sub Indo / JP Audio)
+  if (isAnimeMedia(media)) {
+    const serverAnime = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('2embed') || name.includes('2embed') || name.includes('anime') || name.includes('asia');
+    });
+    if (serverAnime) return serverAnime;
+
+    const serverSmashy = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('smashy') || name.includes('smashy') || name.includes('sub indo');
+    });
+    if (serverSmashy) return serverSmashy;
+  }
+
+  // 2. Standard priority: Explicitly prioritize Server 2 (AutoEmbed Ultra)
   const server2 = list.find((s) => {
     const id = (s.id || '').toLowerCase();
     const name = (s.name || '').toLowerCase();
@@ -415,16 +465,56 @@ export function getDefaultServer(servers?: Server[], fallback?: Server[]): Serve
   });
   if (server2) return server2;
 
-  // 2. Return index 1 (Server 2 in 0-indexed list) if present, else fallback to index 0
+  // 3. Return index 1 (Server 2 in 0-indexed list) if present, else fallback to index 0
   return list[1] || list[0];
 }
 
 /**
  * Get distinct feature badge for servers
  */
-export function getServerBadgeInfo(server: { id?: string; name?: string }, lang: 'id' | 'en' = 'id'): { label: string; color: string } {
+export function getServerBadgeInfo(
+  server: { id?: string; name?: string },
+  lang: 'id' | 'en' = 'id',
+  isAnime = false
+): { label: string; color: string } {
   const id = (server.id || '').toLowerCase();
   const name = (server.name || '').toLowerCase();
+
+  // Anime-tailored audio and language badges
+  if (isAnime) {
+    if (id.includes('2embed') || name.includes('2embed')) {
+      return {
+        label: lang === 'en' ? '🇯🇵 Original JP Audio' : '🇯🇵 Audio Asli Jepang',
+        color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30 font-bold',
+      };
+    }
+    if (id.includes('smashy') || name.includes('smashy')) {
+      return {
+        label: lang === 'en' ? '🇮🇩 JP Audio (Sub Indo)' : '🇮🇩 Audio JP + Sub Indo',
+        color: 'text-rose-300 bg-rose-500/15 border-rose-500/30 font-semibold',
+      };
+    }
+    if (id.includes('vidlink') || name.includes('vidlink')) {
+      return {
+        label: '🔊 Dual Audio (JP/EN)',
+        color: 'text-amber-400 bg-amber-500/15 border-amber-500/30 font-semibold',
+      };
+    }
+    if (id.includes('autoembed') || name.includes('autoembed')) {
+      return {
+        label: lang === 'en' ? '⚡ 60fps (Dub Eng)' : '⚡ 60fps (Dub Eng)',
+        color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+      };
+    }
+    if (id.includes('vidsrc') || name.includes('vidsrc')) {
+      return {
+        label: lang === 'en' ? '🔥 Ultra Stable (Dub Eng)' : '🔥 Ultra Stabil (Dub Eng)',
+        color: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+      };
+    }
+  }
+
+  // Standard non-anime badges
   if (id.includes('vidsrc') || name.includes('vidsrc')) {
     return {
       label: lang === 'en' ? '🔥 Ultra Stable' : '🔥 Ultra Stabil',

@@ -353,7 +353,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const availableServers = servers || currentEpisode?.servers || media.servers || [activeServer];
 
   // Always prioritize the selected active server's URL with automatic subtitle language selection
-  const rawSource = activeServer?.url || (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+  const rawSource = activeServer?.url || (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers, undefined, media)?.url);
   const videoSource = activeServer?.isEmbed ? appendSubtitleParams(rawSource, language, autoPlay) : rawSource;
   const isEmbedStream =
     Boolean(activeServer.isEmbed) ||

@@ -224,9 +224,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const [activeServer, setActiveServer] = useState<Server>(() => {
     if (media.type !== 'movie') {
       const targetEp = getTargetEpisode(media);
-      if (targetEp?.servers?.length) return getDefaultServer(targetEp.servers, media.servers);
+      if (targetEp?.servers?.length) return getDefaultServer(targetEp.servers, media.servers, media);
     }
-    return getDefaultServer(media.servers);
+    return getDefaultServer(media.servers, undefined, media);
   });
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(() => {
     return getTargetEpisode(media);
@@ -296,7 +296,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       const targetServer =
         activeIndex >= 0 && safeEp.servers && safeEp.servers[activeIndex]
           ? safeEp.servers[activeIndex]
-          : getDefaultServer(safeEp.servers, activeMedia.servers);
+          : getDefaultServer(safeEp.servers, activeMedia.servers, activeMedia);
 
       setCurrentEpisode(safeEp);
       setActiveServer(targetServer);
@@ -379,7 +379,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   useEffect(() => {
     if (activeMedia.type === 'movie') {
       setCurrentEpisode(undefined);
-      setActiveServer(getDefaultServer(activeMedia.servers));
+      setActiveServer(getDefaultServer(activeMedia.servers, undefined, activeMedia));
       return;
     }
 
@@ -396,7 +396,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         if (matched.servers?.length) {
           setActiveServer((prevSrv) => {
             const foundSrv = matched.servers.find((s) => s.id === prevSrv.id);
-            return foundSrv || getDefaultServer(matched.servers, activeMedia.servers);
+            return foundSrv || getDefaultServer(matched.servers, activeMedia.servers, activeMedia);
           });
         }
         return;
@@ -406,7 +406,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     const targetEp = getTargetEpisode(activeMedia);
     setCurrentEpisode(targetEp);
     if (targetEp) {
-      setActiveServer(getDefaultServer(targetEp.servers, activeMedia.servers));
+      setActiveServer(getDefaultServer(targetEp.servers, activeMedia.servers, activeMedia));
       try {
         const targetUrl = getMediaWatchUrl(activeMedia.id, targetEp.id);
         window.history.replaceState(
@@ -416,7 +416,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         );
       } catch {}
     } else {
-      setActiveServer(getDefaultServer(activeMedia.servers));
+      setActiveServer(getDefaultServer(activeMedia.servers, undefined, activeMedia));
     }
   }, [resumeEpisodeId, activeMedia.id, activeMedia.seasons, activeMedia.type]);
 
@@ -671,7 +671,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     playClick();
     const raw =
       activeServer?.url ||
-      (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+      (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers, undefined, media)?.url);
     if (raw) {
       const finalUrl = activeServer?.isEmbed ? appendSubtitleParams(raw, language) : raw;
       window.open(finalUrl, '_blank', 'noopener,noreferrer');
@@ -1160,7 +1160,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               <ServerSelector
                 servers={currentEpisode?.servers || media.servers}
                 activeServerId={activeServer.id}
-                media={media}
+                media={activeMedia}
                 onSelectServer={(srv) => {
                   setActiveServer(srv);
                 }}

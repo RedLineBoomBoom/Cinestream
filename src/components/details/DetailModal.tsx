@@ -59,7 +59,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   const displaySynopsis = autoSynopsis || getMediaSynopsis(media, language);
 
   const [activeTab, setActiveTab] = useState<'info' | 'episodes' | 'reviews'>('info');
-  const [activeServer, setActiveServer] = useState<Server>(() => getDefaultServer(media.servers));
+  const [activeServer, setActiveServer] = useState<Server>(() => getDefaultServer(media.servers, undefined, media));
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(
     media.seasons?.[0]?.episodes?.[0]
   );
@@ -87,10 +87,10 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     if (media.seasons && media.seasons.length > 0) {
       const firstEp = media.seasons[0].episodes[0];
       setCurrentEpisode(firstEp);
-      setActiveServer(getDefaultServer(firstEp?.servers, media.servers));
+      setActiveServer(getDefaultServer(firstEp?.servers, media.servers, media));
       setActiveTab('episodes');
     } else {
-      setActiveServer(getDefaultServer(media.servers));
+      setActiveServer(getDefaultServer(media.servers, undefined, media));
       setCurrentEpisode(undefined);
       setActiveTab('info');
     }
@@ -156,7 +156,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     const targetServer =
       activeIndex >= 0 && safeEp.servers && safeEp.servers[activeIndex]
         ? safeEp.servers[activeIndex]
-        : getDefaultServer(safeEp.servers, media.servers);
+        : getDefaultServer(safeEp.servers, media.servers, media);
     setCurrentEpisode(safeEp);
     setActiveServer(targetServer);
   };
@@ -449,7 +449,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   playClick();
                   const targetStream =
                     activeServer?.url ||
-                    (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers)?.url);
+                    (currentEpisode ? currentEpisode.videoUrl : getDefaultServer(media.servers, undefined, media)?.url);
                   if (targetStream) {
                     window.open(targetStream, '_blank', 'noopener,noreferrer');
                   }

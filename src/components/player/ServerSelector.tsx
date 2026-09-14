@@ -4,7 +4,7 @@ import { Server as ServerIcon, ShieldCheck, Loader2 } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { resolveBestServer } from '../../services/serverResolver';
-import { formatServerName, getServerBadgeInfo, getDefaultServer } from '../../utils/formatters';
+import { formatServerName, getServerBadgeInfo, getDefaultServer, isAnimeMedia } from '../../utils/formatters';
 
 interface ServerSelectorProps {
   servers: Server[];
@@ -26,7 +26,8 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   const [isResolving, setIsResolving] = useState(false);
   const failedServerIdsRef = useRef<Set<string>>(new Set());
 
-  const activeServer = servers.find((s) => s.id === activeServerId) || getDefaultServer(servers);
+  const isAnime = isAnimeMedia(media);
+  const activeServer = servers.find((s) => s.id === activeServerId) || getDefaultServer(servers, undefined, media);
 
   const handleSmartFailover = async () => {
     if (servers.length <= 1 || isResolving) return;
@@ -67,8 +68,8 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
               <span className="font-display font-medium text-xs sm:text-sm text-white uppercase tracking-wider">
                 {formatServerName(activeServer.name, language)}
               </span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-sans font-medium">
-                {t('ultraSmooth')} • {activeServer.quality}
+              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-sans font-medium border ${getServerBadgeInfo(activeServer, language, isAnime).color}`}>
+                {getServerBadgeInfo(activeServer, language, isAnime).label} • {activeServer.quality}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-light mt-0.5">
@@ -132,7 +133,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {servers.map((server, idx) => {
           const isActive = server.id === activeServerId;
-          const badge = getServerBadgeInfo(server, language);
+          const badge = getServerBadgeInfo(server, language, isAnime);
           return (
             <button
               key={server.id}
@@ -179,7 +180,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
 
       <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center gap-2 text-[11px] text-slate-400 font-normal">
         <span className="text-red-400 font-semibold">💡 {t('guide')}:</span>
-        <span>{t('guideServerNotice')}</span>
+        <span>{isAnime ? t('guideAnimeServerNotice') : t('guideServerNotice')}</span>
       </div>
     </div>
   );
