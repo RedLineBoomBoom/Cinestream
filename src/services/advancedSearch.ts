@@ -4,7 +4,7 @@
  * Supports multi-genre, multi-country, release years/decades, minimum rating, quality, series status, and custom keywords.
  */
 
-import type { MediaItem, Server } from '../types/media';
+import type { MediaItem, Server, NextEpisodeAirInfo } from '../types/media';
 import { createMovieServers, createTvServers } from '../data/mockCatalog';
 import { getTmdbApiKey, getTvShowDetailsFast } from './tmdb';
 import { GENRE_NAME_TO_ID } from './curation';
@@ -587,6 +587,8 @@ export async function searchAdvanced(
         let totalEpisodes: number | undefined = undefined;
         let completedSeasons: number[] = [1];
         let ongoingSeason: number | undefined = undefined;
+        let nextEpisodeToAir: string | undefined = undefined;
+        let nextEpisodeInfo: NextEpisodeAirInfo | undefined = undefined;
 
         if (isTv) {
           const tvData = tvDetailsMap.get(item.id);
@@ -601,6 +603,18 @@ export async function searchAdvanced(
             const currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
 
             const hasNextEp = Boolean(tvData.next_episode_to_air);
+            nextEpisodeToAir = tvData.next_episode_to_air?.air_date;
+            if (tvData.next_episode_to_air?.air_date) {
+              const nEp = tvData.next_episode_to_air;
+              nextEpisodeInfo = {
+                airDate: nEp.air_date,
+                episodeNumber: nEp.episode_number,
+                seasonNumber: nEp.season_number,
+                title: nEp.name || undefined,
+                overview: nEp.overview || undefined,
+                stillPath: nEp.still_path ? `https://image.tmdb.org/t/p/w500${nEp.still_path}` : undefined,
+              };
+            }
             const inProd = Boolean(tvData.in_production);
             const isReturning = tvData.status === 'Returning Series';
             const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
@@ -733,6 +747,8 @@ export async function searchAdvanced(
           totalEpisodes: isTv ? totalEpisodes : undefined,
           completedSeasons: isTv ? completedSeasons : undefined,
           ongoingSeason: isTv ? ongoingSeason : undefined,
+          nextEpisodeToAir: isTv ? nextEpisodeToAir : undefined,
+          nextEpisodeInfo: isTv ? nextEpisodeInfo : undefined,
         };
 
         fetchedItems.push(mediaItem);

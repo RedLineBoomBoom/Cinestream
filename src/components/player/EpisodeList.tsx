@@ -1,10 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import type { Season, Episode } from '../../types/media';
-import { Play, Tv, Clock, ExternalLink } from 'lucide-react';
+import type { Season, Episode, NextEpisodeAirInfo } from '../../types/media';
+import { Play, Tv, Clock, ExternalLink, Lock, Calendar, Sparkles } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
+import { useReleaseCountdown } from '../../hooks/useReleaseCountdown';
+
+interface UpcomingEpisodeCardProps {
+  airDate?: string;
+  episodeInfo?: NextEpisodeAirInfo;
+  fallbackEpisodeNumber: number;
+  language: 'id' | 'en';
+}
+
+const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
+  airDate,
+  episodeInfo,
+  fallbackEpisodeNumber,
+  language,
+}) => {
+  const { t } = useLanguage();
+  const countdown = useReleaseCountdown(airDate, language);
+  const epNumber = episodeInfo?.episodeNumber || fallbackEpisodeNumber;
+  const epTitle = episodeInfo?.title || `${t('episode')} ${epNumber}`;
+
+  return (
+    <div
+      className="relative flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] via-cinema-900/90 to-cinema-950/95 shadow-md shadow-amber-950/20 select-none overflow-hidden col-span-1 md:col-span-2 transition-all duration-300 hover:border-amber-500/50"
+      title={t('episodeLockedHint')}
+    >
+      {/* Ambient background glow */}
+      <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+      {/* Thumbnail or Locked Placeholder */}
+      <div className="relative w-full sm:w-32 h-28 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850 border border-amber-500/20 flex items-center justify-center">
+        {episodeInfo?.stillPath ? (
+          <img
+            src={episodeInfo.stillPath}
+            alt={epTitle}
+            className="w-full h-full object-cover filter brightness-75 contrast-110"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-cinema-800 to-cinema-900 flex items-center justify-center">
+            <Calendar className="w-7 h-7 text-amber-400/40" />
+          </div>
+        )}
+
+        {/* Lock Overlay */}
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
+            <Lock className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Floating status on thumbnail */}
+        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/85 text-[8.5px] text-amber-300 font-mono flex items-center gap-1 border border-amber-500/30">
+          <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+          <span>{countdown.isToday ? t('airingToday') : t('upcomingRelease')}</span>
+        </div>
+      </div>
+
+      {/* Episode Info & Live Countdown */}
+      <div className="flex-1 min-w-0 w-full pr-1">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10.5px] sm:text-[11px] font-sans font-bold tracking-wider uppercase text-amber-300 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              {t('episode')} {epNumber} • {t('upcomingEpisode')}
+            </span>
+          </div>
+
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold uppercase tracking-wider flex items-center gap-1">
+            <Lock className="w-2.5 h-2.5" />
+            <span>{countdown.isToday ? t('airingToday') : countdown.countdownText || t('upcomingRelease')}</span>
+          </span>
+        </div>
+
+        <h5 className="text-xs sm:text-sm font-display font-medium text-white/95 truncate">
+          {epTitle}
+        </h5>
+
+        {/* Countdown display */}
+        {countdown.isValid && !countdown.isPassed && !countdown.isToday ? (
+          <div className="mt-2 flex flex-wrap items-center gap-1 sm:gap-1.5">
+            <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
+              <span className="block text-xs font-mono font-black text-amber-200">
+                {String(countdown.days).padStart(2, '0')}
+              </span>
+              <span className="block text-[7.5px] text-slate-400 uppercase font-semibold tracking-wider">
+                {t('daysLabel')}
+              </span>
+            </div>
+            <span className="text-amber-400/60 font-mono font-bold text-xs">:</span>
+            <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
+              <span className="block text-xs font-mono font-black text-amber-200">
+                {String(countdown.hours).padStart(2, '0')}
+              </span>
+              <span className="block text-[7.5px] text-slate-400 uppercase font-semibold tracking-wider">
+                {t('hoursLabel')}
+              </span>
+            </div>
+            <span className="text-amber-400/60 font-mono font-bold text-xs">:</span>
+            <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
+              <span className="block text-xs font-mono font-black text-amber-200">
+                {String(countdown.minutes).padStart(2, '0')}
+              </span>
+              <span className="block text-[7.5px] text-slate-400 uppercase font-semibold tracking-wider">
+                {t('minsLabel')}
+              </span>
+            </div>
+            <span className="text-amber-400/60 font-mono font-bold text-xs">:</span>
+            <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
+              <span className="block text-xs font-mono font-black text-amber-400 animate-pulse">
+                {String(countdown.seconds).padStart(2, '0')}
+              </span>
+              <span className="block text-[7.5px] text-slate-400 uppercase font-semibold tracking-wider">
+                {t('secsLabel')}
+              </span>
+            </div>
+
+            {countdown.formattedDate && (
+              <div className="ml-1.5 sm:ml-3 flex items-center gap-1.5 text-[10px] text-slate-300">
+                <Calendar className="w-3 h-3 text-amber-400/80 shrink-0" />
+                <span>{t('airDateLabel')}: <strong className="text-amber-300 font-medium">{countdown.formattedDate}</strong></span>
+              </div>
+            )}
+          </div>
+        ) : countdown.isToday ? (
+          <div className="mt-1.5 flex items-center gap-2 p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            <span className="text-[10.5px] font-semibold">{t('airingToday')} — {countdown.formattedDate}</span>
+          </div>
+        ) : (
+          <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400">
+            <Calendar className="w-3 h-3 text-slate-400" />
+            <span>{countdown.formattedDate ? `${t('airDateLabel')}: ${countdown.formattedDate}` : t('scheduleTba')}</span>
+          </div>
+        )}
+
+        <p className="text-[9.5px] sm:text-[10px] text-slate-400/90 font-light mt-1 italic flex items-center gap-1">
+          <span>ℹ️ {t('episodeLockedHint')}</span>
+        </p>
+      </div>
+    </div>
+  );
+};
 
 interface EpisodeListProps {
   seasons: Season[];
@@ -14,6 +156,8 @@ interface EpisodeListProps {
   isOngoing?: boolean;
   totalEpisodes?: number;
   mediaId?: string;
+  nextEpisodeToAir?: string;
+  nextEpisodeInfo?: NextEpisodeAirInfo;
 }
 
 export const EpisodeList: React.FC<EpisodeListProps> = ({
@@ -24,6 +168,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   isOngoing,
   totalEpisodes,
   mediaId,
+  nextEpisodeToAir,
+  nextEpisodeInfo,
 }) => {
   const initialSeasonIdx = (() => {
     if (activeEpisodeId && seasons && seasons.length > 0) {
@@ -78,7 +224,18 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     currentSeasonTotalEpisodes: totalEpisodes,
     currentSeasonReleasedEpisodes: currentSeason.episodes.length,
     seasons,
+    nextEpisodeToAir,
+    nextEpisodeInfo,
   });
+
+  const sNum = Number(currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1));
+  const isThisSeasonOngoing = Boolean(
+    seriesStatus?.isOngoing &&
+    (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length))
+  );
+  const showUpcomingCard = isThisSeasonOngoing && (
+    !nextEpisodeInfo?.seasonNumber || nextEpisodeInfo.seasonNumber === sNum
+  );
 
   return (
     <div className="bg-cinema-900/70 border border-white/[0.06] rounded-2xl p-3 sm:p-6 backdrop-blur-xl">
@@ -285,6 +442,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
             </a>
           );
         })}
+
+        {/* Upcoming Episode Countdown Card */}
+        {showUpcomingCard && (
+          <UpcomingEpisodeCard
+            airDate={nextEpisodeInfo?.airDate || nextEpisodeToAir}
+            episodeInfo={nextEpisodeInfo}
+            fallbackEpisodeNumber={currentSeason.episodes.length + 1}
+            language={language}
+          />
+        )}
       </div>
     </div>
   );

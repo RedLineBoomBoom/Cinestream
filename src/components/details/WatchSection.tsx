@@ -30,6 +30,7 @@ import { type CurationTarget, splitMultipleNames } from '../../services/curation
 import { CinematicPlayer, appendSubtitleParams } from '../player/CinematicPlayer';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
+import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
@@ -1176,27 +1177,39 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                             <span className="text-[10px] opacity-80 font-mono">({seriesStatus.progressText})</span>
                           )}
                         </span>
+                        <EpisodeCountdownBadge
+                          airDate={media.nextEpisodeToAir}
+                          episodeInfo={media.nextEpisodeInfo}
+                        />
                       </>
                     );
                   }
                   return (
-                    <span
-                      className={`px-3 py-1 rounded-full text-[11px] font-sans uppercase tracking-wider font-semibold border flex items-center gap-1.5 ${seriesStatus.badgeClass}`}
-                    >
-                      {seriesStatus.isOngoing ? (
-                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                      ) : (
-                        <span className="text-xs leading-none">✓</span>
-                      )}
-                      <span>
-                        {seriesStatus.isOngoing
-                          ? (seriesStatus.ongoingSeasonLabel || seriesStatus.label)
-                          : (seriesStatus.completedSeasonsLabel || seriesStatus.label)}
+                    <>
+                      <span
+                        className={`px-3 py-1 rounded-full text-[11px] font-sans uppercase tracking-wider font-semibold border flex items-center gap-1.5 ${seriesStatus.badgeClass}`}
+                      >
+                        {seriesStatus.isOngoing ? (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        ) : (
+                          <span className="text-xs leading-none">✓</span>
+                        )}
+                        <span>
+                          {seriesStatus.isOngoing
+                            ? (seriesStatus.ongoingSeasonLabel || seriesStatus.label)
+                            : (seriesStatus.completedSeasonsLabel || seriesStatus.label)}
+                        </span>
+                        {seriesStatus.progressText && (
+                          <span className="text-[10px] opacity-80 font-mono">({seriesStatus.progressText})</span>
+                        )}
                       </span>
-                      {seriesStatus.progressText && (
-                        <span className="text-[10px] opacity-80 font-mono">({seriesStatus.progressText})</span>
+                      {seriesStatus.isOngoing && (
+                        <EpisodeCountdownBadge
+                          airDate={media.nextEpisodeToAir}
+                          episodeInfo={media.nextEpisodeInfo}
+                        />
                       )}
-                    </span>
+                    </>
                   );
                 })()}
                 <span className="px-3 py-1 rounded-full bg-white/[0.05] text-slate-200 text-xs font-light border border-white/10">
@@ -1376,6 +1389,8 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 status={activeMedia.status}
                 isOngoing={activeMedia.isOngoing}
                 totalEpisodes={activeMedia.totalEpisodes}
+                nextEpisodeToAir={activeMedia.nextEpisodeToAir}
+                nextEpisodeInfo={activeMedia.nextEpisodeInfo}
                 onSelectEpisode={(ep) => {
                   handleSelectEpisode(ep, true, true);
                 }}

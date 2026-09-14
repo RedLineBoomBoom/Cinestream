@@ -271,6 +271,16 @@ export const translations = {
     season: 'Musim',
     episode: 'Episode',
     playEpisode: 'Putar Episode',
+    upcomingEpisode: 'Episode Mendatang',
+    upcomingRelease: 'Segera Hadir',
+    airingToday: 'Tayang Hari Ini',
+    airDateLabel: 'Jadwal Rilis',
+    daysLabel: 'Hari',
+    hoursLabel: 'Jam',
+    minsLabel: 'Menit',
+    secsLabel: 'Detik',
+    episodeLockedHint: 'Episode ini belum resmi dirilis oleh studio/penyiar. Nantikan penayangannya.',
+    scheduleTba: 'Jadwal rilis episode berikutnya segera diumumkan',
 
     // Watchlist Modal
     myWatchlistTitle: 'Daftar Tonton Saya',
@@ -639,6 +649,16 @@ export const translations = {
     season: 'Season',
     episode: 'Episode',
     playEpisode: 'Play Episode',
+    upcomingEpisode: 'Upcoming Episode',
+    upcomingRelease: 'Coming Soon',
+    airingToday: 'Airing Today',
+    airDateLabel: 'Release Date',
+    daysLabel: 'Days',
+    hoursLabel: 'Hours',
+    minsLabel: 'Mins',
+    secsLabel: 'Secs',
+    episodeLockedHint: 'This episode has not been officially released by the broadcaster yet. Stay tuned.',
+    scheduleTba: 'Next episode air date will be announced soon',
 
     // Watchlist Modal
     myWatchlistTitle: 'My Watchlist',

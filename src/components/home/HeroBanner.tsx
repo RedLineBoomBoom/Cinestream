@@ -8,6 +8,7 @@ import { fetchLogoForMedia, fetchTrailerForMedia } from '../../services/tmdb';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 import { formatGenre, getMediaTitle, getMediaBackdrop } from '../../utils/formatters';
 import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
+import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 
 interface HeroBannerProps {
   featuredItems: MediaItem[];
@@ -390,6 +391,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <span className="text-[11px] sm:text-xs text-white/70 font-medium">
               {formatDuration(currentMedia.duration)} • {language === 'en' ? 'Subtitles' : 'Subtitle'}
             </span>
+
+            {/* Episode Countdown Badge for Ongoing Series */}
+            {currentMedia?.isOngoing && (
+              <EpisodeCountdownBadge
+                airDate={currentMedia.nextEpisodeToAir}
+                episodeInfo={currentMedia.nextEpisodeInfo}
+              />
+            )}
           </div>
 
           {/* Grand Cinematic Title - Official Logo Image or Modern High-Impact Typography */}

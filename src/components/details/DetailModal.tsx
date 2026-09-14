@@ -20,6 +20,7 @@ import { type CurationTarget, splitMultipleNames } from '../../services/curation
 import { CinematicPlayer } from '../player/CinematicPlayer';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
+import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
@@ -284,27 +285,39 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                             <span className="text-[9px] opacity-80 font-mono">({seriesStatus.progressText})</span>
                           )}
                         </span>
+                        <EpisodeCountdownBadge
+                          airDate={media.nextEpisodeToAir}
+                          episodeInfo={media.nextEpisodeInfo}
+                        />
                       </>
                     );
                   }
                   return (
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans uppercase tracking-wider font-semibold border flex items-center gap-1.5 ${seriesStatus.badgeClass}`}
-                    >
-                      {seriesStatus.isOngoing ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      ) : (
-                        <span className="text-xs leading-none">✓</span>
-                      )}
-                      <span>
-                        {seriesStatus.isOngoing
-                          ? (seriesStatus.ongoingSeasonLabel || seriesStatus.label)
-                          : (seriesStatus.completedSeasonsLabel || seriesStatus.label)}
+                    <>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans uppercase tracking-wider font-semibold border flex items-center gap-1.5 ${seriesStatus.badgeClass}`}
+                      >
+                        {seriesStatus.isOngoing ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        ) : (
+                          <span className="text-xs leading-none">✓</span>
+                        )}
+                        <span>
+                          {seriesStatus.isOngoing
+                            ? (seriesStatus.ongoingSeasonLabel || seriesStatus.label)
+                            : (seriesStatus.completedSeasonsLabel || seriesStatus.label)}
+                        </span>
+                        {seriesStatus.progressText && (
+                          <span className="text-[9px] opacity-80 font-mono">({seriesStatus.progressText})</span>
+                        )}
                       </span>
-                      {seriesStatus.progressText && (
-                        <span className="text-[9px] opacity-80 font-mono">({seriesStatus.progressText})</span>
+                      {seriesStatus.isOngoing && (
+                        <EpisodeCountdownBadge
+                          airDate={media.nextEpisodeToAir}
+                          episodeInfo={media.nextEpisodeInfo}
+                        />
                       )}
-                    </span>
+                    </>
                   );
                 })()}
                 <span className="px-2.5 py-0.5 rounded-full bg-white/[0.04] text-slate-300 text-xs font-light">
@@ -498,6 +511,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               status={media.status}
               isOngoing={media.isOngoing}
               totalEpisodes={media.totalEpisodes}
+              nextEpisodeToAir={media.nextEpisodeToAir}
+              nextEpisodeInfo={media.nextEpisodeInfo}
               onSelectEpisode={(ep) => handleSelectEpisode(ep, true)}
             />
           )}

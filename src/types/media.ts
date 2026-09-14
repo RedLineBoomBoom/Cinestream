@@ -99,11 +99,21 @@ export interface MediaItem {
   currentSeasonTotalEpisodes?: number;
   currentSeasonReleasedEpisodes?: number;
   nextEpisodeToAir?: string;
+  nextEpisodeInfo?: NextEpisodeAirInfo;
   totalSeasons?: number;
   currentSeason?: number;
   completedSeasons?: number[];
   ongoingSeason?: number;
   seasonBreakdown?: string;
+}
+
+export interface NextEpisodeAirInfo {
+  airDate: string;
+  episodeNumber: number;
+  seasonNumber: number;
+  title?: string;
+  overview?: string;
+  stillPath?: string;
 }
 
 export interface PlayProgress {

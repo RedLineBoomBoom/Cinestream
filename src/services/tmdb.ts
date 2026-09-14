@@ -1,4 +1,4 @@
-import type { MediaItem, Season, Episode, CastMember } from '../types/media';
+import type { MediaItem, Season, Episode, CastMember, NextEpisodeAirInfo } from '../types/media';
 import { createMovieServers, createTvServers } from '../data/mockCatalog';
 import { fetchImdbDetails, getImdbUrl } from './imdb';
 import { translateText } from './translator';
@@ -89,6 +89,7 @@ export interface TmdbSearchResult {
   currentSeasonTotalEpisodes?: number;
   currentSeasonReleasedEpisodes?: number;
   nextEpisodeToAir?: string;
+  nextEpisodeInfo?: NextEpisodeAirInfo;
   totalSeasons?: number;
   currentSeason?: number;
   completedSeasons?: number[];
@@ -264,6 +265,7 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
         let currentSeasonTotalEpisodes: number | undefined = undefined;
         let currentSeasonReleasedEpisodes: number | undefined = undefined;
         let nextEpisodeToAir: string | undefined = undefined;
+        let nextEpisodeInfo: NextEpisodeAirInfo | undefined = undefined;
         let totalSeasons: number | undefined = undefined;
         let currentSeason: number | undefined = undefined;
         let completedSeasons: number[] = [];
@@ -310,6 +312,17 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
             tvStatus = tvData.status;
             totalEpisodes = tvData.number_of_episodes;
             nextEpisodeToAir = tvData.next_episode_to_air?.air_date;
+            if (tvData.next_episode_to_air?.air_date) {
+              const nEp = tvData.next_episode_to_air;
+              nextEpisodeInfo = {
+                airDate: nEp.air_date,
+                episodeNumber: nEp.episode_number,
+                seasonNumber: nEp.season_number,
+                title: nEp.name || undefined,
+                overview: nEp.overview || undefined,
+                stillPath: nEp.still_path ? `${IMAGE_BASE_W500}${nEp.still_path}` : undefined,
+              };
+            }
 
             const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
             totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
@@ -411,6 +424,7 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
           currentSeasonTotalEpisodes,
           currentSeasonReleasedEpisodes,
           nextEpisodeToAir,
+          nextEpisodeInfo,
           totalSeasons,
           currentSeason,
           completedSeasons,
@@ -510,6 +524,7 @@ export async function fetchTmdbTrending(
         let currentSeasonTotalEpisodes: number | undefined = undefined;
         let currentSeasonReleasedEpisodes: number | undefined = undefined;
         let nextEpisodeToAir: string | undefined = undefined;
+        let nextEpisodeInfo: NextEpisodeAirInfo | undefined = undefined;
         let totalSeasons: number | undefined = undefined;
         let currentSeason: number | undefined = undefined;
         let completedSeasons: number[] = [];
@@ -556,6 +571,17 @@ export async function fetchTmdbTrending(
             tvStatus = tvData.status;
             totalEpisodes = tvData.number_of_episodes;
             nextEpisodeToAir = tvData.next_episode_to_air?.air_date;
+            if (tvData.next_episode_to_air?.air_date) {
+              const nEp = tvData.next_episode_to_air;
+              nextEpisodeInfo = {
+                airDate: nEp.air_date,
+                episodeNumber: nEp.episode_number,
+                seasonNumber: nEp.season_number,
+                title: nEp.name || undefined,
+                overview: nEp.overview || undefined,
+                stillPath: nEp.still_path ? `${IMAGE_BASE_W500}${nEp.still_path}` : undefined,
+              };
+            }
 
             const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
             totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
@@ -652,6 +678,7 @@ export async function fetchTmdbTrending(
           currentSeasonTotalEpisodes,
           currentSeasonReleasedEpisodes,
           nextEpisodeToAir,
+          nextEpisodeInfo,
           totalSeasons,
           currentSeason,
           completedSeasons,
@@ -1031,6 +1058,7 @@ export async function fetchFullMediaItem(
     let currentSeasonTotalEpisodes: number | undefined = undefined;
     let currentSeasonReleasedEpisodes: number | undefined = undefined;
     let nextEpisodeToAir: string | undefined = undefined;
+    let nextEpisodeInfo: NextEpisodeAirInfo | undefined = undefined;
     let totalSeasons: number | undefined = undefined;
     let currentSeason: number | undefined = undefined;
     let completedSeasons: number[] = [];
@@ -1041,6 +1069,17 @@ export async function fetchFullMediaItem(
       tvStatus = data.status;
       totalEpisodes = data.number_of_episodes;
       nextEpisodeToAir = data.next_episode_to_air?.air_date;
+      if (data.next_episode_to_air?.air_date) {
+        const nEp = data.next_episode_to_air;
+        nextEpisodeInfo = {
+          airDate: nEp.air_date,
+          episodeNumber: nEp.episode_number,
+          seasonNumber: nEp.season_number,
+          title: nEp.name || undefined,
+          overview: nEp.overview || undefined,
+          stillPath: nEp.still_path ? `${IMAGE_BASE_W500}${nEp.still_path}` : undefined,
+        };
+      }
 
       const regularSeasons = (data.seasons || []).filter((s: any) => s.season_number > 0);
       totalSeasons = data.number_of_seasons || regularSeasons.length || 1;
@@ -1152,6 +1191,7 @@ export async function fetchFullMediaItem(
       currentSeasonTotalEpisodes,
       currentSeasonReleasedEpisodes,
       nextEpisodeToAir,
+      nextEpisodeInfo,
       totalSeasons,
       currentSeason,
       completedSeasons,

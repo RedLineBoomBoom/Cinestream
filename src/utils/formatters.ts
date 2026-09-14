@@ -1,4 +1,4 @@
-import type { MediaItem, Server } from '../types/media';
+import type { MediaItem, Server, NextEpisodeAirInfo } from '../types/media';
 
 export function formatTime(seconds: number): string {
   if (isNaN(seconds)) return "00:00";
@@ -103,6 +103,8 @@ export interface SeriesStatusInfo {
   ongoingSeasonLabel?: string;
   seasonBreakdown?: string;
   seasonsDetail?: SeasonStatusDetail[];
+  nextEpisodeToAir?: string;
+  nextEpisodeInfo?: NextEpisodeAirInfo;
 }
 
 /**
@@ -145,6 +147,7 @@ export function getSeriesStatus(
     currentSeasonTotalEpisodes?: number;
     currentSeasonReleasedEpisodes?: number;
     nextEpisodeToAir?: string;
+    nextEpisodeInfo?: NextEpisodeAirInfo;
     seasons?: Array<{ seasonNumber?: number; episodeCount?: number; episodes?: any[]; name?: string }>;
     year?: number;
     currentSeason?: number;
@@ -256,6 +259,8 @@ export function getSeriesStatus(
       ongoingSeasonLabel,
       seasonBreakdown,
       seasonsDetail,
+      nextEpisodeToAir: item.nextEpisodeToAir,
+      nextEpisodeInfo: item.nextEpisodeInfo,
     };
   };
 
