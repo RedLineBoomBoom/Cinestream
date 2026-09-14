@@ -119,6 +119,9 @@ export const translations = {
     restorePlayer: 'Perbesar ke Layar Penuh',
     closeMiniPlayer: 'Tutup Pemutar',
     miniPlayerDragResize: 'Tarik sudut untuk mengubah ukuran (rasio 16:9)',
+    playingInMiniPlayer: 'Sedang Diputar di Mini Player Mengambang',
+    returnToMainPlayer: 'Kembali ke Pemutar Utama',
+    scrollAutoMiniPlayerTip: 'Scroll ke atas atau klik tombol untuk mengembalikan pemutar ke ukuran bioskop.',
 
     // Audio Booster
     audioBooster: 'Penguat Suara',
@@ -500,6 +503,9 @@ export const translations = {
     restorePlayer: 'Expand to Full Player',
     closeMiniPlayer: 'Close Player',
     miniPlayerDragResize: 'Drag corner to resize (16:9 ratio)',
+    playingInMiniPlayer: 'Playing in Floating Mini Player',
+    returnToMainPlayer: 'Return to Main Player',
+    scrollAutoMiniPlayerTip: 'Scroll up or click button to dock the player back into cinema view.',
 
     // Audio Booster
     audioBooster: 'Audio Booster',

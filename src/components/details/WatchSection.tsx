@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
+  ArrowUp,
   Star,
   Plus,
   Check,
@@ -233,6 +234,85 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+
+  // Auto Mini Player on Scroll State
+  const [isScrolledMiniPlayer, setIsScrolledMiniPlayer] = useState(false);
+  const [isAutoMiniDismissed, setIsAutoMiniDismissed] = useState(false);
+  const playerSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Reset auto-scrolled mini player state when changing media or episode
+  useEffect(() => {
+    setIsScrolledMiniPlayer(false);
+    setIsAutoMiniDismissed(false);
+  }, [activeMedia.id, currentEpisode?.id]);
+
+  // Smoothly scroll back to the main theatrical player
+  const handleScrollToPlayer = useCallback(() => {
+    setIsScrolledMiniPlayer(false);
+    setIsAutoMiniDismissed(false);
+    const el = playerSentinelRef.current || document.getElementById('theatrical-player-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  const isAutoMiniActive = isScrolledMiniPlayer && !isAutoMiniDismissed;
+  const effectiveMiniPlayer = isMiniPlayer || isAutoMiniActive;
+
+  // Handle mini player toggle (click expand icon on floating player)
+  const handleToggleMini = useCallback(() => {
+    if (isAutoMiniActive) {
+      handleScrollToPlayer();
+    } else if (onToggleMiniPlayer) {
+      onToggleMiniPlayer();
+    }
+  }, [isAutoMiniActive, handleScrollToPlayer, onToggleMiniPlayer]);
+
+  // Handle mini player close (click X icon on floating player)
+  const handleCloseMini = useCallback(() => {
+    if (isAutoMiniActive) {
+      setIsAutoMiniDismissed(true);
+    } else if (onCloseMiniPlayer) {
+      onCloseMiniPlayer();
+    }
+  }, [isAutoMiniActive, onCloseMiniPlayer]);
+
+  // IntersectionObserver to auto-float mini player when scrolling past player
+  useEffect(() => {
+    if (isMiniPlayer || isFullscreen) {
+      setIsScrolledMiniPlayer(false);
+      return;
+    }
+
+    const sentinel = playerSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When entry is scrolled out of view past the top navbar
+        if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+          setIsScrolledMiniPlayer(true);
+        } else if (entry.isIntersecting) {
+          // When user scrolls back up into view
+          setIsScrolledMiniPlayer(false);
+          setIsAutoMiniDismissed(false);
+        }
+      },
+      {
+        root: null,
+        threshold: 0.1,
+        rootMargin: '-70px 0px 0px 0px',
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isMiniPlayer, isFullscreen]);
 
   // Flatten all episodes across seasons in chronological order
   const allEpisodes = React.useMemo(() => {
@@ -925,6 +1005,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         {/* Section 1: The Grand Theatrical Player */}
         <section
           id="theatrical-player-section"
+          ref={playerSentinelRef}
           className={isMiniPlayer ? 'contents' : `transition-all duration-500 relative z-30 ${
             isTheaterMode
               ? '-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-[calc((100vw-100%)/2)] w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] lg:w-[calc(100%+5rem)] xl:w-screen xl:max-w-none bg-black/95 border-y border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.95)] pt-0 pb-0 ring-1 ring-white/10'
@@ -950,6 +1031,41 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 : 'w-full'
             }`}
           >
+            {/* Placeholder when video is floating in Auto Mini-Player mode */}
+            {isAutoMiniActive && (
+              <div
+                className={`w-full aspect-video rounded-2xl sm:rounded-3xl border border-dashed border-brand-gold/30 bg-cinema-900/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center shadow-xl transition-all duration-300 relative overflow-hidden group ${
+                  isTheaterMode ? 'max-w-[calc(80vh*16/9)] max-h-[80vh] mx-auto' : ''
+                }`}
+              >
+                {/* Ambient Glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-gold/5 via-transparent to-brand-gold/10 pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col items-center max-w-md space-y-3">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand-gold/10 border border-brand-gold/30 flex items-center justify-center text-brand-gold shadow-glow-gold animate-pulse">
+                    <Film className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-sm sm:text-base font-semibold text-white tracking-wide">
+                      {t('playingInMiniPlayer')}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {t('scrollAutoMiniPlayerTip')}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleScrollToPlayer}
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold hover:bg-brand-gold-light text-cinema-950 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer hover:shadow-glow-gold"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                    <span>{t('returnToMainPlayer')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <CinematicPlayer
               key={`${activeMedia.id}-${currentEpisode?.id || 'main'}`}
               media={activeMedia}
@@ -973,9 +1089,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               isTheaterMode={isTheaterMode}
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
               onOpenWatchParty={onOpenWatchParty}
-              isMiniPlayer={isMiniPlayer}
-              onToggleMiniPlayer={onToggleMiniPlayer}
-              onCloseMiniPlayer={onCloseMiniPlayer}
+              isMiniPlayer={effectiveMiniPlayer}
+              onToggleMiniPlayer={handleToggleMini}
+              onCloseMiniPlayer={handleCloseMini}
               onFullscreenChange={(isFs) => {
                 setIsFullscreen(isFs);
                 onFullscreenChange?.(isFs);
