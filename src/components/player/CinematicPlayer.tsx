@@ -52,6 +52,7 @@ interface CinematicPlayerProps {
   onToggleTheaterMode?: () => void;
   onOpenWatchParty?: () => void;
   isMiniPlayer?: boolean;
+  isDocking?: boolean;
   onToggleMiniPlayer?: () => void;
   onCloseMiniPlayer?: () => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
@@ -244,6 +245,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   onToggleTheaterMode,
   onOpenWatchParty,
   isMiniPlayer = false,
+  isDocking = false,
   onToggleMiniPlayer,
   onCloseMiniPlayer,
   onFullscreenChange,
@@ -2391,7 +2393,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             : isMiniPlayer
             ? `fixed z-[280] aspect-video rounded-2xl shadow-2xl border-2 ${
                 activeSnapCorner ? 'border-brand-gold shadow-glow-gold' : 'border-brand-gold/60 shadow-black/95'
-              } backdrop-blur-xl ${!freePosition && !isDraggingPlayer ? cornerStyles[snapCorner] : ''}`
+              } backdrop-blur-xl ${!freePosition && !isDraggingPlayer ? cornerStyles[snapCorner] : ''} ${
+                !freePosition && !isDraggingPlayer && !isResizing ? 'animate-mini-player-in' : ''
+              } ${isDocking ? 'animate-mini-player-docking ring-2 ring-[#E50914]' : ''}`
             : isTheaterMode
             ? 'relative w-full max-w-[calc(80vh*16/9)] max-h-[80vh] aspect-video mx-auto rounded-none sm:rounded-2xl border-none shadow-2xl'
             : 'relative w-full rounded-2xl sm:rounded-3xl shadow-2xl border border-white/[0.08] aspect-video'

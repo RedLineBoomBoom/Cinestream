@@ -238,24 +238,34 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   // Auto Mini Player on Scroll State
   const [isScrolledMiniPlayer, setIsScrolledMiniPlayer] = useState(false);
   const [isAutoMiniDismissed, setIsAutoMiniDismissed] = useState(false);
+  const [isDocking, setIsDocking] = useState(false);
   const playerSentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Reset auto-scrolled mini player state when changing media or episode
   useEffect(() => {
     setIsScrolledMiniPlayer(false);
     setIsAutoMiniDismissed(false);
+    setIsDocking(false);
   }, [activeMedia.id, currentEpisode?.id]);
 
   // Smoothly scroll back to the main theatrical player
   const handleScrollToPlayer = useCallback(() => {
-    setIsScrolledMiniPlayer(false);
     setIsAutoMiniDismissed(false);
+    setIsDocking(true);
     const el = playerSentinelRef.current || document.getElementById('theatrical-player-section');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Fallback timer: ensure docking state finishes gracefully if smooth scroll completes
+    const timer = setTimeout(() => {
+      setIsScrolledMiniPlayer(false);
+      setIsDocking(false);
+    }, 850);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const isAutoMiniActive = isScrolledMiniPlayer && !isAutoMiniDismissed;
@@ -279,10 +289,11 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     }
   }, [isAutoMiniActive, onCloseMiniPlayer]);
 
-  // IntersectionObserver to auto-float mini player when scrolling past player
+  // IntersectionObserver to auto-float mini player when scrolling past player with smooth hysteresis
   useEffect(() => {
     if (isMiniPlayer || isFullscreen) {
       setIsScrolledMiniPlayer(false);
+      setIsDocking(false);
       return;
     }
 
@@ -291,18 +302,22 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
+        const rect = entry.boundingClientRect;
+        const ratio = entry.intersectionRatio;
+
         // When entry is scrolled out of view past the top navbar
-        if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+        if ((!entry.isIntersecting || ratio <= 0.05) && rect.top < 0) {
           setIsScrolledMiniPlayer(true);
-        } else if (entry.isIntersecting) {
-          // When user scrolls back up into view
+        } else if (entry.isIntersecting && ratio >= 0.35) {
+          // When user scrolls back up into view with comfortable visibility (at least 35%)
           setIsScrolledMiniPlayer(false);
+          setIsDocking(false);
           setIsAutoMiniDismissed(false);
         }
       },
       {
         root: null,
-        threshold: 0.1,
+        threshold: [0, 0.05, 0.2, 0.35, 0.5, 0.75, 1.0],
         rootMargin: '-70px 0px 0px 0px',
       }
     );
@@ -1034,7 +1049,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             {/* Placeholder when video is floating in Auto Mini-Player mode */}
             {isAutoMiniActive && (
               <div
-                className={`w-full aspect-video rounded-2xl sm:rounded-3xl border border-dashed border-brand-gold/30 bg-cinema-900/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center shadow-xl transition-all duration-300 relative overflow-hidden group ${
+                className={`w-full aspect-video rounded-2xl sm:rounded-3xl border border-dashed border-brand-gold/30 bg-cinema-900/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center shadow-xl transition-all duration-300 relative overflow-hidden group animate-placeholder-in ${
                   isTheaterMode ? 'max-w-[calc(80vh*16/9)] max-h-[80vh] mx-auto' : ''
                 }`}
               >
@@ -1057,10 +1072,20 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
 
                   <button
                     onClick={handleScrollToPlayer}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold hover:bg-brand-gold-light text-cinema-950 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer hover:shadow-glow-gold"
+                    disabled={isDocking}
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold hover:bg-brand-gold-light text-cinema-950 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer hover:shadow-glow-gold disabled:opacity-80"
                   >
-                    <ArrowUp className="w-4 h-4" />
-                    <span>{t('returnToMainPlayer')}</span>
+                    {isDocking ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-cinema-950" />
+                        <span>{language === 'en' ? 'Returning to Theater...' : 'Mengembalikan ke Pemutar...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUp className="w-4 h-4" />
+                        <span>{t('returnToMainPlayer')}</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1090,6 +1115,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
               onOpenWatchParty={onOpenWatchParty}
               isMiniPlayer={effectiveMiniPlayer}
+              isDocking={isDocking}
               onToggleMiniPlayer={handleToggleMini}
               onCloseMiniPlayer={handleCloseMini}
               onFullscreenChange={(isFs) => {
