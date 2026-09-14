@@ -286,7 +286,22 @@ export function getSeriesStatus(
 
     const relEp = item.currentSeasonReleasedEpisodes ?? item.releasedEpisodes;
     const totEp = item.currentSeasonTotalEpisodes ?? item.totalEpisodes;
-    const progressText = relEp && totEp && totEp > 0 ? `Ep ${relEp}/${totEp}` : relEp ? `Ep ${relEp}` : undefined;
+
+    // Critical check: if all episodes of the current/latest season have already been released
+    if (
+      isOngoing &&
+      typeof relEp === 'number' &&
+      typeof totEp === 'number' &&
+      totEp > 0 &&
+      relEp >= totEp &&
+      !item.nextEpisodeToAir
+    ) {
+      isOngoing = false;
+    }
+
+    const progressText = (isOngoing && relEp && totEp && totEp > 0 && relEp < totEp)
+      ? `Ep ${relEp}/${totEp}`
+      : (isOngoing && relEp ? `Ep ${relEp}` : undefined);
 
     return buildResult(isOngoing, relEp, totEp, progressText, isOngoing ? derivedSeasonNumber : undefined);
   }
@@ -297,7 +312,8 @@ export function getSeriesStatus(
 
   if (typeof relEp === 'number' && typeof totEp === 'number' && totEp > 0) {
     const isOngoing = relEp < totEp || Boolean(item.nextEpisodeToAir);
-    return buildResult(isOngoing, relEp, totEp, `Ep ${relEp}/${totEp}`, isOngoing ? derivedSeasonNumber : undefined);
+    const progressText = isOngoing && relEp < totEp ? `Ep ${relEp}/${totEp}` : undefined;
+    return buildResult(isOngoing, relEp, totEp, progressText, isOngoing ? derivedSeasonNumber : undefined);
   }
 
   // 3. Check seasons array if available (MediaItem)
@@ -316,15 +332,18 @@ export function getSeriesStatus(
       isOngoing = true;
     } else if (totEp && seasonEpCount < totEp) {
       isOngoing = true;
-    } else if (isStatusOngoing && (!totEp || seasonEpCount < totEp)) {
-      isOngoing = true;
     } else if (isStatusEnded) {
       isOngoing = false;
+    } else if (totEp && seasonEpCount >= totEp) {
+      // All scheduled episodes of active season are out
+      isOngoing = false;
+    } else if (isStatusOngoing && !totEp) {
+      isOngoing = true;
     } else if (item.year && item.year >= currentYear && !isStatusEnded) {
       isOngoing = true;
     }
 
-    const progressText = seasonEpCount > 0 ? (totEp && totEp !== seasonEpCount ? `Ep ${seasonEpCount}/${totEp}` : `Ep ${seasonEpCount}`) : undefined;
+    const progressText = isOngoing && seasonEpCount > 0 && totEp && seasonEpCount < totEp ? `Ep ${seasonEpCount}/${totEp}` : undefined;
 
     return buildResult(isOngoing, seasonEpCount, totEp, progressText, isOngoing ? activeSeasonNum : undefined);
   }

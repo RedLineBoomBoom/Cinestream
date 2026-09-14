@@ -98,6 +98,87 @@ export interface TmdbSearchResult {
   seasons?: any[];
 }
 
+export function calculateSeriesStatusFromTmdb(tvData: any) {
+  const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
+  const totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
+  const latestSeason = regularSeasons[regularSeasons.length - 1];
+  const currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
+
+  const lastEp = tvData.last_episode_to_air;
+  const currentSeasonReleasedEpisodes =
+    lastEp?.season_number === latestSeason?.season_number
+      ? lastEp?.episode_number || 0
+      : latestSeason?.episode_count || 0;
+  const totalEpisodes = tvData.number_of_episodes;
+  const releasedEpisodes = lastEp?.episode_number || totalEpisodes;
+
+  const hasNextEp = Boolean(tvData.next_episode_to_air);
+  const nextEpSeason = tvData.next_episode_to_air?.season_number;
+  const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
+
+  const isLatestSeasonComplete =
+    (currentSeasonReleasedEpisodes ?? 0) > 0 &&
+    (currentSeasonTotalEpisodes ?? 0) > 0 &&
+    (currentSeasonReleasedEpisodes ?? 0) >= (currentSeasonTotalEpisodes ?? 0) &&
+    (!hasNextEp || (Boolean(nextEpSeason) && nextEpSeason! > (latestSeason?.season_number || 1)));
+
+  let isOngoing = false;
+  let ongoingSeason: number | undefined = undefined;
+  let currentSeason: number | undefined = undefined;
+  let completedSeasons: number[] = [];
+
+  if (hasNextEp && nextEpSeason && nextEpSeason > (latestSeason?.season_number || 1)) {
+    isOngoing = true;
+    ongoingSeason = nextEpSeason;
+    currentSeason = ongoingSeason;
+    completedSeasons = regularSeasons
+      .map((s: any) => s.season_number)
+      .filter((n: number) => typeof n === 'number' && n > 0);
+  } else if (!isEnded && !isLatestSeasonComplete) {
+    isOngoing = true;
+    ongoingSeason = latestSeason?.season_number || totalSeasons;
+    currentSeason = ongoingSeason;
+    completedSeasons = regularSeasons
+      .map((s: any) => s.season_number)
+      .filter((n: number) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
+  } else {
+    isOngoing = false;
+    ongoingSeason = undefined;
+    currentSeason = undefined;
+    completedSeasons = regularSeasons
+      .map((s: any) => s.season_number)
+      .filter((n: number) => typeof n === 'number' && n > 0);
+    if (completedSeasons.length === 0 && typeof totalSeasons === 'number' && totalSeasons > 0) {
+      completedSeasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
+    }
+  }
+
+  const completedLabel = completedSeasons.length > 0 ? `${formatSeasonRange(completedSeasons)} COMPLETE` : undefined;
+  const ongoingLabel = ongoingSeason ? `S${ongoingSeason} ON GOING` : undefined;
+  let seasonBreakdown: string | undefined = undefined;
+  if (completedLabel && ongoingLabel) {
+    seasonBreakdown = `${completedLabel} • ${ongoingLabel}`;
+  } else if (ongoingLabel) {
+    seasonBreakdown = ongoingLabel;
+  } else if (completedLabel) {
+    seasonBreakdown = completedLabel;
+  }
+
+  return {
+    regularSeasons,
+    totalSeasons,
+    currentSeasonTotalEpisodes,
+    currentSeasonReleasedEpisodes,
+    releasedEpisodes,
+    totalEpisodes,
+    isOngoing,
+    ongoingSeason,
+    currentSeason,
+    completedSeasons,
+    seasonBreakdown,
+  };
+}
+
 // Genre mapping helper (Indonesian)
 const GENRE_MAP_ID: Record<number, string> = {
   28: 'Aksi',
@@ -324,58 +405,19 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
               };
             }
 
-            const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
-            totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
-            const latestSeason = regularSeasons[regularSeasons.length - 1];
-            currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
+            const statusCalc = calculateSeriesStatusFromTmdb(tvData);
+            totalSeasons = statusCalc.totalSeasons;
+            currentSeasonTotalEpisodes = statusCalc.currentSeasonTotalEpisodes;
+            currentSeasonReleasedEpisodes = statusCalc.currentSeasonReleasedEpisodes;
+            releasedEpisodes = statusCalc.releasedEpisodes;
+            totalEpisodes = statusCalc.totalEpisodes;
+            isOngoing = statusCalc.isOngoing;
+            ongoingSeason = statusCalc.ongoingSeason;
+            currentSeason = statusCalc.currentSeason;
+            completedSeasons = statusCalc.completedSeasons;
+            seasonBreakdown = statusCalc.seasonBreakdown;
 
-            const lastEp = tvData.last_episode_to_air;
-            currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
-            releasedEpisodes = lastEp?.episode_number || totalEpisodes;
-
-            const hasNextEp = Boolean(tvData.next_episode_to_air);
-            const inProd = Boolean(tvData.in_production);
-            const isReturning = tvData.status === 'Returning Series';
-            const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
-            const isSeasonIncomplete =
-              (currentSeasonReleasedEpisodes ?? 0) > 0 &&
-              (currentSeasonTotalEpisodes ?? 0) > 0 &&
-              (currentSeasonReleasedEpisodes ?? 0) < (currentSeasonTotalEpisodes ?? 0);
-
-            if (!isEnded && (hasNextEp || isSeasonIncomplete || inProd || isReturning)) {
-              isOngoing = true;
-            } else {
-              isOngoing = false;
-            }
-
-            if (isOngoing) {
-              ongoingSeason = tvData.next_episode_to_air?.season_number || latestSeason?.season_number || totalSeasons;
-              currentSeason = ongoingSeason;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
-            } else {
-              ongoingSeason = undefined;
-              currentSeason = undefined;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0);
-              if (completedSeasons.length === 0 && typeof totalSeasons === 'number' && totalSeasons > 0) {
-                completedSeasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
-              }
-            }
-
-            const completedLabel = completedSeasons.length > 0 ? `${formatSeasonRange(completedSeasons)} COMPLETE` : undefined;
-            const ongoingLabel = ongoingSeason ? `S${ongoingSeason} ON GOING` : undefined;
-            if (completedLabel && ongoingLabel) {
-              seasonBreakdown = `${completedLabel} • ${ongoingLabel}`;
-            } else if (ongoingLabel) {
-              seasonBreakdown = ongoingLabel;
-            } else if (completedLabel) {
-              seasonBreakdown = completedLabel;
-            }
-
-            seasonsList = regularSeasons.map((s: any) => ({
+            seasonsList = statusCalc.regularSeasons.map((s: any) => ({
               seasonNumber: s.season_number,
               name: s.name,
               episodeCount: s.episode_count,
@@ -585,58 +627,19 @@ export async function fetchTmdbTrending(
               };
             }
 
-            const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
-            totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
-            const latestSeason = regularSeasons[regularSeasons.length - 1];
-            currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
+            const statusCalc = calculateSeriesStatusFromTmdb(tvData);
+            totalSeasons = statusCalc.totalSeasons;
+            currentSeasonTotalEpisodes = statusCalc.currentSeasonTotalEpisodes;
+            currentSeasonReleasedEpisodes = statusCalc.currentSeasonReleasedEpisodes;
+            releasedEpisodes = statusCalc.releasedEpisodes;
+            totalEpisodes = statusCalc.totalEpisodes;
+            isOngoing = statusCalc.isOngoing;
+            ongoingSeason = statusCalc.ongoingSeason;
+            currentSeason = statusCalc.currentSeason;
+            completedSeasons = statusCalc.completedSeasons;
+            seasonBreakdown = statusCalc.seasonBreakdown;
 
-            const lastEp = tvData.last_episode_to_air;
-            currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
-            releasedEpisodes = lastEp?.episode_number || totalEpisodes;
-
-            const hasNextEp = Boolean(tvData.next_episode_to_air);
-            const inProd = Boolean(tvData.in_production);
-            const isReturning = tvData.status === 'Returning Series';
-            const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
-            const isSeasonIncomplete =
-              (currentSeasonReleasedEpisodes ?? 0) > 0 &&
-              (currentSeasonTotalEpisodes ?? 0) > 0 &&
-              (currentSeasonReleasedEpisodes ?? 0) < (currentSeasonTotalEpisodes ?? 0);
-
-            if (!isEnded && (hasNextEp || isSeasonIncomplete || inProd || isReturning)) {
-              isOngoing = true;
-            } else {
-              isOngoing = false;
-            }
-
-            if (isOngoing) {
-              ongoingSeason = tvData.next_episode_to_air?.season_number || latestSeason?.season_number || totalSeasons;
-              currentSeason = ongoingSeason;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
-            } else {
-              ongoingSeason = undefined;
-              currentSeason = undefined;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0);
-              if (completedSeasons.length === 0 && typeof totalSeasons === 'number' && totalSeasons > 0) {
-                completedSeasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
-              }
-            }
-
-            const completedLabel = completedSeasons.length > 0 ? `${formatSeasonRange(completedSeasons)} COMPLETE` : undefined;
-            const ongoingLabel = ongoingSeason ? `S${ongoingSeason} ON GOING` : undefined;
-            if (completedLabel && ongoingLabel) {
-              seasonBreakdown = `${completedLabel} • ${ongoingLabel}`;
-            } else if (ongoingLabel) {
-              seasonBreakdown = ongoingLabel;
-            } else if (completedLabel) {
-              seasonBreakdown = completedLabel;
-            }
-
-            seasonsList = regularSeasons.map((s: any) => ({
+            seasonsList = statusCalc.regularSeasons.map((s: any) => ({
               seasonNumber: s.season_number,
               name: s.name,
               episodeCount: s.episode_count,
@@ -1087,56 +1090,17 @@ export async function fetchFullMediaItem(
         };
       }
 
-      const regularSeasons = (data.seasons || []).filter((s: any) => s.season_number > 0);
-      totalSeasons = data.number_of_seasons || regularSeasons.length || 1;
-      const latestSeason = regularSeasons[regularSeasons.length - 1];
-      currentSeasonTotalEpisodes = latestSeason?.episode_count || data.number_of_episodes;
-
-      const lastEp = data.last_episode_to_air;
-      currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
-      releasedEpisodes = lastEp?.episode_number || totalEpisodes;
-
-      const hasNextEp = Boolean(data.next_episode_to_air);
-      const inProd = Boolean(data.in_production);
-      const isReturning = data.status === 'Returning Series';
-      const isEnded = data.status === 'Ended' || data.status === 'Canceled';
-      const isSeasonIncomplete =
-        (currentSeasonReleasedEpisodes ?? 0) > 0 &&
-        (currentSeasonTotalEpisodes ?? 0) > 0 &&
-        (currentSeasonReleasedEpisodes ?? 0) < (currentSeasonTotalEpisodes ?? 0);
-
-      if (!isEnded && (hasNextEp || isSeasonIncomplete || inProd || isReturning)) {
-        isOngoing = true;
-      } else {
-        isOngoing = false;
-      }
-
-      if (isOngoing) {
-        ongoingSeason = data.next_episode_to_air?.season_number || latestSeason?.season_number || totalSeasons;
-        currentSeason = ongoingSeason;
-        completedSeasons = regularSeasons
-          .map((s: any) => s.season_number)
-          .filter((n: number) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
-      } else {
-        ongoingSeason = undefined;
-        currentSeason = undefined;
-        completedSeasons = regularSeasons
-          .map((s: any) => s.season_number)
-          .filter((n: number) => typeof n === 'number' && n > 0);
-        if (completedSeasons.length === 0 && typeof totalSeasons === 'number' && totalSeasons > 0) {
-          completedSeasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
-        }
-      }
-
-      const completedLabel = completedSeasons.length > 0 ? `${formatSeasonRange(completedSeasons)} COMPLETE` : undefined;
-      const ongoingLabel = ongoingSeason ? `S${ongoingSeason} ON GOING` : undefined;
-      if (completedLabel && ongoingLabel) {
-        seasonBreakdown = `${completedLabel} • ${ongoingLabel}`;
-      } else if (ongoingLabel) {
-        seasonBreakdown = ongoingLabel;
-      } else if (completedLabel) {
-        seasonBreakdown = completedLabel;
-      }
+      const statusCalc = calculateSeriesStatusFromTmdb(data);
+      totalSeasons = statusCalc.totalSeasons;
+      currentSeasonTotalEpisodes = statusCalc.currentSeasonTotalEpisodes;
+      currentSeasonReleasedEpisodes = statusCalc.currentSeasonReleasedEpisodes;
+      releasedEpisodes = statusCalc.releasedEpisodes;
+      totalEpisodes = statusCalc.totalEpisodes;
+      isOngoing = statusCalc.isOngoing;
+      ongoingSeason = statusCalc.ongoingSeason;
+      currentSeason = statusCalc.currentSeason;
+      completedSeasons = statusCalc.completedSeasons;
+      seasonBreakdown = statusCalc.seasonBreakdown;
     }
 
     const item: MediaItem = {
