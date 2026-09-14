@@ -664,6 +664,8 @@ export async function fetchTmdbTrending(
             ? `${IMAGE_BASE_ORIGINAL}${enItem.poster_path}`
             : 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1920&auto=format&fit=crop',
           rating: enItem.vote_average ? Math.round(enItem.vote_average * 10) / 10 : 7.8,
+          originCountry: enItem.origin_country || idItem?.origin_country,
+          originalLanguage: enItem.original_language || idItem?.original_language,
           year: isNaN(year) ? 2024 : year,
           duration: movieDuration,
           episodeDuration: tvEpisodeDuration,

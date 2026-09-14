@@ -418,14 +418,37 @@ export function isAnimeMedia(
 }
 
 /**
+ * Detect if a media item is originating from Indonesia (Indonesian movies or TV series).
+ */
+export function isIndonesianMedia(media?: Partial<MediaItem> | null): boolean {
+  if (!media) return false;
+  if (media.country && (media.country.toLowerCase().includes('indonesia') || media.country.toUpperCase() === 'ID')) {
+    return true;
+  }
+  if (media.originCountry) {
+    if (Array.isArray(media.originCountry) && media.originCountry.some((c) => typeof c === 'string' && c.toUpperCase() === 'ID')) {
+      return true;
+    }
+    if (typeof media.originCountry === 'string' && (media.originCountry as string).toUpperCase() === 'ID') {
+      return true;
+    }
+  }
+  if (media.originalLanguage && (media.originalLanguage.toLowerCase() === 'id' || media.originalLanguage.toLowerCase() === 'ind')) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Resolves the default server for watching movies, TV series, or anime.
+ * - For Indonesian Movies/Series: Strictly prioritizes Server 5 (SmashyStream: Sub Indo Multi-Host).
  * - For Anime: Prioritizes Server 3 (2Embed: Original Japanese Audio & Asian Cinema), then Server 5 (SmashyStream: Sub Indo / JP Audio).
  * - For Standard Movies/Series: Prioritizes Server 2 (AutoEmbed Ultra / index 1), with graceful fallback to index 0.
  */
 export function getDefaultServer(
   servers?: Server[],
   fallback?: Server[],
-  media?: { type?: string; mediaType?: string; genres?: string[]; country?: string } | null
+  media?: Partial<MediaItem> | null
 ): Server {
   const list = servers && servers.length > 0 ? servers : (fallback && fallback.length > 0 ? fallback : []);
   if (list.length === 0) {
@@ -440,7 +463,17 @@ export function getDefaultServer(
     };
   }
 
-  // 1. If media is Anime, prioritize Server 3 (2Embed: Original Japanese Audio), then Server 5 (SmashyStream: Sub Indo / JP Audio)
+  // 1. KHUSUS Film & Series Indonesia: Wajib dan secara ketat menggunakan Server 5 (SmashyStream: Sub Indo Multi-Host)
+  if (isIndonesianMedia(media)) {
+    const serverIndo = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('smashy') || name.includes('server 5') || name.includes('server-5') || id.includes('server-5');
+    });
+    if (serverIndo) return serverIndo;
+  }
+
+  // 2. KHUSUS Anime: Prioritaskan Server 3 (2Embed: Original Japanese Audio), lalu Server 5 (SmashyStream: Sub Indo / JP Audio)
   if (isAnimeMedia(media)) {
     const serverAnime = list.find((s) => {
       const id = (s.id || '').toLowerCase();
@@ -457,7 +490,7 @@ export function getDefaultServer(
     if (serverSmashy) return serverSmashy;
   }
 
-  // 2. Standard priority: Explicitly prioritize Server 2 (AutoEmbed Ultra)
+  // 3. Film / Series Standar (Hollywood & Internasional): Prioritaskan Server 2 (AutoEmbed Ultra)
   const server2 = list.find((s) => {
     const id = (s.id || '').toLowerCase();
     const name = (s.name || '').toLowerCase();
@@ -465,7 +498,7 @@ export function getDefaultServer(
   });
   if (server2) return server2;
 
-  // 3. Return index 1 (Server 2 in 0-indexed list) if present, else fallback to index 0
+  // 4. Return index 1 (Server 2 in 0-indexed list) if present, else fallback to index 0
   return list[1] || list[0];
 }
 
@@ -475,10 +508,39 @@ export function getDefaultServer(
 export function getServerBadgeInfo(
   server: { id?: string; name?: string },
   lang: 'id' | 'en' = 'id',
-  isAnime = false
+  isAnime = false,
+  isIndonesian = false
 ): { label: string; color: string } {
   const id = (server.id || '').toLowerCase();
   const name = (server.name || '').toLowerCase();
+
+  // Indonesian cinema badges
+  if (isIndonesian) {
+    if (id.includes('smashy') || name.includes('smashy')) {
+      return {
+        label: lang === 'en' ? '🇮🇩 Indonesian Cinema #1' : '🇮🇩 Sinema Indonesia (Server 5)',
+        color: 'text-rose-300 bg-rose-500/15 border-rose-500/30 font-bold',
+      };
+    }
+    if (id.includes('2embed') || name.includes('2embed')) {
+      return {
+        label: lang === 'en' ? '🌏 Asian Backup' : '🌏 Cadangan Asia',
+        color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+      };
+    }
+    if (id.includes('autoembed') || name.includes('autoembed')) {
+      return {
+        label: '⚡ 60fps HD',
+        color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+      };
+    }
+    if (id.includes('vidsrc') || name.includes('vidsrc')) {
+      return {
+        label: lang === 'en' ? '🔥 Ultra Stable' : '🔥 Ultra Stabil',
+        color: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+      };
+    }
+  }
 
   // Anime-tailored audio and language badges
   if (isAnime) {
@@ -731,22 +793,6 @@ export function formatYearFilter(year?: string, lang: 'id' | 'en' = 'id'): strin
   return year;
 }
 
-/**
- * Detect if a media item is originating from Indonesia
- */
-export function isIndonesianMedia(media?: Partial<MediaItem> | null): boolean {
-  if (!media) return false;
-  if (media.country && (media.country.toLowerCase().includes('indonesia') || media.country.toUpperCase() === 'ID')) {
-    return true;
-  }
-  if (media.originCountry && Array.isArray(media.originCountry) && media.originCountry.some((c) => c.toUpperCase() === 'ID')) {
-    return true;
-  }
-  if (media.originalLanguage && media.originalLanguage.toLowerCase() === 'id') {
-    return true;
-  }
-  return false;
-}
 
 /**
  * Get the localized title of a media item based on active language and origin country.

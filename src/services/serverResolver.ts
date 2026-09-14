@@ -37,18 +37,26 @@ export async function resolveBestServer(options: {
     };
   }
 
-  // 1. Determine Content Category (Asian Drama / Anime vs Western / General)
+  // 1. Determine Content Category (Indonesian vs Anime vs Asian Drama vs Western / General)
   const countryStr = (media?.country || '').toLowerCase();
   const genresList = media?.genres || [];
   const genreStr = genresList.join(' ').toLowerCase();
 
+  const isIndo =
+    countryStr.includes('indonesia') ||
+    countryStr === 'id' ||
+    (Array.isArray(media?.originCountry) && media?.originCountry.some((c) => c.toUpperCase() === 'ID')) ||
+    media?.originalLanguage?.toLowerCase() === 'id';
+
   const isAnime =
-    media?.type === 'anime' ||
+    !isIndo &&
+    (media?.type === 'anime' ||
     genreStr.includes('anime') ||
     genreStr.includes('anim') ||
-    ((countryStr.includes('jepang') || countryStr.includes('japan')) && (media?.type === 'series' || genreStr.includes('anim')));
+    ((countryStr.includes('jepang') || countryStr.includes('japan')) && (media?.type === 'series' || genreStr.includes('anim'))));
 
   const isAsian =
+    isIndo ||
     isAnime ||
     countryStr.includes('jepang') ||
     countryStr.includes('japan') ||
@@ -58,7 +66,6 @@ export async function resolveBestServer(options: {
     countryStr.includes('taiwan') ||
     countryStr.includes('thailand') ||
     countryStr.includes('india') ||
-    countryStr.includes('indonesia') ||
     genreStr.includes('drakor') ||
     genreStr.includes('asia') ||
     media?.type === 'drama';
@@ -79,21 +86,21 @@ export async function resolveBestServer(options: {
     const url = (srv.url || '').toLowerCase();
     let baseScore = 50;
 
-    if (id.includes('2embed') || url.includes('2embed')) {
+    if (id.includes('smashy') || url.includes('smashystream')) {
+      // Multi-host aggregator with Indonesian subtitle streams & primary host for Indonesian media
+      baseScore += isIndo ? 75 : isAnime ? 50 : isAsian ? 40 : 30;
+    } else if (id.includes('2embed') || url.includes('2embed')) {
       // 2Embed has proven unmatched coverage for Asian drama & Anime original Japanese audio
-      baseScore += isAnime ? 65 : isAsian ? 55 : 35;
-    } else if (id.includes('smashy') || url.includes('smashystream')) {
-      // Multi-host aggregator with Indonesian subtitle streams & Japanese audio
-      baseScore += isAnime ? 50 : isAsian ? 40 : 30;
+      baseScore += isIndo ? 35 : isAnime ? 65 : isAsian ? 55 : 35;
     } else if (id.includes('vidlink') || url.includes('vidlink')) {
       // VidLink supports dual audio track switching
       baseScore += isAnime ? 35 : 22;
     } else if (id.includes('vidsrc') || url.includes('vidsrc')) {
       // VidSrc has massive global library for Hollywood and worldwide titles
-      baseScore += isAnime ? 25 : isAsian ? 42 : 55;
+      baseScore += isIndo ? 20 : isAnime ? 25 : isAsian ? 42 : 55;
     } else if (id.includes('autoembed') || url.includes('autoembed')) {
-      // Ultra-fast CDN 4K, but known to serve English dubs for Anime and lack Asian drama licenses
-      baseScore += isAnime ? -40 : isAsian ? -30 : 50;
+      // Ultra-fast CDN 4K, but lacks Indonesian licenses and serves English dubs for Anime
+      baseScore += isIndo ? -35 : isAnime ? -40 : isAsian ? -30 : 50;
     } else if (id.includes('multiembed') || url.includes('multiembed')) {
       baseScore += 28;
     }
@@ -136,7 +143,9 @@ export async function resolveBestServer(options: {
   const rawClean = winner.server.name.split('•')[1]?.trim() || winner.server.name;
   const cleanName = formatServerName(rawClean, lang);
   let reason = '';
-  if (isAnime && winner.server.id.includes('2embed')) {
+  if (isIndo && winner.server.id.includes('smashy')) {
+    reason = lang === 'en' ? 'Primary Server for Indonesian Cinema' : 'Jalur Prioritas Sinema & Serial Indonesia';
+  } else if (isAnime && winner.server.id.includes('2embed')) {
     reason = lang === 'en' ? 'Original Japanese Audio (Subbed)' : 'Prioritas Audio Asli Jepang (Sub)';
   } else if (isAnime && winner.server.id.includes('smashy')) {
     reason = lang === 'en' ? 'Japanese Audio + Indonesian Subtitles' : 'Audio Jepang + Teks Sub Indo';
