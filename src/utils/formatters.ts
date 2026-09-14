@@ -795,9 +795,16 @@ export function formatYearFilter(year?: string, lang: 'id' | 'en' = 'id'): strin
 
 
 /**
+ * Regex detecting non-Latin characters (Hangul, Tamil, Devanagari, Hanzi, Kanji/Kana, Cyrillic, Thai, Arabic, etc.)
+ */
+export const NON_LATIN_REGEX = /[^\u0000-\u024F\u1E00-\u1EFF\s\d\p{P}\p{S}\u200B-\u200F\uFEFF]/u;
+
+/**
  * Get the localized title of a media item based on active language and origin country.
- * When website language is Indonesian ('id'), movies and series from Indonesia are strictly
- * displayed using their authentic Indonesian titles (titleId or originalTitle or title).
+ * When website language is Indonesian ('id'):
+ * - Movies and series from Indonesia are strictly displayed using their authentic Indonesian titles.
+ * - International movies/series with raw non-Latin titles (Korean Hangul, Tamil, Chinese, Japanese, etc.)
+ *   strictly fallback to official Latin / English international titles to prevent reader confusion.
  */
 export function getMediaTitle(media?: Partial<MediaItem> | null, lang: 'id' | 'en' = 'id'): string {
   if (!media) return '';
@@ -814,14 +821,39 @@ export function getMediaTitle(media?: Partial<MediaItem> | null, lang: 'id' | 'e
       }
       return media.title || '';
     }
-    return media.titleId || media.title || '';
+
+    // For foreign / international media when viewing in Indonesian:
+    // 1. If media has a valid Latin titleId (translated to Indonesian in Latin script), use it:
+    if (media.titleId && media.titleId.trim() && !NON_LATIN_REGEX.test(media.titleId)) {
+      return media.titleId.trim();
+    }
+    // 2. If titleId contains foreign non-Latin script (Hangul, Tamil, Kanji, Cyrillic, etc.),
+    // NEVER display foreign non-Latin script to Indonesian users! Fallback to Latin international title:
+    if (media.titleEn && media.titleEn.trim() && !NON_LATIN_REGEX.test(media.titleEn)) {
+      return media.titleEn.trim();
+    }
+    if (media.originalTitle && media.originalTitle.trim() && !NON_LATIN_REGEX.test(media.originalTitle)) {
+      return media.originalTitle.replace(/\s*\(\d{4}\)$/, '').trim();
+    }
+    if (media.title && media.title.trim() && !NON_LATIN_REGEX.test(media.title)) {
+      return media.title.trim();
+    }
+
+    // Final fallback if all titles happen to have non-Latin characters
+    return media.titleEn?.trim() || media.titleId?.trim() || media.title?.trim() || '';
   }
 
   // English
-  if (media.titleEn && media.titleEn.trim()) {
+  if (media.titleEn && media.titleEn.trim() && !NON_LATIN_REGEX.test(media.titleEn)) {
     return media.titleEn.trim();
   }
-  return media.title || '';
+  if (media.originalTitle && media.originalTitle.trim() && !NON_LATIN_REGEX.test(media.originalTitle)) {
+    return media.originalTitle.replace(/\s*\(\d{4}\)$/, '').trim();
+  }
+  if (media.title && media.title.trim() && !NON_LATIN_REGEX.test(media.title)) {
+    return media.title.trim();
+  }
+  return media.titleEn?.trim() || media.title?.trim() || '';
 }
 
 /**

@@ -2,7 +2,7 @@ import type { MediaItem, Season, Episode, CastMember, NextEpisodeAirInfo } from 
 import { createMovieServers, createTvServers } from '../data/mockCatalog';
 import { fetchImdbDetails, getImdbUrl } from './imdb';
 import { translateText } from './translator';
-import { formatSeasonRange } from '../utils/formatters';
+import { formatSeasonRange, NON_LATIN_REGEX } from '../utils/formatters';
 
 const DEFAULT_TMDB_API_KEY = '4e44d9029b1270a757cddc766a1bcb63';
 
@@ -490,12 +490,14 @@ export async function fetchTmdbTrending(
         const year = dateStr ? new Date(dateStr).getFullYear() : 2024;
 
         // Always preserve official international English title and original posters
-        const title =
-          (isMovie ? enItem.title : enItem.name) ||
-          enItem.original_title ||
-          enItem.original_name ||
-          'Tanpa Judul';
+        const enTitleRaw = (isMovie ? enItem.title : enItem.name) || '';
         const origTitle = isMovie ? enItem.original_title : enItem.original_name;
+        let title = enTitleRaw || origTitle || 'Tanpa Judul';
+        if (NON_LATIN_REGEX.test(title)) {
+          if (origTitle && !NON_LATIN_REGEX.test(origTitle)) {
+            title = origTitle;
+          }
+        }
 
         const enOverview = (enItem.overview || '').trim();
         const idOverview = (idItem?.overview || '').trim();
@@ -1046,7 +1048,8 @@ export async function fetchFullMediaItem(
       country.toLowerCase().includes('indonesia');
 
     const idTitleRaw = idData ? (isMovie ? idData.title : idData.name) : undefined;
-    const titleId = isIndonesian ? (origTitle || idTitleRaw || title) : (idTitleRaw || title);
+    const isIdTitleValid = idTitleRaw && !NON_LATIN_REGEX.test(idTitleRaw);
+    const titleId = isIndonesian ? (origTitle || idTitleRaw || title) : (isIdTitleValid ? idTitleRaw : title);
     const titleEn = title;
 
     const posterIdUrl = posterIdPath ? `${IMAGE_BASE_W500}${posterIdPath}` : undefined;

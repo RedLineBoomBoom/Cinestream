@@ -522,37 +522,54 @@ export async function searchAdvanced(
         const origTitle = ((isTv ? item.original_name : item.original_title) || '').trim();
         let tmdbTitle = (isTv ? item.name : item.title) || '';
 
+        // Extract English/International item from enOverviewMap (fetched with en-US)
+        const enItem = enOverviewMap.get(item.id);
+        const enTitle = ((isTv ? enItem?.name : enItem?.title) || '').trim();
+
         // Detect Indonesian origin
         const isIndo =
           item.original_language === 'id' ||
           (Array.isArray(item.origin_country) && item.origin_country.includes('ID')) ||
           (item.origin_country?.[0] === 'ID');
 
+        // Resolve international Latin title if original/tmdb title is in foreign script (Hangul, Tamil, etc.)
+        const latinTitle =
+          (enTitle && !NON_LATIN_REGEX.test(enTitle) ? enTitle : '') ||
+          (origTitle && !NON_LATIN_REGEX.test(origTitle) ? origTitle : '') ||
+          (tmdbTitle && !NON_LATIN_REGEX.test(tmdbTitle) ? tmdbTitle : '');
+
         let title = tmdbTitle;
         let titleId = '';
-        let titleEn = '';
+        let titleEn = latinTitle || enTitle || origTitle || tmdbTitle;
 
         if (isIndo) {
           // For Indonesian media, original title is the authentic Indonesian title
           titleId = (lang === 'id' && tmdbTitle) ? tmdbTitle : (origTitle || tmdbTitle);
           titleEn = (lang === 'en' && tmdbTitle) ? tmdbTitle : (origTitle !== tmdbTitle ? tmdbTitle : origTitle);
-          if (lang === 'id') {
-            title = titleId;
-          } else {
-            title = titleEn;
-          }
+          title = lang === 'id' ? titleId : titleEn;
         } else {
-          titleId = tmdbTitle;
-          titleEn = tmdbTitle;
+          // For foreign / international media:
+          // If tmdbTitle is in foreign non-Latin script (Hangul, Tamil, etc.), never use it as Indonesian title
+          if (NON_LATIN_REGEX.test(tmdbTitle)) {
+            title = latinTitle || enTitle || tmdbTitle;
+            titleId = latinTitle || enTitle || tmdbTitle;
+            titleEn = latinTitle || enTitle || tmdbTitle;
+          } else {
+            titleId = tmdbTitle;
+            titleEn = latinTitle || enTitle || tmdbTitle;
+            title = tmdbTitle;
+          }
         }
 
         if (!title && origTitle) {
           title = origTitle;
         }
 
-        // If title is non-latin, fallback to original title if latin
+        // If title still has non-Latin characters, strictly fallback to Latin title
         if (NON_LATIN_REGEX.test(title)) {
-          if (origTitle && !NON_LATIN_REGEX.test(origTitle)) {
+          if (latinTitle) {
+            title = latinTitle;
+          } else if (origTitle && !NON_LATIN_REGEX.test(origTitle)) {
             title = origTitle;
           }
         }
@@ -703,7 +720,6 @@ export async function searchAdvanced(
         const posterId = posterUrl;
         const posterEn = posterUrl;
 
-        const enItem = enOverviewMap.get(item.id);
         const enOverview = (enItem?.overview || '').trim();
         const idOverview = (item.overview || '').trim();
         const finalSynopsis = lang === 'en'
