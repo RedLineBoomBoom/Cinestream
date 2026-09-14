@@ -314,7 +314,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           src={displayBackdrop || currentMedia.backdrop}
           alt={displayTitle}
           className={`w-full h-full object-cover object-center scale-[1.03] animate-ken-burns filter brightness-90 transition-opacity duration-1000 ${
-            showTrailer && trailerKey ? 'opacity-0' : 'opacity-100'
+            showTrailer && trailerKey ? 'opacity-25 blur-sm scale-105' : 'opacity-100'
           }`}
         />
 
