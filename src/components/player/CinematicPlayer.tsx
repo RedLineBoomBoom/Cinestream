@@ -2386,7 +2386,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }}
         onDoubleClick={isMiniPlayer ? onToggleMiniPlayer : toggleFullscreen}
         className={`overflow-hidden bg-black select-none group ${
-          isResizing || isDraggingPlayer ? 'transition-none select-none' : 'transition-all duration-300'
+          isResizing || isDraggingPlayer
+            ? 'transition-none select-none'
+            : isMiniPlayer
+            ? 'transition-[border-color,box-shadow] duration-200'
+            : isTheaterMode
+            ? 'transition-all duration-500'
+            : 'transition-[border-color,box-shadow] duration-200'
         } ${
           isFullscreen
             ? `fixed inset-0 z-[9999] rounded-none border-none ${isPortraitFullscreen ? '' : 'w-screen h-screen w-[100dvw] h-[100dvh] aspect-auto'} ${!showControls && !isPartyInteracting ? 'cursor-none' : 'cursor-default'}`
@@ -2394,8 +2400,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             ? `fixed z-[280] aspect-video rounded-2xl shadow-2xl border-2 ${
                 activeSnapCorner ? 'border-brand-gold shadow-glow-gold' : 'border-brand-gold/60 shadow-black/95'
               } backdrop-blur-xl ${!freePosition && !isDraggingPlayer ? cornerStyles[snapCorner] : ''} ${
-                !freePosition && !isDraggingPlayer && !isResizing ? 'animate-mini-player-in' : ''
-              } ${isDocking ? 'animate-mini-player-docking ring-2 ring-[#E50914]' : ''}`
+                !freePosition && !isDraggingPlayer && !isResizing ? (isDocking ? 'animate-mini-player-out' : 'animate-mini-player-in') : ''
+              }`
             : isTheaterMode
             ? 'relative w-full max-w-[calc(80vh*16/9)] max-h-[80vh] aspect-video mx-auto rounded-none sm:rounded-2xl border-none shadow-2xl'
             : 'relative w-full rounded-2xl sm:rounded-3xl shadow-2xl border border-white/[0.08] aspect-video'
@@ -2831,7 +2837,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             key={videoSource}
             src={videoSource}
             title={media.title}
-            className={`border-0 z-0 ${isMiniPlayer ? 'absolute top-0 left-0' : 'w-full h-full relative'} ${
+            className={`border-0 z-0 absolute top-0 left-0 ${isMiniPlayer ? '' : 'w-full h-full'} ${
               isResizing || isDraggingPlayer ? 'pointer-events-none' : ''
             }`}
             style={

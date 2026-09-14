@@ -240,9 +240,21 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const [isAutoMiniDismissed, setIsAutoMiniDismissed] = useState(false);
   const [isDocking, setIsDocking] = useState(false);
   const playerSentinelRef = useRef<HTMLDivElement | null>(null);
+  const dockingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear docking timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dockingTimerRef.current) clearTimeout(dockingTimerRef.current);
+    };
+  }, []);
 
   // Reset auto-scrolled mini player state when changing media or episode
   useEffect(() => {
+    if (dockingTimerRef.current) {
+      clearTimeout(dockingTimerRef.current);
+      dockingTimerRef.current = null;
+    }
     setIsScrolledMiniPlayer(false);
     setIsAutoMiniDismissed(false);
     setIsDocking(false);
@@ -259,13 +271,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Fallback timer: ensure docking state finishes gracefully if smooth scroll completes
-    const timer = setTimeout(() => {
+    if (dockingTimerRef.current) clearTimeout(dockingTimerRef.current);
+    dockingTimerRef.current = setTimeout(() => {
       setIsScrolledMiniPlayer(false);
       setIsDocking(false);
-    }, 850);
-
-    return () => clearTimeout(timer);
+      dockingTimerRef.current = null;
+    }, 350);
   }, []);
 
   const isAutoMiniActive = isScrolledMiniPlayer && !isAutoMiniDismissed;
@@ -292,6 +303,10 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   // IntersectionObserver to auto-float mini player when scrolling past player with smooth hysteresis
   useEffect(() => {
     if (isMiniPlayer || isFullscreen) {
+      if (dockingTimerRef.current) {
+        clearTimeout(dockingTimerRef.current);
+        dockingTimerRef.current = null;
+      }
       setIsScrolledMiniPlayer(false);
       setIsDocking(false);
       return;
@@ -306,18 +321,29 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         const ratio = entry.intersectionRatio;
 
         // When entry is scrolled out of view past the top navbar
-        if ((!entry.isIntersecting || ratio <= 0.05) && rect.top < 0) {
-          setIsScrolledMiniPlayer(true);
-        } else if (entry.isIntersecting && ratio >= 0.35) {
-          // When user scrolls back up into view with comfortable visibility (at least 35%)
-          setIsScrolledMiniPlayer(false);
+        if ((!entry.isIntersecting || ratio <= 0.02) && rect.top < 0) {
+          if (dockingTimerRef.current) {
+            clearTimeout(dockingTimerRef.current);
+            dockingTimerRef.current = null;
+          }
           setIsDocking(false);
-          setIsAutoMiniDismissed(false);
+          setIsScrolledMiniPlayer(true);
+        } else if (entry.isIntersecting && (rect.top >= 0 || ratio >= 0.55)) {
+          // When user scrolls back up into view with comfortable visibility
+          if (isScrolledMiniPlayer && !isDocking && !dockingTimerRef.current) {
+            setIsDocking(true);
+            dockingTimerRef.current = setTimeout(() => {
+              setIsScrolledMiniPlayer(false);
+              setIsDocking(false);
+              setIsAutoMiniDismissed(false);
+              dockingTimerRef.current = null;
+            }, 200);
+          }
         }
       },
       {
         root: null,
-        threshold: [0, 0.05, 0.2, 0.35, 0.5, 0.75, 1.0],
+        threshold: [0, 0.02, 0.2, 0.55, 0.75, 1.0],
         rootMargin: '-70px 0px 0px 0px',
       }
     );
@@ -327,7 +353,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [isMiniPlayer, isFullscreen]);
+  }, [isMiniPlayer, isFullscreen, isScrolledMiniPlayer, isDocking]);
 
   // Flatten all episodes across seasons in chronological order
   const allEpisodes = React.useMemo(() => {
@@ -1021,9 +1047,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         <section
           id="theatrical-player-section"
           ref={playerSentinelRef}
-          className={isMiniPlayer ? 'contents' : `transition-all duration-500 relative z-30 ${
+          className={isMiniPlayer ? 'contents' : `relative z-30 ${
             isTheaterMode
-              ? '-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-[calc((100vw-100%)/2)] w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] lg:w-[calc(100%+5rem)] xl:w-screen xl:max-w-none bg-black/95 border-y border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.95)] pt-0 pb-0 ring-1 ring-white/10'
+              ? 'transition-all duration-500 -mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-[calc((100vw-100%)/2)] w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] lg:w-[calc(100%+5rem)] xl:w-screen xl:max-w-none bg-black/95 border-y border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.95)] pt-0 pb-0 ring-1 ring-white/10'
               : 'space-y-4'
           }`}
         >
@@ -1040,54 +1066,61 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
           )}
 
           <div
-            className={isMiniPlayer ? 'contents' : `transition-all duration-500 ${
+            className={isMiniPlayer ? 'contents' : `${
               isTheaterMode
-                ? 'w-full max-w-[2200px] 3xl:max-w-[2600px] mx-auto rounded-none border-none py-2 sm:py-4 flex items-center justify-center relative'
+                ? 'transition-all duration-500 w-full max-w-[2200px] 3xl:max-w-[2600px] mx-auto rounded-none border-none py-2 sm:py-4 flex items-center justify-center relative'
                 : 'w-full'
             }`}
           >
             {/* Placeholder when video is floating in Auto Mini-Player mode */}
             {isAutoMiniActive && (
-              <div
-                className={`w-full aspect-video rounded-2xl sm:rounded-3xl border border-dashed border-brand-gold/30 bg-cinema-900/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center shadow-xl transition-all duration-300 relative overflow-hidden group animate-placeholder-in ${
-                  isTheaterMode ? 'max-w-[calc(80vh*16/9)] max-h-[80vh] mx-auto' : ''
-                }`}
-              >
-                {/* Ambient Glow */}
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-gold/5 via-transparent to-brand-gold/10 pointer-events-none" />
+              <div className="space-y-3 w-full animate-placeholder-in">
+                <div
+                  className={`w-full aspect-video rounded-2xl sm:rounded-3xl border border-dashed border-brand-gold/30 bg-cinema-900/60 flex flex-col items-center justify-center p-6 text-center shadow-xl relative overflow-hidden group ${
+                    isTheaterMode ? 'max-w-[calc(80vh*16/9)] max-h-[80vh] mx-auto' : ''
+                  }`}
+                >
+                  {/* Ambient Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-gold/5 via-transparent to-brand-gold/10 pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col items-center max-w-md space-y-3">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand-gold/10 border border-brand-gold/30 flex items-center justify-center text-brand-gold shadow-glow-gold animate-pulse">
-                    <Film className="w-6 h-6 sm:w-7 sm:h-7" />
+                  <div className="relative z-10 flex flex-col items-center max-w-md space-y-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-brand-gold/10 border border-brand-gold/30 flex items-center justify-center text-brand-gold shadow-glow-gold animate-pulse">
+                      <Film className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-sm sm:text-base font-semibold text-white tracking-wide">
+                        {t('playingInMiniPlayer')}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {t('scrollAutoMiniPlayerTip')}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleScrollToPlayer}
+                      disabled={isDocking}
+                      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold hover:bg-brand-gold-light text-cinema-950 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer hover:shadow-glow-gold disabled:opacity-80"
+                    >
+                      {isDocking ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-cinema-950" />
+                          <span>{language === 'en' ? 'Returning to Theater...' : 'Mengembalikan ke Pemutar...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUp className="w-4 h-4" />
+                          <span>{t('returnToMainPlayer')}</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-sm sm:text-base font-semibold text-white tracking-wide">
-                      {t('playingInMiniPlayer')}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {t('scrollAutoMiniPlayerTip')}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleScrollToPlayer}
-                    disabled={isDocking}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold hover:bg-brand-gold-light text-cinema-950 font-semibold text-xs transition-all shadow-md active:scale-95 cursor-pointer hover:shadow-glow-gold disabled:opacity-80"
-                  >
-                    {isDocking ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-cinema-950" />
-                        <span>{language === 'en' ? 'Returning to Theater...' : 'Mengembalikan ke Pemutar...'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <ArrowUp className="w-4 h-4" />
-                        <span>{t('returnToMainPlayer')}</span>
-                      </>
-                    )}
-                  </button>
                 </div>
+
+                {/* Exact Height Stabilizer: matches the 46px helper bar in normal mode to achieve 0px layout shift */}
+                {!isTheaterMode && (
+                  <div className="h-[46px] w-full rounded-2xl bg-cinema-900/30 border border-dashed border-white/[0.06] pointer-events-none opacity-40" />
+                )}
               </div>
             )}
 
