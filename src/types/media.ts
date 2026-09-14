@@ -18,6 +18,7 @@ export interface Episode {
   synopsis: string;
   videoUrl: string;
   servers: Server[];
+  airDate?: string;
 }
 
 export interface Season {

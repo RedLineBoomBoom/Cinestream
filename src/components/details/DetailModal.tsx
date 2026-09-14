@@ -104,13 +104,38 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   }, [media.type, media.seasons]);
 
   // High-accuracy, season-aware resolution of Previous and Next episodes
-  const { prevEpisode, nextEpisode } = React.useMemo(() => {
+  const { prevEpisode, nextEpisode: rawNextEpisode } = React.useMemo(() => {
     return getAdjacentEpisodes({
       currentEpisode,
       seasons: media.seasons,
       allEpisodes,
     });
   }, [currentEpisode, media.seasons, allEpisodes]);
+
+  // Filter nextEpisode if it has not been released yet
+  const nextEpisode = React.useMemo(() => {
+    if (!rawNextEpisode) return undefined;
+    if (!media.isOngoing) return rawNextEpisode;
+
+    const sNum = rawNextEpisode.seasonNumber ?? 1;
+    if (media.nextEpisodeInfo && media.nextEpisodeInfo.seasonNumber === sNum) {
+      if (rawNextEpisode.episodeNumber >= media.nextEpisodeInfo.episodeNumber) {
+        return undefined;
+      }
+    }
+    if (rawNextEpisode.airDate) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (rawNextEpisode.airDate > todayStr) {
+        return undefined;
+      }
+    }
+    const relThreshold = media.currentSeasonReleasedEpisodes ?? media.releasedEpisodes;
+    if (typeof relThreshold === 'number' && relThreshold > 0 && rawNextEpisode.episodeNumber > relThreshold) {
+      return undefined;
+    }
+    return rawNextEpisode;
+  }, [rawNextEpisode, media]);
 
   const [autoPlayNext, setAutoPlayNext] = useState(false);
 
@@ -511,6 +536,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               status={media.status}
               isOngoing={media.isOngoing}
               totalEpisodes={media.totalEpisodes}
+              releasedEpisodes={media.releasedEpisodes}
+              currentSeasonTotalEpisodes={media.currentSeasonTotalEpisodes}
+              currentSeasonReleasedEpisodes={media.currentSeasonReleasedEpisodes}
               nextEpisodeToAir={media.nextEpisodeToAir}
               nextEpisodeInfo={media.nextEpisodeInfo}
               onSelectEpisode={(ep) => handleSelectEpisode(ep, true)}

@@ -241,13 +241,38 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   }, [activeMedia.type, activeMedia.seasons]);
 
   // High-accuracy, season-aware resolution of Previous and Next episodes
-  const { prevEpisode, nextEpisode } = React.useMemo(() => {
+  const { prevEpisode, nextEpisode: rawNextEpisode } = React.useMemo(() => {
     return getAdjacentEpisodes({
       currentEpisode,
       seasons: activeMedia.seasons,
       allEpisodes,
     });
   }, [currentEpisode, activeMedia.seasons, allEpisodes]);
+
+  // Filter nextEpisode if it has not been released yet
+  const nextEpisode = React.useMemo(() => {
+    if (!rawNextEpisode) return undefined;
+    if (!activeMedia.isOngoing) return rawNextEpisode;
+
+    const sNum = rawNextEpisode.seasonNumber ?? 1;
+    if (activeMedia.nextEpisodeInfo && activeMedia.nextEpisodeInfo.seasonNumber === sNum) {
+      if (rawNextEpisode.episodeNumber >= activeMedia.nextEpisodeInfo.episodeNumber) {
+        return undefined;
+      }
+    }
+    if (rawNextEpisode.airDate) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (rawNextEpisode.airDate > todayStr) {
+        return undefined;
+      }
+    }
+    const relThreshold = activeMedia.currentSeasonReleasedEpisodes ?? activeMedia.releasedEpisodes;
+    if (typeof relThreshold === 'number' && relThreshold > 0 && rawNextEpisode.episodeNumber > relThreshold) {
+      return undefined;
+    }
+    return rawNextEpisode;
+  }, [rawNextEpisode, activeMedia]);
 
   const [autoPlayNext, setAutoPlayNext] = useState(false);
 
@@ -1389,6 +1414,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 status={activeMedia.status}
                 isOngoing={activeMedia.isOngoing}
                 totalEpisodes={activeMedia.totalEpisodes}
+                releasedEpisodes={activeMedia.releasedEpisodes}
+                currentSeasonTotalEpisodes={activeMedia.currentSeasonTotalEpisodes}
+                currentSeasonReleasedEpisodes={activeMedia.currentSeasonReleasedEpisodes}
                 nextEpisodeToAir={activeMedia.nextEpisodeToAir}
                 nextEpisodeInfo={activeMedia.nextEpisodeInfo}
                 onSelectEpisode={(ep) => {

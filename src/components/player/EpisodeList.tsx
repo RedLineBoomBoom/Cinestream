@@ -10,20 +10,37 @@ import { useReleaseCountdown } from '../../hooks/useReleaseCountdown';
 interface UpcomingEpisodeCardProps {
   airDate?: string;
   episodeInfo?: NextEpisodeAirInfo;
-  fallbackEpisodeNumber: number;
+  episodeNumber?: number;
+  fallbackEpisodeNumber?: number;
+  title?: string;
+  synopsis?: string;
+  thumbnail?: string;
   language: 'id' | 'en';
 }
 
 const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
   airDate,
   episodeInfo,
-  fallbackEpisodeNumber,
+  episodeNumber,
+  fallbackEpisodeNumber = 1,
+  title,
+  synopsis,
+  thumbnail,
   language,
 }) => {
   const { t } = useLanguage();
   const countdown = useReleaseCountdown(airDate, language);
-  const epNumber = episodeInfo?.episodeNumber || fallbackEpisodeNumber;
-  const epTitle = episodeInfo?.title || `${t('episode')} ${epNumber}`;
+  const epNumber = episodeNumber ?? episodeInfo?.episodeNumber ?? fallbackEpisodeNumber;
+  const epTitle =
+    (title && title !== `${t('episode')} ${epNumber}` && title !== `Episode ${epNumber}` ? title : undefined) ||
+    episodeInfo?.title ||
+    title ||
+    `${t('episode')} ${epNumber}`;
+  const epThumbnail = thumbnail || episodeInfo?.stillPath;
+  const epSynopsis =
+    (synopsis && !synopsis.includes('belum tersedia') ? synopsis : undefined) ||
+    episodeInfo?.overview ||
+    synopsis;
 
   return (
     <div
@@ -35,9 +52,9 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
 
       {/* Thumbnail or Locked Placeholder */}
       <div className="relative w-full sm:w-32 h-28 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850 border border-amber-500/20 flex items-center justify-center">
-        {episodeInfo?.stillPath ? (
+        {epThumbnail ? (
           <img
-            src={episodeInfo.stillPath}
+            src={epThumbnail}
             alt={epTitle}
             className="w-full h-full object-cover filter brightness-75 contrast-110"
             loading="lazy"
@@ -81,6 +98,12 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
         <h5 className="text-xs sm:text-sm font-display font-medium text-white/95 truncate">
           {epTitle}
         </h5>
+
+        {epSynopsis && (
+          <p className="text-[10px] sm:text-[10.5px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed">
+            {epSynopsis}
+          </p>
+        )}
 
         {/* Countdown display */}
         {countdown.isValid && !countdown.isPassed && !countdown.isToday ? (
@@ -140,8 +163,61 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
           </div>
         )}
 
-        <p className="text-[9.5px] sm:text-[10px] text-slate-400/90 font-light mt-1 italic flex items-center gap-1">
-          <span>ℹ️ {t('episodeLockedHint')}</span>
+        <p className="text-[9px] sm:text-[9.5px] text-amber-400/80 font-light mt-1.5 italic flex items-center gap-1">
+          <span>🔒 {t('episodeLockedHint')}</span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+interface LockedEpisodeCardProps {
+  episode: Episode;
+  language: 'id' | 'en';
+}
+
+const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language }) => {
+  const { t } = useLanguage();
+  const countdown = useReleaseCountdown(episode.airDate, language);
+
+  return (
+    <div
+      className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 p-2 sm:p-2.5 rounded-xl border border-white/[0.04] bg-white/[0.01] opacity-75 select-none cursor-not-allowed transition-all duration-300"
+      title={t('episodeLockedHint')}
+    >
+      {/* Thumbnail with Lock */}
+      <div className="relative w-24 h-16 sm:w-32 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850">
+        <img
+          src={episode.thumbnail}
+          alt={episode.title}
+          className="w-full h-full object-cover filter grayscale contrast-90 brightness-75"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-black/70 border border-amber-400/30 flex items-center justify-center text-amber-300/80">
+            <Lock className="w-3.5 h-3.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 pr-0.5 sm:pr-1">
+        <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-2 mb-1">
+          <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider uppercase text-slate-400 whitespace-nowrap">
+            {t('episode')} {episode.episodeNumber}
+          </span>
+          <span className="text-[8.5px] sm:text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold uppercase tracking-wider flex items-center gap-1">
+            <Lock className="w-2.5 h-2.5" />
+            <span>{countdown.formattedDate || t('upcomingRelease')}</span>
+          </span>
+        </div>
+
+        <h5 className="text-xs sm:text-sm font-display font-medium text-slate-300 truncate">
+          {episode.title}
+        </h5>
+
+        <p className="text-[10.5px] sm:text-[11px] text-slate-500 font-light line-clamp-2 mt-0.5 leading-relaxed">
+          {episode.synopsis}
         </p>
       </div>
     </div>
@@ -155,6 +231,9 @@ interface EpisodeListProps {
   status?: string;
   isOngoing?: boolean;
   totalEpisodes?: number;
+  releasedEpisodes?: number;
+  currentSeasonTotalEpisodes?: number;
+  currentSeasonReleasedEpisodes?: number;
   mediaId?: string;
   nextEpisodeToAir?: string;
   nextEpisodeInfo?: NextEpisodeAirInfo;
@@ -167,6 +246,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   status,
   isOngoing,
   totalEpisodes,
+  releasedEpisodes,
+  currentSeasonTotalEpisodes,
+  currentSeasonReleasedEpisodes,
   mediaId,
   nextEpisodeToAir,
   nextEpisodeInfo,
@@ -217,25 +299,76 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   const currentSeason = seasons[selectedSeasonIdx] || seasons[0];
   if (!currentSeason) return null;
 
+  const sNum = Number(currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1));
+
   const seriesStatus = getSeriesStatus({
     status,
     isOngoing,
     totalEpisodes,
-    currentSeasonTotalEpisodes: totalEpisodes,
-    currentSeasonReleasedEpisodes: currentSeason.episodes.length,
+    currentSeasonTotalEpisodes: currentSeasonTotalEpisodes || currentSeason.episodes.length || totalEpisodes,
+    currentSeasonReleasedEpisodes: currentSeasonReleasedEpisodes,
     seasons,
     nextEpisodeToAir,
     nextEpisodeInfo,
   });
 
-  const sNum = Number(currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1));
   const isThisSeasonOngoing = Boolean(
     seriesStatus?.isOngoing &&
     (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length))
   );
-  const showUpcomingCard = isThisSeasonOngoing && (
-    !nextEpisodeInfo?.seasonNumber || nextEpisodeInfo.seasonNumber === sNum
-  );
+
+  const isEpisodeUnreleased = (ep: Episode): boolean => {
+    if (!isThisSeasonOngoing) return false;
+
+    // 1. Explicit nextEpisodeInfo match (upcoming episode or any episode beyond it)
+    if (nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum) {
+      if (ep.episodeNumber >= nextEpisodeInfo.episodeNumber) {
+        return true;
+      }
+    }
+
+    // 2. Air date in future
+    if (ep.airDate) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (ep.airDate > todayStr) {
+        return true;
+      }
+    }
+
+    // 3. Released threshold from props or metadata
+    const releasedThreshold =
+      typeof currentSeasonReleasedEpisodes === 'number' && currentSeasonReleasedEpisodes > 0
+        ? currentSeasonReleasedEpisodes
+        : (typeof releasedEpisodes === 'number' && releasedEpisodes > 0 && sNum === 1
+            ? releasedEpisodes
+            : undefined);
+
+    if (typeof releasedThreshold === 'number' && ep.episodeNumber > releasedThreshold) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const unreleasedEps = currentSeason.episodes.filter(isEpisodeUnreleased);
+  const firstUnreleasedEp = unreleasedEps.length > 0 ? unreleasedEps[0] : undefined;
+  const releasedCount = currentSeason.episodes.length - unreleasedEps.length;
+
+  const maxSeasonEpisodes =
+    (typeof currentSeasonTotalEpisodes === 'number' && currentSeasonTotalEpisodes > 0 ? currentSeasonTotalEpisodes : undefined) ??
+    (typeof totalEpisodes === 'number' && totalEpisodes > 0 ? totalEpisodes : undefined);
+
+  const hasReachedMax =
+    typeof maxSeasonEpisodes === 'number' &&
+    maxSeasonEpisodes > 0 &&
+    currentSeason.episodes.length >= maxSeasonEpisodes;
+
+  const shouldAppendUpcomingCard =
+    isThisSeasonOngoing &&
+    unreleasedEps.length === 0 &&
+    !hasReachedMax &&
+    Boolean(nextEpisodeInfo?.airDate || nextEpisodeToAir);
 
   return (
     <div className="bg-cinema-900/70 border border-white/[0.06] rounded-2xl p-3 sm:p-6 backdrop-blur-xl">
@@ -251,9 +384,13 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
             </h4>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 mt-1">
               <p className="text-[11px] text-slate-400 font-light">
-                {language === 'en'
-                  ? `${currentSeason.episodes.length} Episodes available this season`
-                  : `Tersedia ${currentSeason.episodes.length} Episode dalam musim ini`}
+                {releasedCount < currentSeason.episodes.length
+                  ? (language === 'en'
+                      ? `${releasedCount} of ${currentSeason.episodes.length} Episodes released`
+                      : `${releasedCount} dari ${currentSeason.episodes.length} Episode telah tayang`)
+                  : (language === 'en'
+                      ? `${currentSeason.episodes.length} Episodes available this season`
+                      : `Tersedia ${currentSeason.episodes.length} Episode dalam musim ini`)}
               </p>
               {seriesStatus && (
                 seriesStatus.completedSeasonsLabel && seriesStatus.ongoingSeasonLabel ? (
@@ -334,6 +471,43 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
       {/* Episode Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[480px] overflow-y-auto pr-1 custom-scrollbar">
         {currentSeason.episodes.map((ep) => {
+          const isUnreleased = isEpisodeUnreleased(ep);
+          const isFirstUnreleased = firstUnreleasedEp && ep.id === firstUnreleasedEp.id;
+
+          if (isFirstUnreleased) {
+            const resolvedAirDate =
+              ep.airDate ||
+              (nextEpisodeInfo?.seasonNumber === sNum ? nextEpisodeInfo.airDate : undefined) ||
+              nextEpisodeToAir;
+
+            return (
+              <UpcomingEpisodeCard
+                key={ep.id}
+                airDate={resolvedAirDate}
+                episodeInfo={
+                  nextEpisodeInfo?.seasonNumber === sNum && nextEpisodeInfo.episodeNumber === ep.episodeNumber
+                    ? nextEpisodeInfo
+                    : undefined
+                }
+                episodeNumber={ep.episodeNumber}
+                title={ep.title}
+                synopsis={ep.synopsis}
+                thumbnail={ep.thumbnail}
+                language={language}
+              />
+            );
+          }
+
+          if (isUnreleased) {
+            return (
+              <LockedEpisodeCard
+                key={ep.id}
+                episode={ep}
+                language={language}
+              />
+            );
+          }
+
           const isCurrent = ep.id === activeEpisodeId;
 
           return (
@@ -443,8 +617,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
           );
         })}
 
-        {/* Upcoming Episode Countdown Card */}
-        {showUpcomingCard && (
+        {/* Upcoming Episode Countdown Card (only if the upcoming episode is not already in currentSeason.episodes) */}
+        {shouldAppendUpcomingCard && (
           <UpcomingEpisodeCard
             airDate={nextEpisodeInfo?.airDate || nextEpisodeToAir}
             episodeInfo={nextEpisodeInfo}

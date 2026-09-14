@@ -914,6 +914,7 @@ export async function fetchFullMediaItem(
                   ? `${IMAGE_BASE_W500}${ep.still_path}`
                   : (data.backdrop_path ? `${IMAGE_BASE_W500}${data.backdrop_path}` : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop'),
                 synopsis: ep.overview || 'Sinopsis episode belum tersedia.',
+                airDate: ep.air_date,
                 videoUrl: `https://vidlink.pro/tv/${tmdbId}/${sNum}/${ep.episode_number}`,
                 servers: createTvServers(tmdbId, sNum, ep.episode_number),
               }));
