@@ -198,7 +198,8 @@ const MainContent: React.FC = () => {
   // Popular Trending Spotlight Items for Header (Real-time TMDB API)
   const [heroPopularItems, setHeroPopularItems] = useState<MediaItem[]>(() => {
     try {
-      const cached = localStorage.getItem('cinestream_cached_hero_popular');
+      localStorage.removeItem('cinestream_cached_hero_popular');
+      const cached = localStorage.getItem('cinestream_cached_hero_popular_v2');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -217,7 +218,7 @@ const MainContent: React.FC = () => {
         if (isMounted && items.length > 0) {
           setHeroPopularItems(items);
           try {
-            localStorage.setItem('cinestream_cached_hero_popular', JSON.stringify(items));
+            localStorage.setItem('cinestream_cached_hero_popular_v2', JSON.stringify(items));
           } catch {
             // ignore
           }

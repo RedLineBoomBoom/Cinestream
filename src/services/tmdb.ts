@@ -670,6 +670,50 @@ export async function fetchTmdbTrending(
 }
 
 /**
+ * Strictly prioritize high-definition widescreen cinematic trailers over vertical YouTube Shorts or social media teasers
+ */
+export function selectBestWidescreenTrailer(videoResults: any[]): any {
+  if (!videoResults || !Array.isArray(videoResults) || videoResults.length === 0) return null;
+
+  // Filter out social media vertical shorts (TikTok, Reels, YouTube Shorts)
+  const isVerticalOrShortRegex = /#shorts|\bshorts\b|\btiktok\b|\breels\b|\bvertical\b/i;
+  const ytVideos = videoResults.filter(
+    (v: any) => v.site === 'YouTube' && typeof v.key === 'string' && !isVerticalOrShortRegex.test(v.name || '')
+  );
+
+  return (
+    // 1. Official Trailer with 'official trailer', 'main trailer', 'theatrical trailer', or 'final trailer'
+    ytVideos.find(
+      (v: any) =>
+        v.type === 'Trailer' &&
+        v.official &&
+        /(official|main|theatrical|final)\s+trailer/i.test(v.name || '')
+    ) ||
+    // 2. Official Trailer with 'trailer' in title
+    ytVideos.find(
+      (v: any) => v.type === 'Trailer' && v.official && /trailer/i.test(v.name || '')
+    ) ||
+    // 3. Any Official Trailer
+    ytVideos.find((v: any) => v.type === 'Trailer' && v.official) ||
+    // 4. Any Trailer with 'trailer' in title
+    ytVideos.find((v: any) => v.type === 'Trailer' && /trailer/i.test(v.name || '')) ||
+    // 5. Any Trailer
+    ytVideos.find((v: any) => v.type === 'Trailer') ||
+    // 6. Official Teaser Trailer (widescreen teaser trailer)
+    ytVideos.find(
+      (v: any) => v.type === 'Teaser' && v.official && /teaser\s+trailer/i.test(v.name || '')
+    ) ||
+    // 7. Official Teaser
+    ytVideos.find((v: any) => v.type === 'Teaser' && v.official) ||
+    // 8. Any video matching Teaser
+    ytVideos.find((v: any) => v.type === 'Teaser') ||
+    // 9. Fallback to first available video
+    ytVideos[0] ||
+    videoResults.find((v: any) => v.site === 'YouTube')
+  );
+}
+
+/**
  * Fetch complete details and construct full MediaItem for seamless playback
  */
 export async function fetchFullMediaItem(
@@ -918,10 +962,7 @@ export async function fetchFullMediaItem(
     let trailerUrl: string | undefined = undefined;
     let trailerYoutubeKey: string | undefined = undefined;
     if (data.videos?.results && Array.isArray(data.videos.results) && data.videos.results.length > 0) {
-      const ytTrailer =
-        data.videos.results.find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser') && v.official) ||
-        data.videos.results.find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) ||
-        data.videos.results.find((v: any) => v.site === 'YouTube');
+      const ytTrailer = selectBestWidescreenTrailer(data.videos.results);
       if (ytTrailer?.key) {
         trailerYoutubeKey = ytTrailer.key;
         trailerUrl = `https://www.youtube.com/watch?v=${ytTrailer.key}`;
@@ -1334,43 +1375,7 @@ export async function fetchTrailerForMedia(
     if (res.ok) {
       const data = await res.json();
       if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-        // Filter out social media vertical shorts (TikTok, Reels, YouTube Shorts)
-        const isVerticalOrShortRegex = /#shorts|\bshorts\b|\btiktok\b|\breels\b|\bvertical\b/i;
-        const ytVideos = data.results.filter(
-          (v: any) => v.site === 'YouTube' && typeof v.key === 'string' && !isVerticalOrShortRegex.test(v.name || '')
-        );
-
-        // Strict prioritization to ensure high-definition widescreen cinematic trailers:
-        const ytTrailer =
-          // 1. Official Trailer with 'official trailer', 'main trailer', 'theatrical trailer', or 'final trailer'
-          ytVideos.find(
-            (v: any) =>
-              v.type === 'Trailer' &&
-              v.official &&
-              /(official|main|theatrical|final)\s+trailer/i.test(v.name || '')
-          ) ||
-          // 2. Official Trailer with 'trailer' in title
-          ytVideos.find(
-            (v: any) => v.type === 'Trailer' && v.official && /trailer/i.test(v.name || '')
-          ) ||
-          // 3. Any Official Trailer
-          ytVideos.find((v: any) => v.type === 'Trailer' && v.official) ||
-          // 4. Any Trailer with 'trailer' in title
-          ytVideos.find((v: any) => v.type === 'Trailer' && /trailer/i.test(v.name || '')) ||
-          // 5. Any Trailer
-          ytVideos.find((v: any) => v.type === 'Trailer') ||
-          // 6. Official Teaser Trailer (widescreen teaser trailer)
-          ytVideos.find(
-            (v: any) => v.type === 'Teaser' && v.official && /teaser\s+trailer/i.test(v.name || '')
-          ) ||
-          // 7. Official Teaser
-          ytVideos.find((v: any) => v.type === 'Teaser' && v.official) ||
-          // 8. Any video matching Teaser
-          ytVideos.find((v: any) => v.type === 'Teaser') ||
-          // 9. Fallback to first available video
-          ytVideos[0] ||
-          data.results.find((v: any) => v.site === 'YouTube');
-
+        const ytTrailer = selectBestWidescreenTrailer(data.results);
         if (ytTrailer?.key) {
           return {
             key: ytTrailer.key,

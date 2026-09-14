@@ -164,20 +164,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     setTrailerKey(null);
     setIsMuted(true);
 
-    if (currentMedia?.trailerYoutubeKey) {
-      setTrailerKey(currentMedia.trailerYoutubeKey);
-    } else if (currentMedia?.tmdbId) {
+    // Always dynamically resolve verified widescreen trailer to avoid stale/portrait cached keys
+    if (currentMedia?.tmdbId) {
       fetchTrailerForMedia(currentMedia.tmdbId, currentMedia.type, currentMedia.title).then((tr) => {
         if (isMounted && tr?.key) {
           setTrailerKey(tr.key);
         }
       });
+    } else if (currentMedia?.trailerYoutubeKey) {
+      setTrailerKey(currentMedia.trailerYoutubeKey);
     }
 
     return () => {
       isMounted = false;
     };
-  }, [currentMedia?.id, currentMedia?.tmdbId, currentMedia?.type, currentMedia?.title, currentMedia?.trailerYoutubeKey]);
+  }, [currentMedia?.id, currentMedia?.tmdbId, currentMedia?.type, currentMedia?.title]);
 
   // Auto-play trailer after viewing the photo for 3.5 seconds, only if banner is actively in viewport & trailer exists
   useEffect(() => {
