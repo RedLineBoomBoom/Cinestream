@@ -950,14 +950,18 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const hasTriggeredEndRef = useRef(false);
   const retriggerThresholdRef = useRef(0);
 
-  // Reset completion trigger when episode changes
+  // Reset completion trigger, duration, and buffering state when episode changes
   useEffect(() => {
     hasTriggeredEndRef.current = false;
     setShowNextPrompt(false);
     setNextCountdown(8);
     retriggerThresholdRef.current = 0;
     hasPlayedThisSession.current = Boolean(autoPlay);
-  }, [currentEpisode?.id, autoPlay]);
+    setDuration(initialDuration);
+    durationRef.current = initialDuration;
+    setBuffered(0);
+    setIsBuffering(false);
+  }, [currentEpisode?.id, autoPlay, initialDuration]);
 
   const handleEpisodeEnded = useCallback((isExplicitEnded = false, force = false) => {
     if (hasTriggeredEndRef.current) {

@@ -1125,7 +1125,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             )}
 
             <CinematicPlayer
-              key={`${activeMedia.id}-${currentEpisode?.id || 'main'}`}
+              key={activeMedia.id}
               media={activeMedia}
               currentEpisode={currentEpisode}
               activeServer={activeServer}
@@ -1143,7 +1143,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               autoPlay={autoPlayNext}
-              resumeTime={resumeTime}
+              resumeTime={!resumeEpisodeId || currentEpisode?.id === resumeEpisodeId ? resumeTime : undefined}
               isTheaterMode={isTheaterMode}
               onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
               onOpenWatchParty={onOpenWatchParty}
