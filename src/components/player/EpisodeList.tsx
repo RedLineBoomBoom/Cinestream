@@ -91,6 +91,7 @@ interface UpcomingEpisodeCardProps {
   synopsis?: string;
   thumbnail?: string;
   language: 'id' | 'en';
+  onPlayEpisode?: () => void;
 }
 
 const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
@@ -102,6 +103,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
   synopsis,
   thumbnail,
   language,
+  onPlayEpisode,
 }) => {
   const { t } = useLanguage();
   const countdown = useReleaseCountdown(airDate, language);
@@ -117,21 +119,32 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
     (episodeInfo?.overview && !isDefaultOrEmptySynopsis(episodeInfo.overview) ? episodeInfo.overview : undefined) ||
     synopsis;
 
+  const isPlayable = Boolean(onPlayEpisode) && (countdown.isToday || countdown.isPassed);
+
   return (
     <div
-      className="relative flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] via-cinema-900/90 to-cinema-950/95 shadow-md shadow-amber-950/20 select-none overflow-hidden col-span-1 md:col-span-2 transition-all duration-300 hover:border-amber-500/50"
-      title={t('episodeLockedHint')}
+      onClick={isPlayable ? onPlayEpisode : undefined}
+      className={`relative flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3 rounded-xl border transition-all duration-300 overflow-hidden col-span-1 md:col-span-2 ${
+        isPlayable
+          ? 'border-emerald-500/40 bg-gradient-to-br from-emerald-500/[0.08] via-cinema-900/90 to-cinema-950/95 shadow-md shadow-emerald-950/20 cursor-pointer hover:border-emerald-500/60 group'
+          : 'border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] via-cinema-900/90 to-cinema-950/95 shadow-md shadow-amber-950/20 select-none hover:border-amber-500/50'
+      }`}
+      title={isPlayable ? (language === 'id' ? 'Klik untuk memutar episode' : 'Click to play episode') : t('episodeLockedHint')}
     >
       {/* Ambient background glow */}
-      <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+      <div className={`absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full blur-2xl pointer-events-none ${
+        isPlayable ? 'bg-emerald-500/15' : 'bg-amber-500/10'
+      }`} />
 
       {/* Thumbnail or Locked Placeholder */}
-      <div className="relative w-full sm:w-32 h-28 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850 border border-amber-500/20 flex items-center justify-center">
+      <div className={`relative w-full sm:w-32 h-28 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850 border flex items-center justify-center ${
+        isPlayable ? 'border-emerald-500/30' : 'border-amber-500/20'
+      }`}>
         {epThumbnail ? (
           <img
             src={epThumbnail}
             alt={epTitle}
-            className="w-full h-full object-cover filter brightness-75 contrast-110"
+            className={`w-full h-full object-cover ${isPlayable ? 'group-hover:scale-105 transition-transform duration-300' : 'filter brightness-75 contrast-110'}`}
             loading="lazy"
           />
         ) : (
@@ -140,17 +153,25 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
           </div>
         )}
 
-        {/* Lock Overlay */}
+        {/* Lock Overlay or Play Icon */}
         <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
-            <Lock className="w-4 h-4" />
-          </div>
+          {isPlayable ? (
+            <div className="w-9 h-9 rounded-full bg-emerald-600/90 border border-emerald-400/50 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 ml-0.5 fill-current" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
+              <Lock className="w-4 h-4" />
+            </div>
+          )}
         </div>
 
         {/* Floating status on thumbnail */}
-        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/85 text-[8.5px] text-amber-300 font-mono flex items-center gap-1 border border-amber-500/30">
-          <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-          <span>{countdown.isToday ? t('airingToday') : t('upcomingRelease')}</span>
+        <div className={`absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/85 text-[8.5px] font-mono flex items-center gap-1 border ${
+          countdown.isToday || countdown.isPassed ? 'text-emerald-300 border-emerald-500/40' : 'text-amber-300 border-amber-500/30'
+        }`}>
+          <Sparkles className="w-2.5 h-2.5 text-current" />
+          <span>{countdown.isToday ? t('airingToday') : countdown.isPassed ? (language === 'id' ? 'Telah Rilis' : 'Released') : t('upcomingRelease')}</span>
         </div>
       </div>
 
@@ -158,14 +179,20 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
       <div className="flex-1 min-w-0 w-full pr-1">
         <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10.5px] sm:text-[11px] font-sans font-bold tracking-wider uppercase text-amber-300 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              {t('episode')} {epNumber} • {t('upcomingEpisode')}
+            <span className={`text-[10.5px] sm:text-[11px] font-sans font-bold tracking-wider uppercase flex items-center gap-1 ${
+              isPlayable ? 'text-emerald-300' : 'text-amber-300'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPlayable ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              {t('episode')} {epNumber} • {isPlayable ? (language === 'id' ? 'Rilis Hari Ini' : 'Airing Today') : t('upcomingEpisode')}
             </span>
           </div>
 
-          <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold uppercase tracking-wider flex items-center gap-1">
-            <Lock className="w-2.5 h-2.5" />
+          <span className={`text-[9px] px-2 py-0.5 rounded-full border font-semibold uppercase tracking-wider flex items-center gap-1 ${
+            isPlayable
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+          }`}>
+            {isPlayable ? <Play className="w-2.5 h-2.5 fill-current" /> : <Lock className="w-2.5 h-2.5" />}
             <span>{countdown.isToday ? t('airingToday') : countdown.countdownText || t('upcomingRelease')}</span>
           </span>
         </div>
@@ -180,7 +207,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
           className="text-[10px] sm:text-[10.5px] text-slate-400 font-light line-clamp-2 mt-0.5 leading-relaxed"
         />
 
-        {/* Countdown display */}
+        {/* Countdown display or Play button */}
         {countdown.isValid && !countdown.isPassed && !countdown.isToday ? (
           <div className="mt-2 flex flex-wrap items-center gap-1 sm:gap-1.5">
             <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
@@ -226,6 +253,22 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
               </div>
             )}
           </div>
+        ) : isPlayable ? (
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlayEpisode?.();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>{language === 'id' ? 'Putar Episode Sekarang' : 'Play Episode Now'}</span>
+            </button>
+            <span className="text-[10px] text-emerald-400/90 font-medium">
+              ✓ {t('airingToday')} ({countdown.formattedDate})
+            </span>
+          </div>
         ) : countdown.isToday ? (
           <div className="mt-1.5 flex items-center gap-2 p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
@@ -238,9 +281,11 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
           </div>
         )}
 
-        <p className="text-[9px] sm:text-[9.5px] text-amber-400/80 font-light mt-1.5 italic flex items-center gap-1">
-          <span>🔒 {t('episodeLockedHint')}</span>
-        </p>
+        {!isPlayable && (
+          <p className="text-[9px] sm:text-[9.5px] text-amber-400/80 font-light mt-1.5 italic flex items-center gap-1">
+            <span>🔒 {t('episodeLockedHint')}</span>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -249,29 +294,42 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
 interface LockedEpisodeCardProps {
   episode: Episode;
   language: 'id' | 'en';
+  onSelectEpisode?: (ep: Episode) => void;
 }
 
-const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language }) => {
+const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language, onSelectEpisode }) => {
   const { t } = useLanguage();
   const countdown = useReleaseCountdown(episode.airDate, language);
+  const isPlayable = Boolean(onSelectEpisode) && (countdown.isToday || countdown.isPassed);
 
   return (
     <div
-      className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 p-2 sm:p-2.5 rounded-xl border border-white/[0.04] bg-white/[0.01] opacity-75 select-none cursor-not-allowed transition-all duration-300"
-      title={t('episodeLockedHint')}
+      onClick={isPlayable && onSelectEpisode ? () => onSelectEpisode(episode) : undefined}
+      className={`flex items-start sm:items-center gap-2.5 sm:gap-3.5 p-2 sm:p-2.5 rounded-xl border transition-all duration-300 ${
+        isPlayable
+          ? 'border-emerald-500/30 bg-emerald-500/[0.04] cursor-pointer hover:border-emerald-500/50 group'
+          : 'border-white/[0.04] bg-white/[0.01] opacity-75 select-none cursor-not-allowed'
+      }`}
+      title={isPlayable ? (language === 'id' ? 'Klik untuk memutar episode' : 'Click to play episode') : t('episodeLockedHint')}
     >
-      {/* Thumbnail with Lock */}
+      {/* Thumbnail with Lock / Play */}
       <div className="relative w-24 h-16 sm:w-32 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-cinema-850">
         <img
           src={episode.thumbnail}
           alt={episode.title}
-          className="w-full h-full object-cover filter grayscale contrast-90 brightness-75"
+          className={`w-full h-full object-cover ${isPlayable ? 'group-hover:scale-105 transition-transform duration-300' : 'filter grayscale contrast-90 brightness-75'}`}
           loading="lazy"
         />
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
-          <div className="w-7 h-7 rounded-full bg-black/70 border border-amber-400/30 flex items-center justify-center text-amber-300/80">
-            <Lock className="w-3.5 h-3.5" />
-          </div>
+          {isPlayable ? (
+            <div className="w-8 h-8 rounded-full bg-emerald-600/90 border border-emerald-400/50 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+              <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+            </div>
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-black/70 border border-amber-400/30 flex items-center justify-center text-amber-300/80">
+              <Lock className="w-3.5 h-3.5" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -281,9 +339,13 @@ const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language
           <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider uppercase text-slate-400 whitespace-nowrap">
             {t('episode')} {episode.episodeNumber}
           </span>
-          <span className="text-[8.5px] sm:text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold uppercase tracking-wider flex items-center gap-1">
-            <Lock className="w-2.5 h-2.5" />
-            <span>{countdown.formattedDate || t('upcomingRelease')}</span>
+          <span className={`text-[8.5px] sm:text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-1 ${
+            isPlayable
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+              : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+          }`}>
+            {isPlayable ? <Play className="w-2.5 h-2.5 fill-current" /> : <Lock className="w-2.5 h-2.5" />}
+            <span>{countdown.isToday ? t('airingToday') : countdown.formattedDate || t('upcomingRelease')}</span>
           </span>
         </div>
 
@@ -296,6 +358,13 @@ const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language
           language={language}
           className="text-[10.5px] sm:text-[11px] text-slate-500 font-light line-clamp-2 mt-0.5 leading-relaxed"
         />
+
+        {isPlayable && (
+          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-emerald-400">
+            <Play className="w-3 h-3 fill-current" />
+            <span className="font-medium">{language === 'id' ? 'Telah rilis — Putar Sekarang' : 'Released — Play Now'}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -394,34 +463,54 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length))
   );
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const isEpisodeUnreleased = (ep: Episode): boolean => {
     if (!isThisSeasonOngoing) return false;
 
-    // 1. Explicit nextEpisodeInfo match (upcoming episode or any episode beyond it)
-    if (nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum) {
-      if (ep.episodeNumber >= nextEpisodeInfo.episodeNumber) {
-        return true;
-      }
-    }
-
-    // 2. Air date in future
+    // 1. Explicit airDate on the episode:
+    // If air date is today or in the past, the episode has reached or passed its release date!
+    // It is 100% RELEASED and PLAYABLE!
     if (ep.airDate) {
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      if (ep.airDate > todayStr) {
-        return true;
+      if (ep.airDate <= todayStr) {
+        return false;
+      }
+      return true;
+    }
+
+    // 2. Explicit nextEpisodeInfo match
+    if (nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum) {
+      // If the scheduled next episode's air date has arrived (today or past),
+      // then that episode is officially released!
+      if (nextEpisodeInfo.airDate && nextEpisodeInfo.airDate <= todayStr) {
+        if (ep.episodeNumber <= nextEpisodeInfo.episodeNumber) {
+          return false;
+        }
+      } else if (nextEpisodeInfo.airDate && nextEpisodeInfo.airDate > todayStr) {
+        // Air date is in the future
+        if (ep.episodeNumber >= nextEpisodeInfo.episodeNumber) {
+          return true;
+        }
       }
     }
 
-    // 3. Released threshold from props or metadata
-    const releasedThreshold =
+    // 3. Fallback threshold check
+    const effectiveNextEpNum =
+      nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum && nextEpisodeInfo.airDate && nextEpisodeInfo.airDate <= todayStr
+        ? nextEpisodeInfo.episodeNumber
+        : 0;
+
+    const baseThreshold =
       typeof currentSeasonReleasedEpisodes === 'number' && currentSeasonReleasedEpisodes > 0
         ? currentSeasonReleasedEpisodes
         : (typeof releasedEpisodes === 'number' && releasedEpisodes > 0 && sNum === 1
             ? releasedEpisodes
             : undefined);
 
-    if (typeof releasedThreshold === 'number' && ep.episodeNumber > releasedThreshold) {
+    const releasedThreshold = Math.max(baseThreshold || 0, effectiveNextEpNum);
+
+    if (releasedThreshold > 0 && ep.episodeNumber > releasedThreshold) {
       return true;
     }
 
@@ -441,11 +530,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     maxSeasonEpisodes > 0 &&
     currentSeason.episodes.length >= maxSeasonEpisodes;
 
+  const nextAirDate = nextEpisodeInfo?.airDate || nextEpisodeToAir;
+  const hasFutureNextAirDate = Boolean(nextAirDate && nextAirDate > todayStr);
+
   const shouldAppendUpcomingCard =
     isThisSeasonOngoing &&
     unreleasedEps.length === 0 &&
     !hasReachedMax &&
-    Boolean(nextEpisodeInfo?.airDate || nextEpisodeToAir);
+    hasFutureNextAirDate;
 
   return (
     <div className="bg-cinema-900/70 border border-white/[0.06] rounded-2xl p-3 sm:p-6 backdrop-blur-xl">
@@ -571,6 +663,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 synopsis={ep.synopsis}
                 thumbnail={ep.thumbnail}
                 language={language}
+                onPlayEpisode={() => {
+                  const resolvedSNum = Number(
+                    ep.seasonNumber || currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1)
+                  );
+                  onSelectEpisode({
+                    ...ep,
+                    seasonNumber: resolvedSNum,
+                    episodeNumber: Number(ep.episodeNumber || 1),
+                  });
+                }}
               />
             );
           }
@@ -581,6 +683,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 key={ep.id}
                 episode={ep}
                 language={language}
+                onSelectEpisode={(selectedEp) => {
+                  const resolvedSNum = Number(
+                    selectedEp.seasonNumber || currentSeason.seasonNumber || (currentSeason as any).season_number || (selectedSeasonIdx + 1)
+                  );
+                  onSelectEpisode({
+                    ...selectedEp,
+                    seasonNumber: resolvedSNum,
+                    episodeNumber: Number(selectedEp.episodeNumber || 1),
+                  });
+                }}
               />
             );
           }

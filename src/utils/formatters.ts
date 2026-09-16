@@ -287,6 +287,10 @@ export function getSeriesStatus(
     const relEp = item.currentSeasonReleasedEpisodes ?? item.releasedEpisodes;
     const totEp = item.currentSeasonTotalEpisodes ?? item.totalEpisodes;
 
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const hasNextEpInFuture = Boolean(item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr);
+
     // Critical check: if all episodes of the current/latest season have already been released
     if (
       isOngoing &&
@@ -294,7 +298,7 @@ export function getSeriesStatus(
       typeof totEp === 'number' &&
       totEp > 0 &&
       relEp >= totEp &&
-      !item.nextEpisodeToAir
+      !hasNextEpInFuture
     ) {
       isOngoing = false;
     }
@@ -310,8 +314,12 @@ export function getSeriesStatus(
   const relEp = item.currentSeasonReleasedEpisodes ?? item.releasedEpisodes;
   const totEp = item.currentSeasonTotalEpisodes ?? item.totalEpisodes;
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const hasNextEpInFuture = Boolean(item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr);
+
   if (typeof relEp === 'number' && typeof totEp === 'number' && totEp > 0) {
-    const isOngoing = relEp < totEp || Boolean(item.nextEpisodeToAir);
+    const isOngoing = relEp < totEp || hasNextEpInFuture;
     const progressText = isOngoing && relEp < totEp ? `Ep ${relEp}/${totEp}` : undefined;
     return buildResult(isOngoing, relEp, totEp, progressText, isOngoing ? derivedSeasonNumber : undefined);
   }
@@ -323,7 +331,7 @@ export function getSeriesStatus(
     const seasonEpCount = activeSeason?.episodes?.length || activeSeason?.episodeCount || 0;
     const activeSeasonNum = activeSeason?.seasonNumber;
 
-    const hasNextEp = Boolean(item.nextEpisodeToAir);
+    const hasNextEp = hasNextEpInFuture;
     const isStatusOngoing = item.status && /returning|production|airing|current|running|ongoing|planned/i.test(item.status);
     const isStatusEnded = item.status && /ended|finished|canceled|complete|tamat/i.test(item.status);
 

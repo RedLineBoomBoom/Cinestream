@@ -6,7 +6,7 @@
 
 import type { MediaItem, Server, NextEpisodeAirInfo } from '../types/media';
 import { createMovieServers, createTvServers } from '../data/mockCatalog';
-import { getTmdbApiKey, getTvShowDetailsFast } from './tmdb';
+import { getTmdbApiKey, getTvShowDetailsFast, calculateSeriesStatusFromTmdb } from './tmdb';
 import { GENRE_NAME_TO_ID } from './curation';
 import { translateText } from './translator';
 
@@ -602,6 +602,10 @@ export async function searchAdvanced(
         let isOngoing = false;
         let totalSeasons: number | undefined = undefined;
         let totalEpisodes: number | undefined = undefined;
+        let currentSeasonTotalEpisodes: number | undefined = undefined;
+        let currentSeasonReleasedEpisodes: number | undefined = undefined;
+        let releasedEpisodes: number | undefined = undefined;
+        let seasonBreakdown: string | undefined = undefined;
         let completedSeasons: number[] = [1];
         let ongoingSeason: number | undefined = undefined;
         let nextEpisodeToAir: string | undefined = undefined;
@@ -611,17 +615,11 @@ export async function searchAdvanced(
           const tvData = tvDetailsMap.get(item.id);
           if (tvData) {
             tvStatus = tvData.status || 'Ended';
-            const regularSeasons = (tvData.seasons || []).filter((s: any) => s.season_number > 0);
-            totalSeasons = tvData.number_of_seasons || regularSeasons.length || 1;
-            totalEpisodes = tvData.number_of_episodes || 10;
-            const latestSeason = regularSeasons[regularSeasons.length - 1];
-            const currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
-            const lastEp = tvData.last_episode_to_air;
-            const currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
-
-            const hasNextEp = Boolean(tvData.next_episode_to_air);
-            nextEpisodeToAir = tvData.next_episode_to_air?.air_date;
-            if (tvData.next_episode_to_air?.air_date) {
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && tvData.next_episode_to_air.air_date > todayStr);
+            nextEpisodeToAir = isNextEpFuture ? tvData.next_episode_to_air?.air_date : undefined;
+            if (isNextEpFuture && tvData.next_episode_to_air?.air_date) {
               const nEp = tvData.next_episode_to_air;
               nextEpisodeInfo = {
                 airDate: nEp.air_date,
@@ -631,35 +629,20 @@ export async function searchAdvanced(
                 overview: nEp.overview || undefined,
                 stillPath: nEp.still_path ? `https://image.tmdb.org/t/p/w500${nEp.still_path}` : undefined,
               };
-            }
-            const inProd = Boolean(tvData.in_production);
-            const isReturning = tvData.status === 'Returning Series';
-            const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
-            const isSeasonIncomplete =
-              (currentSeasonReleasedEpisodes ?? 0) > 0 &&
-              (currentSeasonTotalEpisodes ?? 0) > 0 &&
-              (currentSeasonReleasedEpisodes ?? 0) < (currentSeasonTotalEpisodes ?? 0);
-
-            if (!isEnded && (hasNextEp || isSeasonIncomplete || inProd || isReturning)) {
-              isOngoing = true;
             } else {
-              isOngoing = false;
+              nextEpisodeInfo = undefined;
             }
 
-            if (isOngoing) {
-              ongoingSeason = tvData.next_episode_to_air?.season_number || latestSeason?.season_number || totalSeasons;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
-            } else {
-              ongoingSeason = undefined;
-              completedSeasons = regularSeasons
-                .map((s: any) => s.season_number)
-                .filter((n: number) => typeof n === 'number' && n > 0);
-              if (completedSeasons.length === 0 && typeof totalSeasons === 'number' && totalSeasons > 0) {
-                completedSeasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
-              }
-            }
+            const statusCalc = calculateSeriesStatusFromTmdb(tvData);
+            isOngoing = statusCalc.isOngoing;
+            totalSeasons = statusCalc.totalSeasons;
+            totalEpisodes = statusCalc.totalEpisodes;
+            completedSeasons = statusCalc.completedSeasons;
+            ongoingSeason = statusCalc.ongoingSeason;
+            seasonBreakdown = statusCalc.seasonBreakdown;
+            currentSeasonTotalEpisodes = statusCalc.currentSeasonTotalEpisodes;
+            currentSeasonReleasedEpisodes = statusCalc.currentSeasonReleasedEpisodes;
+            releasedEpisodes = statusCalc.releasedEpisodes;
           } else {
             // Fallback when details are offline/unavailable
             if (criteria.seriesStatus === 'ongoing') {
@@ -761,8 +744,12 @@ export async function searchAdvanced(
           isOngoing: isTv ? isOngoing : false,
           totalSeasons: isTv ? totalSeasons : undefined,
           totalEpisodes: isTv ? totalEpisodes : undefined,
+          currentSeasonTotalEpisodes: isTv ? currentSeasonTotalEpisodes : undefined,
+          currentSeasonReleasedEpisodes: isTv ? currentSeasonReleasedEpisodes : undefined,
+          releasedEpisodes: isTv ? releasedEpisodes : undefined,
           completedSeasons: isTv ? completedSeasons : undefined,
           ongoingSeason: isTv ? ongoingSeason : undefined,
+          seasonBreakdown: isTv ? seasonBreakdown : undefined,
           nextEpisodeToAir: isTv ? nextEpisodeToAir : undefined,
           nextEpisodeInfo: isTv ? nextEpisodeInfo : undefined,
         };

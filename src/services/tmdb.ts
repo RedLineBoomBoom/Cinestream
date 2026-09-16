@@ -104,16 +104,33 @@ export function calculateSeriesStatusFromTmdb(tvData: any) {
   const latestSeason = regularSeasons[regularSeasons.length - 1];
   const currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const lastEp = tvData.last_episode_to_air;
-  const currentSeasonReleasedEpisodes =
+  let currentSeasonReleasedEpisodes =
     lastEp?.season_number === latestSeason?.season_number
       ? lastEp?.episode_number || 0
       : latestSeason?.episode_count || 0;
-  const totalEpisodes = tvData.number_of_episodes;
-  const releasedEpisodes = lastEp?.episode_number || totalEpisodes;
 
-  const hasNextEp = Boolean(tvData.next_episode_to_air);
-  const nextEpSeason = tvData.next_episode_to_air?.season_number;
+  const nextEp = tvData.next_episode_to_air;
+  // If next_episode_to_air has already reached its air date (today or past), it is officially released!
+  if (nextEp && nextEp.air_date && nextEp.air_date <= todayStr) {
+    if (nextEp.season_number === latestSeason?.season_number) {
+      currentSeasonReleasedEpisodes = Math.max(currentSeasonReleasedEpisodes, nextEp.episode_number || 0);
+    }
+  }
+
+  const totalEpisodes = tvData.number_of_episodes;
+  const releasedEpisodes = Math.max(
+    lastEp?.episode_number || 0,
+    currentSeasonReleasedEpisodes,
+    totalEpisodes && currentSeasonReleasedEpisodes >= currentSeasonTotalEpisodes ? totalEpisodes : 0
+  );
+
+  // A next episode is only truly upcoming if its air date is strictly in the future!
+  const hasNextEp = Boolean(nextEp?.air_date && nextEp.air_date > todayStr);
+  const nextEpSeason = hasNextEp ? nextEp?.season_number : undefined;
   const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
 
   const isLatestSeasonComplete =
@@ -392,8 +409,11 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
 
             tvStatus = tvData.status;
             totalEpisodes = tvData.number_of_episodes;
-            nextEpisodeToAir = tvData.next_episode_to_air?.air_date;
-            if (tvData.next_episode_to_air?.air_date) {
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && tvData.next_episode_to_air.air_date > todayStr);
+            nextEpisodeToAir = isNextEpFuture ? tvData.next_episode_to_air?.air_date : undefined;
+            if (isNextEpFuture && tvData.next_episode_to_air?.air_date) {
               const nEp = tvData.next_episode_to_air;
               nextEpisodeInfo = {
                 airDate: nEp.air_date,
@@ -403,6 +423,8 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
                 overview: nEp.overview || undefined,
                 stillPath: nEp.still_path ? `${IMAGE_BASE_W500}${nEp.still_path}` : undefined,
               };
+            } else {
+              nextEpisodeInfo = undefined;
             }
 
             const statusCalc = calculateSeriesStatusFromTmdb(tvData);
@@ -1077,8 +1099,11 @@ export async function fetchFullMediaItem(
     if (!isMovie) {
       tvStatus = data.status;
       totalEpisodes = data.number_of_episodes;
-      nextEpisodeToAir = data.next_episode_to_air?.air_date;
-      if (data.next_episode_to_air?.air_date) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const isNextEpFuture = Boolean(data.next_episode_to_air?.air_date && data.next_episode_to_air.air_date > todayStr);
+      nextEpisodeToAir = isNextEpFuture ? data.next_episode_to_air?.air_date : undefined;
+      if (isNextEpFuture && data.next_episode_to_air?.air_date) {
         const nEp = data.next_episode_to_air;
         nextEpisodeInfo = {
           airDate: nEp.air_date,
@@ -1088,6 +1113,8 @@ export async function fetchFullMediaItem(
           overview: nEp.overview || undefined,
           stillPath: nEp.still_path ? `${IMAGE_BASE_W500}${nEp.still_path}` : undefined,
         };
+      } else {
+        nextEpisodeInfo = undefined;
       }
 
       const statusCalc = calculateSeriesStatusFromTmdb(data);
