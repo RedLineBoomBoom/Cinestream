@@ -86,21 +86,21 @@ export async function resolveBestServer(options: {
     const url = (srv.url || '').toLowerCase();
     let baseScore = 50;
 
-    if (id.includes('smashy') || url.includes('smashystream')) {
-      // Multi-host aggregator with Indonesian subtitle streams & primary host for Indonesian media
-      baseScore += isIndo ? 75 : isAnime ? 50 : isAsian ? 40 : 30;
+    if (id.includes('vidsrc-pro') || url.includes('vidsrc.pm') || id.includes('smashy')) {
+      // VidSrc Pro: NextGen Cloud Fabric with fast multi-subtitles
+      baseScore += isIndo ? 50 : isAnime ? 45 : isAsian ? 45 : 40;
+    } else if (id.includes('autoembed') || url.includes('autoembed')) {
+      // Ultra-fast CDN 60fps HD with verified Indonesian movie coverage
+      baseScore += isIndo ? 65 : isAnime ? -20 : isAsian ? 30 : 60;
     } else if (id.includes('2embed') || url.includes('2embed')) {
       // 2Embed has proven unmatched coverage for Asian drama & Anime original Japanese audio
       baseScore += isIndo ? 35 : isAnime ? 65 : isAsian ? 55 : 35;
     } else if (id.includes('vidlink') || url.includes('vidlink')) {
       // VidLink supports dual audio track switching
-      baseScore += isAnime ? 35 : 22;
+      baseScore += isIndo ? 40 : isAnime ? 35 : 30;
     } else if (id.includes('vidsrc') || url.includes('vidsrc')) {
-      // VidSrc has massive global library for Hollywood and worldwide titles
-      baseScore += isIndo ? 20 : isAnime ? 25 : isAsian ? 42 : 55;
-    } else if (id.includes('autoembed') || url.includes('autoembed')) {
-      // Ultra-fast CDN 4K, but lacks Indonesian licenses and serves English dubs for Anime
-      baseScore += isIndo ? -35 : isAnime ? -40 : isAsian ? -30 : 50;
+      // VidSrc Prime has massive global library for Hollywood, local, and worldwide titles
+      baseScore += isIndo ? 55 : isAnime ? 25 : isAsian ? 45 : 55;
     } else if (id.includes('multiembed') || url.includes('multiembed')) {
       baseScore += 28;
     }
@@ -143,13 +143,13 @@ export async function resolveBestServer(options: {
   const rawClean = winner.server.name.split('•')[1]?.trim() || winner.server.name;
   const cleanName = formatServerName(rawClean, lang);
   let reason = '';
-  if (isIndo && winner.server.id.includes('smashy')) {
-    reason = lang === 'en' ? 'Primary Server for Indonesian Cinema' : 'Jalur Prioritas Sinema & Serial Indonesia';
+  if (isIndo && (winner.server.id.includes('autoembed') || winner.server.id.includes('vidsrc'))) {
+    reason = lang === 'en' ? 'Verified Ultra-Fast Indonesian Stream' : 'Jalur Lancar Sinema & Serial Indonesia';
   } else if (isAnime && winner.server.id.includes('2embed')) {
     reason = lang === 'en' ? 'Original Japanese Audio (Subbed)' : 'Prioritas Audio Asli Jepang (Sub)';
-  } else if (isAnime && winner.server.id.includes('smashy')) {
-    reason = lang === 'en' ? 'Japanese Audio + Indonesian Subtitles' : 'Audio Jepang + Teks Sub Indo';
-  } else if (isAsian && (winner.server.id.includes('2embed') || winner.server.id.includes('smashy'))) {
+  } else if (winner.server.id.includes('vidsrc-pro') || winner.server.url.includes('vidsrc.pm')) {
+    reason = lang === 'en' ? 'NextGen Multi-Sub & Fast Stream' : 'Jalur Cepat Multi-Sub HD';
+  } else if (isAsian && (winner.server.id.includes('2embed') || winner.server.id.includes('vidlink'))) {
     reason = lang === 'en' ? 'Optimized for Asian Drama & Cinema' : 'Optimal untuk Drama & Sinema Asia';
   } else if (winner.latency < 700) {
     reason = lang === 'en' ? 'Ultra-Fast Latency & Buffer-Free' : 'Latensi Tercepat & Anti-Macet';

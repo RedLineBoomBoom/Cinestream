@@ -395,6 +395,7 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
       .replace(/\(Asia & Anime\)/gi, '(Asian & Anime)')
       .replace(/\(Multi-Sumber & Failover\)/gi, '(Multi-Source & Failover)')
       .replace(/\(Multi-Sumber\)/gi, '(Multi-Source)')
+      .replace(/\(Multi-Sub & Cepat\)/gi, '(Multi-Sub & Fast Stream)')
       .replace(/\(Sub Indo Multi-Host\)/gi, '(Multi-Sub Host)')
       .replace(/\(Cadangan Siap Saji\)/gi, '(Instant Backup)')
       .replace(/\(Cadangan\)/gi, '(Backup)')
@@ -410,6 +411,7 @@ export function formatServerName(name: string, lang: 'id' | 'en' = 'id'): string
     .replace(/\(Asian & Anime\)/gi, '(Sinema Asia & Anime)')
     .replace(/\(Multi-Source & Failover\)/gi, '(Multi-Sumber & Failover)')
     .replace(/\(Multi-Source\)/gi, '(Multi-Sumber)')
+    .replace(/\(Multi-Sub & Fast Stream\)/gi, '(Multi-Sub & Cepat)')
     .replace(/\(Multi-Sub Host\)/gi, '(Sub Indo Multi-Host)')
     .replace(/\(Instant Backup\)/gi, '(Cadangan Siap Saji)')
     .replace(/\(Backup\)/gi, '(Cadangan)')
@@ -490,17 +492,31 @@ export function getDefaultServer(
     };
   }
 
-  // 1. KHUSUS Film & Series Indonesia: Wajib dan secara ketat menggunakan Server 5 (SmashyStream: Sub Indo Multi-Host)
+  // 1. KHUSUS Film & Series Indonesia: Prioritaskan Server 2 (AutoEmbed Ultra - Anti-Macet HD) atau Server 1 (VidSrc Prime)
   if (isIndonesianMedia(media)) {
-    const serverIndo = list.find((s) => {
+    const server2 = list.find((s) => {
       const id = (s.id || '').toLowerCase();
       const name = (s.name || '').toLowerCase();
-      return id.includes('smashy') || name.includes('server 5') || name.includes('server-5') || id.includes('server-5');
+      return id.includes('autoembed') || name.includes('server 2') || name.includes('server-2');
     });
-    if (serverIndo) return serverIndo;
+    if (server2) return server2;
+
+    const server1 = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('vidsrc') || name.includes('server 1') || name.includes('server-1');
+    });
+    if (server1) return server1;
+
+    const server5 = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('server 5') || name.includes('server-5') || id.includes('server-5');
+    });
+    if (server5) return server5;
   }
 
-  // 2. KHUSUS Anime: Prioritaskan Server 3 (2Embed: Original Japanese Audio), lalu Server 5 (SmashyStream: Sub Indo / JP Audio)
+  // 2. KHUSUS Anime: Prioritaskan Server 3 (2Embed: Original Japanese Audio), lalu Server 5 (VidSrc Pro: Multi-Sub Cepat)
   if (isAnimeMedia(media)) {
     const serverAnime = list.find((s) => {
       const id = (s.id || '').toLowerCase();
@@ -509,12 +525,12 @@ export function getDefaultServer(
     });
     if (serverAnime) return serverAnime;
 
-    const serverSmashy = list.find((s) => {
+    const serverPro = list.find((s) => {
       const id = (s.id || '').toLowerCase();
       const name = (s.name || '').toLowerCase();
-      return id.includes('smashy') || name.includes('smashy') || name.includes('sub indo');
+      return id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('server 5') || name.includes('server-5');
     });
-    if (serverSmashy) return serverSmashy;
+    if (serverPro) return serverPro;
   }
 
   // 3. Film / Series Standar (Hollywood & Internasional): Prioritaskan Server 2 (AutoEmbed Ultra)
@@ -543,28 +559,28 @@ export function getServerBadgeInfo(
 
   // Indonesian cinema badges
   if (isIndonesian) {
-    if (id.includes('smashy') || name.includes('smashy')) {
-      return {
-        label: lang === 'en' ? '🇮🇩 Indonesian Cinema #1' : '🇮🇩 Sinema Indonesia (Server 5)',
-        color: 'text-rose-300 bg-rose-500/15 border-rose-500/30 font-bold',
-      };
-    }
-    if (id.includes('2embed') || name.includes('2embed')) {
-      return {
-        label: lang === 'en' ? '🌏 Asian Backup' : '🌏 Cadangan Asia',
-        color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
-      };
-    }
     if (id.includes('autoembed') || name.includes('autoembed')) {
       return {
-        label: '⚡ 60fps HD',
-        color: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+        label: lang === 'en' ? '⚡ 60fps HD (Recommended)' : '⚡ 60fps HD (Rekomendasi)',
+        color: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30 font-bold',
+      };
+    }
+    if (id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('vidsrc pro') || name.includes('server 5')) {
+      return {
+        label: lang === 'en' ? '🇮🇩 Multi-Sub Pro (S5)' : '🇮🇩 Multi-Sub Cepat (Server 5)',
+        color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30 font-bold',
       };
     }
     if (id.includes('vidsrc') || name.includes('vidsrc')) {
       return {
         label: lang === 'en' ? '🔥 Ultra Stable' : '🔥 Ultra Stabil',
         color: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+      };
+    }
+    if (id.includes('2embed') || name.includes('2embed')) {
+      return {
+        label: lang === 'en' ? '🌏 Asian Backup' : '🌏 Cadangan Asia',
+        color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
       };
     }
   }
@@ -577,10 +593,10 @@ export function getServerBadgeInfo(
         color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30 font-bold',
       };
     }
-    if (id.includes('smashy') || name.includes('smashy')) {
+    if (id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('vidsrc pro') || name.includes('server 5')) {
       return {
-        label: lang === 'en' ? '🇮🇩 JP Audio (Sub Indo)' : '🇮🇩 Audio JP + Sub Indo',
-        color: 'text-rose-300 bg-rose-500/15 border-rose-500/30 font-semibold',
+        label: lang === 'en' ? '⚡ Fast Multi-Sub' : '⚡ Multi-Sub Cepat',
+        color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30 font-semibold',
       };
     }
     if (id.includes('vidlink') || name.includes('vidlink')) {
@@ -604,6 +620,12 @@ export function getServerBadgeInfo(
   }
 
   // Standard non-anime badges
+  if (id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('vidsrc pro') || name.includes('server 5')) {
+    return {
+      label: lang === 'en' ? '🌐 Multi-Sub Fast' : '⚡ Multi-Sub Cepat',
+      color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+    };
+  }
   if (id.includes('vidsrc') || name.includes('vidsrc')) {
     return {
       label: lang === 'en' ? '🔥 Ultra Stable' : '🔥 Ultra Stabil',
@@ -626,12 +648,6 @@ export function getServerBadgeInfo(
     return {
       label: lang === 'en' ? '🛡️ Multi-Source' : '🛡️ Multi-Sumber',
       color: 'text-purple-300 bg-purple-500/10 border-purple-500/20',
-    };
-  }
-  if (id.includes('smashy') || name.includes('smashy')) {
-    return {
-      label: lang === 'en' ? '🌐 Multi-Sub Turbo' : '🇮🇩 Sub Indo Turbo',
-      color: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
     };
   }
   if (id.includes('vidlink') || name.includes('vidlink')) {
