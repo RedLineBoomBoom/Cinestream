@@ -354,7 +354,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
       {/* Main Search Bar Card */}
       <div className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black">
-        <div className="max-w-3xl mx-auto flex flex-col items-center">
+        <div className="max-w-4xl mx-auto flex flex-col items-center">
           {/* Multi-Database Connected Indicator */}
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -458,7 +458,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
           </div>
 
           {/* Trending suggestions tags */}
-          <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 mt-3.5 sm:mt-4 overflow-x-auto no-scrollbar w-full max-w-full pb-1 -mx-1 px-1 sm:mx-0 sm:px-0 scroll-smooth">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-3.5 sm:mt-4 w-full">
             <span className="text-[10px] sm:text-[11px] text-neutral-400 font-light flex items-center gap-1 mr-1 shrink-0">
               <Sparkles className="w-3 h-3 text-[#E50914] shrink-0" />
               <span>{language === 'en' ? 'Trending:' : 'Populer:'}</span>
