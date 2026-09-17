@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle } from 'lucide-react';
+import { ChevronDown, HelpCircle, Play } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 
@@ -13,76 +13,76 @@ interface FaqItem {
 
 const FAQ_ITEMS: FaqItem[] = [
   {
-    id: 'what-is-hbo-max',
-    questionEn: 'What is HBO Max?',
-    questionId: 'Apa itu HBO Max?',
+    id: 'what-is-cinestream',
+    questionEn: 'What is Cinestream?',
+    questionId: 'Apa itu Cinestream?',
     answerEn:
-      'HBO Max is a premier global streaming platform that delivers captivating stories, ranging from the highest quality in scripted programming, movies, documentaries, and true crime, to adult animation. Stream the most talked about series and blockbuster movies featuring the worlds of HBO, the DC Universe, Harry Potter, Discovery and more on HBO Max.',
+      'Cinestream is a premier digital cinema and global streaming platform that delivers captivating stories across the world. Explore the highest quality in blockbuster movies, award-winning series, trending anime, Asian dramas, and acclaimed documentaries. Stream seamlessly across multiple ultra-fast servers with 4K UHD support, smart multi-language subtitles, and real-time Watch Party with friends.',
     answerId:
-      'HBO Max adalah platform streaming global terkemuka yang menyajikan kisah-kisah memukau, mulai dari serial berkualitas tertinggi, film layar lebar blockbuster, dokumenter, hingga animasi dewasa. Tonton serial yang paling banyak diperbincangkan dan film blockbuster dari dunia HBO, DC Universe, Harry Potter, Discovery, dan banyak lagi di HBO Max.',
+      'Cinestream adalah platform penayangan sinema digital generasi terdepan yang menyajikan ribuan film layar lebar blockbuster, serial televisi pemenang penghargaan, anime terpopuler, drama Asia, dan dokumenter terbaik dunia. Tonton secara lancar melalui jaringan multi-server berkecepatan tinggi dengan dukungan 4K UHD, subtitle multibahasa otomatis, serta fitur nonton bareng (Watch Party) bersama teman.',
   },
   {
-    id: 'what-is-bundle',
-    questionEn: 'What is the HBO Max & Viu Bundle?',
-    questionId: 'Apa itu Paket Bundle HBO Max & Viu?',
+    id: 'servers-quality',
+    questionEn: 'What servers and video qualities are available on Cinestream?',
+    questionId: 'Server dan kualitas video apa saja yang tersedia di Cinestream?',
     answerEn:
-      'The HBO Max & Viu Bundle brings together the greatest Hollywood blockbusters, award-winning HBO originals, and the best of Asian dramas, anime, and variety shows in one seamless entertainment experience.',
+      'Cinestream provides multiple dedicated high-speed streaming servers (Server 1, Server 2, Server 3) offering adaptive bitrates from 720p HD, 1080p Full HD up to 4K UHD. If one server experiences buffering or slowdowns, you can switch instantly to an alternative server with zero downtime.',
     answerId:
-      'Paket Bundle HBO Max & Viu menggabungkan film-film blockbuster Hollywood terhebat, serial orisinal HBO pemenang penghargaan, serta drama Asia, anime, dan variety show terbaik dalam satu pengalaman menonton tanpa batas.',
+      'Cinestream menyediakan berbagai server berkecepatan tinggi (Server 1, Server 2, Server 3) dengan kualitas adaptif mulai dari 720p HD, 1080p Full HD hingga 4K UHD. Jika satu server mengalami kendala atau buffering, Anda dapat beralih ke server cadangan secara instan tanpa jeda.',
   },
   {
-    id: 'bundle-includes',
-    questionEn: 'What does the HBO Max & Viu Bundle include?',
-    questionId: 'Apa saja yang termasuk dalam Paket Bundle HBO Max & Viu?',
+    id: 'is-it-free',
+    questionEn: 'Is Cinestream free to watch?',
+    questionId: 'Apakah Cinestream gratis untuk ditonton?',
     answerEn:
-      'You get unlimited access to all HBO Max premium movies and series, DC Universe blockbusters, Discovery documentaries, alongside Viu’s vast library of exclusive Korean dramas, anime simulcasts, and local hit productions.',
+      'Yes! Cinestream is completely free to explore and watch with zero mandatory subscriptions. You can instantly start streaming any movie, anime, or series directly from your web browser.',
     answerId:
-      'Anda mendapatkan akses tanpa batas ke semua film dan serial premium HBO Max, blockbuster DC Universe, dokumenter Discovery, serta perpustakaan lengkap Viu yang berisi drama Korea eksklusif, tayangan anime terbaru, dan karya lokal terfavorit.',
+      'Ya! Cinestream dapat diakses dan ditonton secara gratis tanpa biaya langganan bulanan. Anda dapat langsung memutar film, anime, maupun serial favorit langsung dari peramban Anda kapan saja.',
   },
   {
-    id: 'how-get-bundle',
-    questionEn: 'How do I get the bundle?',
-    questionId: 'Bagaimana cara mendapatkan paket bundle?',
+    id: 'watch-party',
+    questionEn: 'How does the Watch Party feature work?',
+    questionId: 'Bagaimana cara kerja fitur Nonton Bareng (Watch Party)?',
     answerEn:
-      'Simply explore the catalog on Cinestream and choose your favorite title to start streaming instantly with our high-speed multi-server network with zero setup required.',
+      'Cinestream includes an integrated Watch Party system! You can create a room, share the unique invite link or room code with friends, and enjoy synchronized video playback with live chat and synchronized play/pause controls across any device.',
     answerId:
-      'Cukup jelajahi katalog di Cinestream dan pilih judul favorit Anda untuk langsung menonton melalui jaringan multi-server berkecepatan tinggi tanpa perlu instalasi rumit.',
+      'Cinestream dilengkapi fitur Watch Party bawaan! Anda cukup membuat ruang tonton, membagikan kode ruangan atau link undangan kepada teman, dan menikmati pemutaran video yang tersinkronisasi otomatis lengkap dengan obrolan langsung (live chat) di perangkat apa pun.',
   },
   {
-    id: 'how-signup',
-    questionEn: 'How do I sign up for HBO Max?',
-    questionId: 'Bagaimana cara mendaftar ke HBO Max?',
+    id: 'subtitles-audio',
+    questionEn: 'Are subtitles and multiple audio tracks supported?',
+    questionId: 'Apakah tersedia subtitle dan pilihan audio bahasa?',
     answerEn:
-      'You can stream seamlessly on Cinestream with instant access across all devices. For personal watchlist and history sync, customize your local profile directly from the top navigation bar.',
+      'Cinestream features extensive subtitle support including Indonesian, English, Spanish, French, and Japanese, with customizable size, font styling, and background opacity inside the player settings.',
     answerId:
-      'Anda dapat langsung menonton di Cinestream secara instan di semua perangkat. Untuk menyimpan daftar tontonan dan riwayat, Anda dapat mengatur profil lokal langsung dari menu navigasi atas.',
-  },
-  {
-    id: 'where-available',
-    questionEn: 'Where is HBO Max available?',
-    questionId: 'Di mana saja HBO Max tersedia?',
-    answerEn:
-      'HBO Max is accessible globally across web browsers, smart TVs, PCs, tablets, and smartphones, optimized for smooth playback with Cloudflare DNS and multi-server redundancy.',
-    answerId:
-      'HBO Max dapat diakses secara global di peramban web, smart TV, PC, tablet, dan smartphone, dioptimalkan untuk pemutaran lancar dengan dukungan DNS Cloudflare dan server cadangan otomatis.',
+      'Cinestream mendukung subtitle lengkap dalam Bahasa Indonesia, Inggris, dan berbagai bahasa lainnya. Anda juga dapat menyesuaikan ukuran teks, warna font, dan transparansi latar belakang subtitle langsung di pemutar video.',
   },
   {
     id: 'access-4k',
-    questionEn: 'How can I access 4K UHD content on HBO Max?',
-    questionId: 'Bagaimana cara mengakses konten 4K UHD di HBO Max?',
+    questionEn: 'How can I access 4K UHD content on Cinestream?',
+    questionId: 'Bagaimana cara mengakses konten 4K UHD di Cinestream?',
     answerEn:
-      'Select any title marked with the 4K UHD / Full HD badge. Ensure your display supports 4K and select Server 1 or Server 2 for adaptive high-bitrate streaming with crystal-clear audio.',
+      'Titles with 4K UHD or Full HD source availability are automatically highlighted with resolution badges. When playing, the player intelligently adapts to your display and bandwidth, or you can manually select the maximum quality from the player settings.',
     answerId:
-      'Pilih judul yang bertanda 4K UHD / Full HD. Pastikan layar perangkat Anda mendukung resolusi tinggi dan pilih Server 1 atau Server 2 untuk streaming adaptif dengan bitrate prima dan audio jernih.',
+      'Judul dengan dukungan 4K UHD atau Full HD otomatis ditandai dengan lencana kualitas. Pemutar video akan menyesuaikan resolusi terbaik sesuai kecepatan internet dan layar perangkat Anda.',
   },
   {
     id: 'which-devices',
-    questionEn: 'Which devices work with HBO Max?',
-    questionId: 'Perangkat apa saja yang kompatibel dengan HBO Max?',
+    questionEn: 'Which devices work with Cinestream?',
+    questionId: 'Perangkat apa saja yang kompatibel dengan Cinestream?',
     answerEn:
-      'HBO Max works seamlessly on desktop browsers (Chrome, Edge, Safari, Firefox), iOS and Android mobile phones and tablets, Android TV, Chromecast, smart TV browsers, and gaming consoles.',
+      'Cinestream is optimized as a progressive web platform that runs flawlessly on desktop PCs & laptops (Windows, macOS, Linux), smartphones and tablets (Android & iOS), Smart TVs (Android TV, Google TV, Samsung, LG), and streaming devices like Chromecast.',
     answerId:
-      'HBO Max kompatibel dengan semua peramban desktop (Chrome, Edge, Safari, Firefox), smartphone dan tablet iOS & Android, Android TV, Chromecast, browser smart TV, hingga konsol game.',
+      'Cinestream dioptimalkan agar berjalan lancar di berbagai perangkat: PC & laptop (Windows, macOS, Linux), smartphone dan tablet (Android & iOS), Smart TV (Android TV, Google TV, Samsung, LG), hingga Chromecast.',
+  },
+  {
+    id: 'playback-tips',
+    questionEn: 'What should I do if a video buffers or fails to load?',
+    questionId: 'Apa yang harus dilakukan jika video buffering atau gagal dimuat?',
+    answerEn:
+      'If a stream is slow or restricted by your ISP, switch to Server 2 or Server 3, disable aggressive ad-blockers for video streams, or enable free Cloudflare 1.1.1.1 DNS for smooth, unrestricted video loading.',
+    answerId:
+      'Jika video lambat atau terhalang oleh penyedia internet Anda, coba ganti ke Server 2 atau Server 3, atau gunakan DNS Cloudflare 1.1.1.1 gratis agar pemutaran video berjalan lancar tanpa hambatan.',
   },
 ];
 
@@ -90,7 +90,7 @@ export const HomeFaqSection: React.FC = () => {
   const { language } = useLanguage();
   const { playClick, playHover } = useSound();
 
-  // Item 0 ("What is HBO Max?") is open by default just like in the HBO Max reference screenshot
+  // Item 0 ("What is Cinestream?") is open by default just like the reference screenshot layout
   const [openIndices, setOpenIndices] = useState<number[]>([0]);
 
   const toggleAccordion = (index: number) => {
@@ -106,25 +106,25 @@ export const HomeFaqSection: React.FC = () => {
   return (
     <section className="relative w-full bg-black py-16 sm:py-24 lg:py-28 px-4 sm:px-8 lg:px-12 border-t border-white/[0.06] overflow-hidden">
       {/* Ambient background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-purple-900/10 blur-[140px] pointer-events-none rounded-full" />
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[800px] h-[200px] bg-rose-950/10 blur-[160px] pointer-events-none rounded-full" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#E50914]/10 blur-[150px] pointer-events-none rounded-full" />
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[800px] h-[200px] bg-red-950/15 blur-[160px] pointer-events-none rounded-full" />
 
       <div className="relative max-w-3xl lg:max-w-4xl mx-auto space-y-10 sm:space-y-14 z-10">
-        {/* Centered HBO Max 3D Metallic Brand Logo */}
+        {/* Centered CINESTREAM Brand Header (HBO Max Layout Style) */}
         <div className="flex flex-col items-center justify-center text-center space-y-3">
-          <div className="relative group select-none">
-            <img
-              src="/assets/logos/hbo-max-3d.png"
-              alt="HBO Max"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = '/assets/logos/hbo-max-logo.png';
-              }}
-              className="h-16 sm:h-24 md:h-28 w-auto object-contain filter drop-shadow-[0_4px_30px_rgba(255,255,255,0.18)] group-hover:scale-105 transition-transform duration-500"
-            />
+          <div className="flex items-center gap-3.5 sm:gap-4 select-none group cursor-pointer">
+            {/* Iconic Glowing Play Emblem */}
+            <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#E50914] via-[#cc0000] to-[#880000] flex items-center justify-center shadow-[0_0_50px_rgba(229,9,20,0.55)] border border-red-500/40 group-hover:scale-105 transition-transform duration-300">
+              <Play className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white fill-white ml-1 filter drop-shadow-md" />
+            </div>
+
+            {/* Cinematic Typography */}
+            <span className="font-display font-black text-3xl sm:text-5xl md:text-6xl tracking-wider text-white uppercase drop-shadow-[0_4px_30px_rgba(229,9,20,0.35)]">
+              CINE<span className="text-[#E50914]">STREAM</span>
+            </span>
           </div>
-          <p className="text-[11px] sm:text-xs uppercase tracking-widest text-slate-400 font-mono flex items-center gap-1.5">
+
+          <p className="text-[11px] sm:text-xs uppercase tracking-widest text-slate-400 font-mono flex items-center gap-1.5 pt-1">
             <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
             <span>{language === 'en' ? 'Frequently Asked Questions' : 'Pertanyaan yang Sering Diajukan'}</span>
           </p>
