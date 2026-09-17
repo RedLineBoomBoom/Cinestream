@@ -44,7 +44,7 @@ export const ContinueWatchingRow: React.FC<ContinueWatchingRowProps> = ({
   return (
     <section className="relative z-10 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 my-8 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+      <div className="flex items-center justify-between pb-3">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded bg-[#E50914] flex items-center justify-center text-white shadow-md shadow-red-900/40 shrink-0">
             <Clock className="w-4 h-4" />

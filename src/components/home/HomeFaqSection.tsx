@@ -133,8 +133,6 @@ export const HomeFaqSection: React.FC = () => {
       <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[#E50914]/10 blur-[150px] pointer-events-none rounded-full -z-10" />
       <div className="absolute bottom-16 right-1/4 w-[600px] h-[300px] bg-red-950/20 blur-[170px] pointer-events-none rounded-full -z-10" />
 
-      {/* Subtle Luminous Top Divider that seamlessly continues from the catalog above */}
-      <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-12 sm:mb-16" />
 
       <div className="relative max-w-4xl lg:max-w-5xl mx-auto space-y-10 sm:space-y-12 z-10">
         {/* Centered CINESTREAM Brand Header */}

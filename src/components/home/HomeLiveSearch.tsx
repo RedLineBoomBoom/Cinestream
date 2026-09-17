@@ -760,7 +760,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
       <div className="flex-1 mt-6">
         {/* Results / Trending Header Bar */}
         <div
-          className={`flex items-center justify-between border-b border-white/[0.08] pb-3 mb-6 ${
+          className={`flex items-center justify-between pb-3 mb-5 ${
             !query.trim() ? 'cursor-pointer select-none group' : ''
           }`}
           onClick={!query.trim() ? toggleTrendingDropdown : undefined}
@@ -784,14 +784,9 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-fuchsia-400 tracking-wider uppercase transition-colors">
-                      {language === 'en' ? 'Top Trending Anime (MAL / Kitsu)' : 'Serial Anime Terpopuler Saat Ini'}
-                    </h2>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">
-                      {isTrendingOpen ? (language === 'en' ? 'Expanded' : 'Terbuka') : (language === 'en' ? 'Collapsed' : 'Tertutup')}
-                    </span>
-                  </div>
+                  <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-fuchsia-400 tracking-wider uppercase transition-colors">
+                    {language === 'en' ? 'Top Trending Anime (MAL / Kitsu)' : 'Serial Anime Terpopuler Saat Ini'}
+                  </h2>
                   <p className="text-[11px] text-neutral-400 font-light">
                     {language === 'en' ? 'Curated from global anime database' : 'Dihimpun dari database anime terkemuka dunia'}
                   </p>
@@ -803,14 +798,9 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-[#E50914] tracking-wider uppercase transition-colors">
-                      {language === 'en' ? 'Trending on TMDB Today' : 'Karya Tren Populer TMDB Hari Ini'}
-                    </h2>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/15">
-                      {isTrendingOpen ? (language === 'en' ? 'Expanded' : 'Terbuka') : (language === 'en' ? 'Collapsed' : 'Tertutup')}
-                    </span>
-                  </div>
+                  <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-[#E50914] tracking-wider uppercase transition-colors">
+                    {language === 'en' ? 'Trending on TMDB Today' : 'Karya Tren Populer TMDB Hari Ini'}
+                  </h2>
                   <p className="text-[11px] text-neutral-400 font-light">
                     {language === 'en' ? 'Most watched movies & series globally today' : 'Koleksi film dan serial paling banyak ditonton dunia hari ini'}
                   </p>
@@ -852,37 +842,8 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
           </div>
         </div>
 
-        {/* If user is not searching and trending is collapsed: display sleek compact dropdown bar */}
-        {!query.trim() && !isTrendingOpen ? (
-          <div
-            onClick={toggleTrendingDropdown}
-            onMouseEnter={playHover}
-            className="w-full py-4 px-5 sm:px-6 rounded-2xl bg-[#181818]/70 hover:bg-[#202020] border border-white/10 hover:border-[#E50914]/40 flex items-center justify-between cursor-pointer transition-all duration-300 shadow-lg group select-none animate-fadeIn"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-[#E50914]/20 text-[#E50914] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Flame className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-semibold text-white group-hover:text-[#E50914] transition-colors">
-                  {language === 'en'
-                    ? `Click to view ${displayItems.length} trending titles`
-                    : `Klik untuk menampilkan ${displayItems.length} karya tren populer`}
-                </p>
-                <p className="text-[11px] text-neutral-400 font-light">
-                  {language === 'en'
-                    ? 'Movies, series, and anime updated daily on TMDB'
-                    : 'Film, serial, dan anime paling banyak ditonton hari ini'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 group-hover:bg-[#E50914] text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
-              <span>{language === 'en' ? 'Expand' : 'Tampilkan'}</span>
-              <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
-            </div>
-          </div>
-        ) : (
+        {/* Content Section: Rendered when searching or when trending is expanded */}
+        {(Boolean(query.trim()) || isTrendingOpen) && (
           <div className="transition-all duration-500 ease-in-out animate-fadeIn">
             {/* Loading Skeleton */}
             {(isSearching || (isLoadingTrending && !query.trim())) && (

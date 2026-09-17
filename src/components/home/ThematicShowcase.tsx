@@ -1296,11 +1296,6 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
               {/* Bottom Feathered Gradient Transition */}
               <div className="absolute bottom-0 inset-x-0 h-20 sm:h-28 bg-gradient-to-t from-[#141414] via-[#141414]/80 to-transparent pointer-events-none z-10" />
 
-              {/* Top Subtle Luminous Shimmer Line (soft gradient fade on edges instead of hard border) */}
-              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none z-20" />
-
-              {/* Bottom Subtle Luminous Shimmer Line (soft gradient fade on edges instead of hard border) */}
-              <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none z-20" />
 
               {/* Subtle background ambient overlay */}
               <div className="absolute inset-0 bg-black/25 pointer-events-none z-[2]" />
