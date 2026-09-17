@@ -1225,7 +1225,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       {/* SECTION 2: THE 5 HBO MAX-STYLE THEMATIC BANNERS          */}
       {/* (Bilingual Auto-Translate, Compact 6-Col Grid)           */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+      <div className="space-y-10 sm:space-y-14 lg:space-y-18">
         {THEMATIC_BANNERS.map((banner) => {
           const displayTitle = language === 'en' ? banner.titleEn : banner.titleId;
           const displayTagline = language === 'en' ? banner.taglineEn : banner.taglineId;
@@ -1233,14 +1233,29 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           return (
             <div
               key={banner.id}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} pt-6 pb-5 sm:pt-8 sm:pb-7 lg:pt-10 lg:pb-8 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-7 sm:pt-10 sm:pb-9 lg:pt-12 lg:pb-10 overflow-hidden transition-colors duration-500`}
             >
+              {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-transparent to-[#141414] pointer-events-none z-[4]" />
+
+              {/* Top Feathered Gradient Transition */}
+              <div className="absolute top-0 inset-x-0 h-20 sm:h-28 bg-gradient-to-b from-[#141414] via-[#141414]/80 to-transparent pointer-events-none z-10" />
+
+              {/* Bottom Feathered Gradient Transition */}
+              <div className="absolute bottom-0 inset-x-0 h-20 sm:h-28 bg-gradient-to-t from-[#141414] via-[#141414]/80 to-transparent pointer-events-none z-10" />
+
+              {/* Top Subtle Luminous Shimmer Line (soft gradient fade on edges instead of hard border) */}
+              <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none z-20" />
+
+              {/* Bottom Subtle Luminous Shimmer Line (soft gradient fade on edges instead of hard border) */}
+              <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none z-20" />
+
               {/* Subtle background ambient overlay */}
-              <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+              <div className="absolute inset-0 bg-black/25 pointer-events-none z-[2]" />
 
               {/* Dynamic Atmospheric Radial Glow behind character cutout */}
               <div
-                className="absolute right-0 sm:right-6 lg:right-20 top-0 bottom-0 w-72 sm:w-[500px] lg:w-[680px] pointer-events-none select-none opacity-80"
+                className="absolute right-0 sm:right-6 lg:right-20 top-0 bottom-0 w-72 sm:w-[500px] lg:w-[680px] pointer-events-none select-none opacity-80 z-[3]"
                 style={{
                   background: banner.radialGlow,
                 }}
