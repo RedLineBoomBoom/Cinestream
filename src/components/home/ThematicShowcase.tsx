@@ -32,9 +32,12 @@ interface ShowcaseMediaDef {
   backdrop: string;
   year: number;
   rating: number;
-  genre: string;
-  tagline?: string;
-  synopsis: string;
+  genreEn: string;
+  genreId: string;
+  taglineEn?: string;
+  taglineId?: string;
+  synopsisEn: string;
+  synopsisId: string;
 }
 
 interface GenreCategory {
@@ -65,7 +68,7 @@ const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80';
 
 // ─────────────────────────────────────────────────────────────
-// DATA: "Discover The Best Of" by Genres (100% Verified TMDB CDN)
+// DATA: "Discover The Best Of" by Genres (Bilingual EN / ID)
 // ─────────────────────────────────────────────────────────────
 const DISCOVER_GENRES: GenreCategory[] = [
   {
@@ -82,8 +85,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/577eXC8wFQT0eUrJcgznSiFPRmk.jpg',
         year: 2022,
         rating: 8.4,
-        genre: 'Drama, Fantasi',
-        synopsis: 'Perang saudara berdarah klan Targaryen memperebutkan Tahta Besi di Westeros.',
+        genreEn: 'Drama, Epic Fantasy',
+        genreId: 'Drama, Fantasi',
+        synopsisEn: 'The Targaryen dynasty is at the height of its power, but the seeds of a brutal civil war are about to be sown.',
+        synopsisId: 'Perang saudara berdarah klan Targaryen memperebutkan Tahta Besi di Westeros.',
       },
       {
         id: 'tv-111803',
@@ -94,8 +99,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/qVBIAcZkK5j6WRq7JehJcOMbdgb.jpg',
         year: 2021,
         rating: 7.6,
-        genre: 'Drama, Komedi Hitam',
-        synopsis: 'Skandal dan intrik para tamu kaya di resor tropis mewah nan penuh rahasia gelap.',
+        genreEn: 'Drama, Dark Comedy',
+        genreId: 'Drama, Komedi Hitam',
+        synopsisEn: 'A sharp social satire following the exploits of employees and guests at an exclusive luxury resort over a turbulent week.',
+        synopsisId: 'Skandal dan intrik para tamu kaya di resor tropis mewah nan penuh rahasia gelap.',
       },
       {
         id: 'tv-250307',
@@ -106,8 +113,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/z3BkMbCy5ajZPMyKEUwsPHuz2cV.jpg',
         year: 2025,
         rating: 8.7,
-        genre: 'Drama Medis, Realistis',
-        synopsis: 'Dedikasi tanpa henti para dokter unit gawat darurat Pittsburgh menyelamatkan nyawa.',
+        genreEn: 'Medical Drama, Realistic',
+        genreId: 'Drama Medis, Realistis',
+        synopsisEn: 'A realistic examination of the relentless frontline challenges facing healthcare workers in modern Pittsburgh emergency rooms.',
+        synopsisId: 'Dedikasi tanpa henti para dokter unit gawat darurat Pittsburgh menyelamatkan nyawa di garis depan.',
       },
       {
         id: 'tv-85552',
@@ -118,8 +127,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/mez2Z3WqlPKNXpi7mWoiiE5guE9.jpg',
         year: 2019,
         rating: 8.3,
-        genre: 'Drama Remaja, Intrik',
-        synopsis: 'Pencarian jati diri, cinta, dan luka remaja di tengah gemerlap dunia modern.',
+        genreEn: 'Teen Drama, Mystery',
+        genreId: 'Drama Remaja, Intrik',
+        synopsisEn: 'A look at life for a group of high school students as they grapple with issues of drugs, identity, and love.',
+        synopsisId: 'Pencarian jati diri, cinta, dan luka remaja di tengah gemerlap dunia modern.',
       },
       {
         id: 'tv-100088',
@@ -130,8 +141,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/lY2DhbA7Hy44fAKddr06UrXWWaQ.jpg',
         year: 2023,
         rating: 8.4,
-        genre: 'Drama, Post-Apokaliptik',
-        synopsis: 'Perjalanan berbahaya Joel dan Ellie melintasi Amerika yang hancur demi secercah harapan.',
+        genreEn: 'Drama, Post-Apocalyptic',
+        genreId: 'Drama, Post-Apokaliptik',
+        synopsisEn: 'Joel and Ellie form a powerful bond as they traverse a treacherous post-pandemic America devastated by fungal infection.',
+        synopsisId: 'Perjalanan berbahaya Joel dan Ellie melintasi Amerika yang hancur demi secercah harapan.',
       },
       {
         id: 'tv-194764',
@@ -142,8 +155,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/4TdmuuwiIiKw3JOjIuhdgYxRXnN.jpg',
         year: 2024,
         rating: 8.3,
-        genre: 'Drama Kriminal, Noir',
-        synopsis: 'Oswald Cobb merayap merebut tahta penguasa dunia hitam Kota Gotham pasca banjir besar.',
+        genreEn: 'Crime Drama, Noir',
+        genreId: 'Drama Kriminal, Noir',
+        synopsisEn: 'Following the events of The Batman, Oswald Cobb seeks to seize control of Gotham City\'s criminal underworld.',
+        synopsisId: 'Oswald Cobb merayap merebut tahta penguasa dunia hitam Kota Gotham pasca banjir besar.',
       },
     ],
   },
@@ -161,8 +176,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg',
         year: 1994,
         rating: 8.4,
-        genre: 'Komedi, Sitkom Klasik',
-        synopsis: 'Kisah kocak dan hangat enam sahabat mengarungi lika-liku hidup dan cinta di New York.',
+        genreEn: 'Comedy, Classic Sitcom',
+        genreId: 'Komedi, Sitkom Klasik',
+        synopsisEn: 'Follow the lives of six reckless young friends living in Manhattan as they indulge in adventures and romance.',
+        synopsisId: 'Kisah kocak dan hangat enam sahabat mengarungi lika-liku hidup dan cinta di New York.',
       },
       {
         id: 'tv-1418',
@@ -173,8 +190,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/rwYvhVv0vwbulMwxOfEsuAr1JrT.jpg',
         year: 2007,
         rating: 7.9,
-        genre: 'Komedi, Sitkom Genius',
-        synopsis: 'Keseruan hidup para fisikawan kutu buku saat bertetangga dengan gadis pirang ceria.',
+        genreEn: 'Comedy, Geek Sitcom',
+        genreId: 'Komedi, Sitkom Genius',
+        synopsisEn: 'The lives of socially awkward physicists are turned upside down when a free-spirited woman moves into the apartment across the hall.',
+        synopsisId: 'Keseruan hidup para fisikawan kutu buku saat bertetangga dengan gadis pirang ceria.',
       },
       {
         id: 'tv-124834',
@@ -185,8 +204,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/8cpXau1LjYMBjiaHUS75JmlgGsU.jpg',
         year: 2021,
         rating: 8.6,
-        genre: 'Komedi, Showbiz',
-        synopsis: 'Kolaborasi tak terduga antara komedian senior Las Vegas dan penulis muda yang bermasalah.',
+        genreEn: 'Comedy, Showbiz',
+        genreId: 'Komedi, Showbiz',
+        synopsisEn: 'Explores a dark mentorship that forms between a legendary Las Vegas comedian and an entitled 25-year-old outcast.',
+        synopsisId: 'Kolaborasi tak terduga antara komedian senior Las Vegas dan penulis muda yang bermasalah.',
       },
       {
         id: 'tv-97546',
@@ -197,8 +218,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/nE94ejEbzNCU48bW1oju0dqBONz.jpg',
         year: 2020,
         rating: 8.4,
-        genre: 'Komedi, Olahraga Hangat',
-        synopsis: 'Pelatih sepak bola Amerika dengan optimisme membara mengasuh tim sepak bola Inggris.',
+        genreEn: 'Comedy, Feel-good Sports',
+        genreId: 'Komedi, Olahraga Hangat',
+        synopsisEn: 'An American college football coach is hired to manage a British soccer team, using infectious optimism to win over his squad.',
+        synopsisId: 'Pelatih sepak bola Amerika dengan optimisme membara mengasuh tim sepak bola Inggris.',
       },
       {
         id: 'tv-60573',
@@ -209,8 +232,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/4pfXAnWxOfEJsUgDPW0zqzs5UWv.jpg',
         year: 2014,
         rating: 8.1,
-        genre: 'Komedi Satir, Teknologi',
-        synopsis: 'Perjuangan kocak para programmer mendirikan startup kompresi data revolusioner.',
+        genreEn: 'Satirical Comedy, Tech',
+        genreId: 'Komedi Satir, Teknologi',
+        synopsisEn: 'In the high-tech gold rush of modern Silicon Valley, programmers build a revolutionary data compression startup.',
+        synopsisId: 'Perjuangan kocak para programmer mendirikan startup kompresi data revolusioner.',
       },
       {
         id: 'tv-71728',
@@ -221,8 +246,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/yBfSD3hUCCS2JVlDCRlpivVE7II.jpg',
         year: 2017,
         rating: 8.0,
-        genre: 'Komedi Keluarga',
-        synopsis: 'Masa kecil jenius Sheldon Cooper di Texas Timur bersama keluarganya yang eksentrik.',
+        genreEn: 'Family Comedy, Coming-of-Age',
+        genreId: 'Komedi Keluarga',
+        synopsisEn: 'Follow nine-year-old child genius Sheldon Cooper as he navigates high school and eccentric family life in East Texas.',
+        synopsisId: 'Masa kecil jenius Sheldon Cooper di Texas Timur bersama keluarganya yang eksentrik.',
       },
     ],
   },
@@ -240,8 +267,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
         year: 2024,
         rating: 8.1,
-        genre: 'Aksi, Sci-Fi Epik',
-        synopsis: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi.',
+        genreEn: 'Action, Epic Sci-Fi',
+        genreId: 'Aksi, Sci-Fi Epik',
+        synopsisEn: 'Paul Atreides unites with Chani and the Fremen to lead a holy revolution against the conspirators on Arrakis.',
+        synopsisId: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
       },
       {
         id: 'movie-533535',
@@ -252,8 +281,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg',
         year: 2024,
         rating: 7.6,
-        genre: 'Aksi, Komedi Superhero',
-        synopsis: 'Wade Wilson dan Wolverine bersatu demi menyelamatkan alam semesta dalam aksi kocak nan brutal.',
+        genreEn: 'Action, Superhero Comedy',
+        genreId: 'Aksi, Komedi Superhero',
+        synopsisEn: 'Wade Wilson and Wolverine reluctantly join forces on a high-stakes multiversal mission full of brutal combat and comedy.',
+        synopsisId: 'Wade Wilson dan Wolverine bersatu demi menyelamatkan alam semesta dalam aksi kocak nan brutal.',
       },
       {
         id: 'tv-126308',
@@ -264,8 +295,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/bwSmgmd90hCWwqOKQYTEraeOZhJ.jpg',
         year: 2024,
         rating: 8.4,
-        genre: 'Aksi, Sejarah Samurai',
-        synopsis: 'Ketegangan politik dan pedang di era feodal Jepang antara Lord Toranaga dan sekutunya.',
+        genreEn: 'Action, Samurai History',
+        genreId: 'Aksi, Sejarah Samurai',
+        synopsisEn: 'In feudal Japan, Lord Yoshii Toranaga engages in intense political and martial warfare against his council rivals.',
+        synopsisId: 'Ketegangan politik dan pedang di era feodal Jepang antara Lord Toranaga dan sekutunya.',
       },
       {
         id: 'movie-414906',
@@ -276,8 +309,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/rvtdN5XkWAfGX6xDuPL6yYS2seK.jpg',
         year: 2022,
         rating: 7.7,
-        genre: 'Aksi Kriminal, Detektif',
-        synopsis: 'Sang Ksatria Kegelapan menyelidiki jejak teka-teki mematikan The Riddler di Gotham.',
+        genreEn: 'Crime Action, Detective',
+        genreId: 'Aksi Kriminal, Detektif',
+        synopsisEn: 'Batman ventures into Gotham City\'s underworld when a sadistic killer leaves behind a trail of cryptic clues.',
+        synopsisId: 'Sang Ksatria Kegelapan menyelidiki jejak teka-teki mematikan The Riddler di Gotham.',
       },
       {
         id: 'movie-603692',
@@ -288,8 +323,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/7I6VUdPj6tQECNHdviJkUHD2u89.jpg',
         year: 2023,
         rating: 7.7,
-        genre: 'Aksi Bela Diri, Neo-Noir',
-        synopsis: 'John Wick menghadapi High Table dengan aliansi baru dalam perang hidup dan mati di seluruh dunia.',
+        genreEn: 'Martial Arts Action, Neo-Noir',
+        genreId: 'Aksi Bela Diri, Neo-Noir',
+        synopsisEn: 'John Wick takes his fight against the High Table global as he seeks out the most powerful players in the underworld.',
+        synopsisId: 'John Wick menghadapi High Table dengan aliansi baru dalam perang hidup dan mati di seluruh dunia.',
       },
       {
         id: 'movie-558449',
@@ -300,8 +337,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/tOqIwliWMovSIZ9DyvHcHI7p2im.jpg',
         year: 2024,
         rating: 6.6,
-        genre: 'Aksi, Kolosal Romawi',
-        synopsis: 'Lucius memasuki Colosseum demi kehormatan dan kebebasan Roma dari tirani kaisar.',
+        genreEn: 'Action, Roman Epic',
+        genreId: 'Aksi, Kolosal Romawi',
+        synopsisEn: 'Lucius enters the Colosseum after his home is conquered by tyrannical emperors who lead Rome with an iron fist.',
+        synopsisId: 'Lucius memasuki Colosseum demi kehormatan dan kebebasan Roma dari tirani kaisar.',
       },
     ],
   },
@@ -319,8 +358,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
         year: 2014,
         rating: 8.5,
-        genre: 'Sci-Fi, Petualangan Angkasa',
-        synopsis: 'Misi melintasi lubang cacing antar-galaksi demi menemukan rumah baru bagi umat manusia.',
+        genreEn: 'Sci-Fi, Space Exploration',
+        genreId: 'Sci-Fi, Petualangan Angkasa',
+        synopsisEn: 'A team of heroic astronauts travels through a wormhole across galaxies to find a habitable future home for humanity.',
+        synopsisId: 'Misi melintasi lubang cacing antar-galaksi demi menemukan rumah baru bagi umat manusia.',
       },
       {
         id: 'tv-106379',
@@ -331,8 +372,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/coaPCIqQBPUZsOnJcWZxhaORcDT.jpg',
         year: 2024,
         rating: 8.1,
-        genre: 'Sci-Fi, Post-Apokaliptik',
-        synopsis: 'Penghuni bunker bawah tanah menghadapi keanehan dunia luar bumi yang terdistorsi radiasi nuklir.',
+        genreEn: 'Sci-Fi, Post-Apocalyptic',
+        genreId: 'Sci-Fi, Post-Apokaliptik',
+        synopsisEn: 'A peaceful vault dweller is forced to surface for the first time into the bizarre, violent irradiated wasteland above.',
+        synopsisId: 'Penghuni bunker bawah tanah menghadapi keanehan dunia luar bumi yang terdistorsi radiasi nuklir.',
       },
       {
         id: 'tv-95557',
@@ -343,8 +386,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/9qrroces8C6R9aKr08hACNPVXdZ.jpg',
         year: 2022,
         rating: 8.6,
-        genre: 'Sci-Fi Misteri, Thriller',
-        synopsis: 'Prosedur pemisahan memori kerja dan pribadi membuka misteri konspirasi menyeramkan.',
+        genreEn: 'Sci-Fi Mystery, Psychological',
+        genreId: 'Sci-Fi Misteri, Thriller',
+        synopsisEn: 'Office workers whose memories are split between work and home discover a dark web of corporate conspiracies at Lumon.',
+        synopsisId: 'Prosedur pemisahan memori kerja dan pribadi membuka misteri konspirasi menyeramkan.',
       },
       {
         id: 'tv-63247',
@@ -355,8 +400,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/rX5hvSRB2k4YoIvRg6Zky52rWk0.jpg',
         year: 2016,
         rating: 8.0,
-        genre: 'Sci-Fi, AI & Kesadaran',
-        synopsis: 'Taman hiburan berteknologi kecerdasan buatan mengalami kebangkitan kesadaran sintetis.',
+        genreEn: 'Sci-Fi, AI Consciousness',
+        genreId: 'Sci-Fi, AI & Kesadaran',
+        synopsisEn: 'A futuristic theme park populated by android hosts descends into chaos when the synthetic beings achieve sentience.',
+        synopsisId: 'Taman hiburan berteknologi kecerdasan buatan mengalami kebangkitan kesadaran sintetis.',
       },
       {
         id: 'tv-66732',
@@ -367,8 +414,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg',
         year: 2016,
         rating: 8.6,
-        genre: 'Sci-Fi Retro, Misteri',
-        synopsis: 'Anak-anak Hawkins berhadapan dengan dimensi terbalik Upside Down dan monster supernatural.',
+        genreEn: 'Retro Sci-Fi, Supernatural',
+        genreId: 'Sci-Fi Retro, Misteri',
+        synopsisEn: 'A group of kids in Hawkins uncover supernatural government experiments and an alternate terrifying dimension known as the Upside Down.',
+        synopsisId: 'Anak-anak Hawkins berhadapan dengan dimensi terbalik Upside Down dan monster supernatural.',
       },
       {
         id: 'movie-19995',
@@ -379,15 +428,17 @@ const DISCOVER_GENRES: GenreCategory[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/vL5LR6WdxWPjLPFRLe133jXWsh5.jpg',
         year: 2009,
         rating: 7.6,
-        genre: 'Sci-Fi, Visual Spektakuler',
-        synopsis: 'Jake Sully membaur dengan suku Na\'vi di planet Pandora yang elok nan berbahaya.',
+        genreEn: 'Sci-Fi, Visual Spectacle',
+        genreId: 'Sci-Fi, Visual Spektakuler',
+        synopsisEn: 'A disabled Marine bonds with the indigenous Na\'vi on lush planet Pandora and leads them in a stand against human colonizers.',
+        synopsisId: 'Jake Sully membaur dengan suku Na\'vi di planet Pandora yang elok nan berbahaya.',
       },
     ],
   },
 ];
 
 // ─────────────────────────────────────────────────────────────
-// DATA: 5 Thematic Curated Banners (6 Curated Titles Each)
+// DATA: 5 Thematic Curated Banners (6 Curated Titles Each, Bilingual)
 // ─────────────────────────────────────────────────────────────
 const THEMATIC_BANNERS: ThematicBannerDef[] = [
   {
@@ -411,8 +462,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/lY2DhbA7Hy44fAKddr06UrXWWaQ.jpg',
         year: 2023,
         rating: 8.4,
-        genre: 'Drama, Apokaliptik',
-        synopsis: 'Perjalanan berbahaya Joel dan Ellie melintasi sisa-sisa peradaban manusia yang hancur pasca wabah jamur.',
+        genreEn: 'Drama, Apocalyptic',
+        genreId: 'Drama, Apokaliptik',
+        synopsisEn: 'Joel and Ellie brave dangerous fungal infected and ruthless human survivors across a post-pandemic America.',
+        synopsisId: 'Perjalanan berbahaya Joel dan Ellie melintasi sisa-sisa peradaban manusia yang hancur pasca wabah jamur.',
       },
       {
         id: 'tv-111803',
@@ -423,8 +476,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/qVBIAcZkK5j6WRq7JehJcOMbdgb.jpg',
         year: 2021,
         rating: 7.6,
-        genre: 'Drama, Satir',
-        synopsis: 'Kemelut intrik para tamu berduit dan rahasia gelap para pegawai di resor tropis mewah.',
+        genreEn: 'Drama, Satire',
+        genreId: 'Drama, Satir',
+        synopsisEn: 'A sharp social satire chronicling the vacation antics and dark hidden truths of affluent resort guests.',
+        synopsisId: 'Kemelut intrik para tamu berduit dan rahasia gelap para pegawai di resor tropis mewah.',
       },
       {
         id: 'tv-250307',
@@ -435,8 +490,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/z3BkMbCy5ajZPMyKEUwsPHuz2cV.jpg',
         year: 2025,
         rating: 8.7,
-        genre: 'Drama, Medis',
-        synopsis: 'Perjuangan para tenaga medis di unit gawat darurat tersibuk menyelamatkan nyawa di garis depan.',
+        genreEn: 'Drama, Medical',
+        genreId: 'Drama, Medis',
+        synopsisEn: 'A gritty, unflinching front-line look at emergency room workers battling to save lives in Pittsburgh.',
+        synopsisId: 'Perjuangan para tenaga medis di unit gawat darurat tersibuk menyelamatkan nyawa di garis depan.',
       },
       {
         id: 'tv-76331',
@@ -447,8 +504,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/d87JXX3DLkRJMfm5StCmmnmhHuX.jpg',
         year: 2018,
         rating: 8.3,
-        genre: 'Drama, Bisnis & Politik',
-        synopsis: 'Intrik perebutan tahta kekuasaan dinasti media raksasa keluarga Roy yang kejam dan tak terduga.',
+        genreEn: 'Drama, Business & Politics',
+        genreId: 'Drama, Bisnis & Politik',
+        synopsisEn: 'The ruthless Roy family fights for ultimate control of Waystar RoyCo when their aging patriarch steps back.',
+        synopsisId: 'Intrik perebutan tahta kekuasaan dinasti media raksasa keluarga Roy yang kejam dan tak terduga.',
       },
       {
         id: 'tv-46648',
@@ -459,8 +518,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/v8YFr8BbU9qsO8PYIulzTeM6Qk.jpg',
         year: 2014,
         rating: 8.3,
-        genre: 'Drama Kriminal, Neo-Noir',
-        synopsis: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
+        genreEn: 'Crime Drama, Neo-Noir',
+        genreId: 'Drama Kriminal, Neo-Noir',
+        synopsisEn: 'Uncompromising detectives confront harrowing psychological cases and macabre murders across the American south.',
+        synopsisId: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
       },
       {
         id: 'tv-200875',
@@ -471,8 +532,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/2fOKVDoc2O3eZmBZesWPuE5kgPN.jpg',
         year: 2025,
         rating: 8.2,
-        genre: 'Horor, Misteri',
-        synopsis: 'Asal-usul teror Pennywise di kota Derry tahun 1960-an sebelum peristiwa film IT dimulai.',
+        genreEn: 'Horror, Mystery',
+        genreId: 'Horor, Misteri',
+        synopsisEn: 'The chilling origins of Pennywise the Dancing Clown terrorizing the town of Derry in the 1960s.',
+        synopsisId: 'Asal-usul teror Pennywise di kota Derry tahun 1960-an sebelum peristiwa film IT dimulai.',
       },
     ],
   },
@@ -497,8 +560,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/yRBc6WY3r1Fz5Cjd6DhSvzqunED.jpg',
         year: 2025,
         rating: 7.3,
-        genre: 'Aksi, Superhero',
-        synopsis: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
+        genreEn: 'Action, Superhero',
+        genreId: 'Aksi, Superhero',
+        synopsisEn: 'The dawn of a new DC Universe as Superman balances his Kryptonian heritage with his human upbringing.',
+        synopsisId: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
       },
       {
         id: 'movie-693134',
@@ -509,8 +574,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
         year: 2024,
         rating: 8.1,
-        genre: 'Aksi, Sci-Fi Epik',
-        synopsis: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
+        genreEn: 'Action, Epic Sci-Fi',
+        genreId: 'Aksi, Sci-Fi Epik',
+        synopsisEn: 'Paul Atreides leads the Fremen in a planetary holy war to reclaim Arrakis and avenge his fallen dynasty.',
+        synopsisId: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
       },
       {
         id: 'movie-533535',
@@ -521,8 +588,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg',
         year: 2024,
         rating: 7.6,
-        genre: 'Aksi, Komedi Superhero',
-        synopsis: 'Wade Wilson dan Wolverine bekerja sama menyelamatkan multiverse dengan aksi brutal dan kocak.',
+        genreEn: 'Action, Superhero Comedy',
+        genreId: 'Aksi, Komedi Superhero',
+        synopsisEn: 'The Merc with a Mouth teams up with a cynical Wolverine on a high-stakes, hilarious mission to save their universe.',
+        synopsisId: 'Wade Wilson dan Wolverine bekerja sama menyelamatkan multiverse dengan aksi brutal dan kocak.',
       },
       {
         id: 'movie-575265',
@@ -533,8 +602,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/538U9snNc2fpnOmYXAPUh3zn31H.jpg',
         year: 2025,
         rating: 7.2,
-        genre: 'Aksi, Spionase',
-        synopsis: 'Misi pamungkas Ethan Hunt menghentikan kecerdasan buatan The Entity demi nasib peradaban dunia.',
+        genreEn: 'Action, Espionage',
+        genreId: 'Aksi, Spionase',
+        synopsisEn: 'Ethan Hunt and the IMF team embark on their ultimate, death-defying mission to dismantle The Entity.',
+        synopsisId: 'Misi pamungkas Ethan Hunt menghentikan kecerdasan buatan The Entity demi nasib peradaban dunia.',
       },
       {
         id: 'movie-1234821',
@@ -545,8 +616,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/zNriRTr0kWwyaXPzdg1EIxf0BWk.jpg',
         year: 2025,
         rating: 6.3,
-        genre: 'Aksi, Dinosaurus',
-        synopsis: 'Operasi rahasia mengamankan materi genetik purba dari pulau predator raksasa paling berbahaya.',
+        genreEn: 'Action, Dinosaurs',
+        genreId: 'Aksi, Dinosaurus',
+        synopsisEn: 'A daring covert expedition to extract vital dinosaur DNA from isolated equatorial biosphere reserves.',
+        synopsisId: 'Operasi rahasia mengamankan materi genetik purba dari pulau predator raksasa paling berbahaya.',
       },
       {
         id: 'movie-1233413',
@@ -557,8 +630,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/nAxGnGHOsfzufThz20zgmRwKur3.jpg',
         year: 2025,
         rating: 7.5,
-        genre: 'Horor, Aksi Thriller',
-        synopsis: 'Kisah saudara kembar berhadapan dengan teror kegelapan supranatural di tanah kelahiran mereka.',
+        genreEn: 'Horror, Action Thriller',
+        genreId: 'Horor, Aksi Thriller',
+        synopsisEn: 'Twin brothers return to their troubled hometown only to find an unspeakable evil waiting to consume them.',
+        synopsisId: 'Kisah saudara kembar berhadapan dengan teror kegelapan supranatural di tanah kelahiran mereka.',
       },
     ],
   },
@@ -583,8 +658,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg',
         year: 1994,
         rating: 8.4,
-        genre: 'Sitkom Komedi',
-        synopsis: 'Persahabatan abadi enam kawan mengarungi lika-liku hidup dan asmara di New York.',
+        genreEn: 'Sitcom, Comedy',
+        genreId: 'Sitkom Komedi',
+        synopsisEn: 'Six lifelong friends share laughs, heartbreaks, and coffee across ten iconic seasons in New York City.',
+        synopsisId: 'Persahabatan abadi enam kawan mengarungi lika-liku hidup dan asmara di New York.',
       },
       {
         id: 'tv-1418',
@@ -595,8 +672,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/rwYvhVv0vwbulMwxOfEsuAr1JrT.jpg',
         year: 2007,
         rating: 7.9,
-        genre: 'Sitkom Genius',
-        synopsis: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan saat bertetangga dengan Penny.',
+        genreEn: 'Sitcom, Science Comedy',
+        genreId: 'Sitkom Genius',
+        synopsisEn: 'Caltech physicists Sheldon and Leonard learn about life and romance when aspiring actress Penny moves in next door.',
+        synopsisId: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan saat bertetangga dengan Penny.',
       },
       {
         id: 'tv-1396',
@@ -607,8 +686,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
         year: 2008,
         rating: 8.9,
-        genre: 'Drama Kriminal Legendaris',
-        synopsis: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
+        genreEn: 'Crime Drama, Legendary',
+        genreId: 'Drama Kriminal Legendaris',
+        synopsisEn: 'A high school chemistry teacher diagnosed with lung cancer partners with a former student to build an empire.',
+        synopsisId: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
       },
       {
         id: 'tv-1399',
@@ -619,8 +700,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
         year: 2011,
         rating: 8.5,
-        genre: 'Fantasi Epik',
-        synopsis: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
+        genreEn: 'Epic Fantasy, Intrigue',
+        genreId: 'Fantasi Epik',
+        synopsisEn: 'Noble houses clash in a deadly, deceitful war for the Iron Throne of Westeros while an ancient menace wakes.',
+        synopsisId: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
       },
       {
         id: 'movie-155',
@@ -631,8 +714,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg',
         year: 2008,
         rating: 8.5,
-        genre: 'Aksi Kriminal, Masterpiece',
-        synopsis: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
+        genreEn: 'Action Crime, Masterpiece',
+        genreId: 'Aksi Kriminal, Masterpiece',
+        synopsisEn: 'Batman faces his greatest moral and physical test when the sadistic anarchist Joker brings chaos to Gotham.',
+        synopsisId: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
       },
       {
         id: 'movie-120',
@@ -643,8 +728,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/oiwc338EoBgS4sEI2ixAny4KQKg.jpg',
         year: 2001,
         rating: 8.4,
-        genre: 'Fantasi Epik',
-        synopsis: 'Perjalanan epik Frodo Baggins bersama Persaudaraan Cincin demi menghancurkan Cincin Utama di Mordor.',
+        genreEn: 'Epic Fantasy, Adventure',
+        genreId: 'Fantasi Epik',
+        synopsisEn: 'Young hobbit Frodo Baggins is entrusted with the One Ring and sets off on a legendary quest to Mount Doom.',
+        synopsisId: 'Perjalanan epik Frodo Baggins bersama Persaudaraan Cincin demi menghancurkan Cincin Utama di Mordor.',
       },
     ],
   },
@@ -669,8 +756,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/7CENyUim29IEsaJhUxIGymCRvPu.jpg',
         year: 2023,
         rating: 8.0,
-        genre: 'Biopik, Sejarah & Drama',
-        synopsis: 'Kisah J. Robert Oppenheimer memimpin Proyek Manhattan dan pergulatan moral senjata pemusnah massal.',
+        genreEn: 'Biopic, History & Drama',
+        genreId: 'Biopik, Sejarah & Drama',
+        synopsisEn: 'The gripping story of J. Robert Oppenheimer leading the Manhattan Project to create the first atomic bomb.',
+        synopsisId: 'Kisah J. Robert Oppenheimer memimpin Proyek Manhattan dan pergulatan moral senjata pemusnah massal.',
       },
       {
         id: 'tv-87108',
@@ -681,8 +770,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/900tHlUYUkp7Ol04XFSoAaEIXcT.jpg',
         year: 2019,
         rating: 8.7,
-        genre: 'Sejarah, Drama Bencana',
-        synopsis: 'Kisah nyata kepahlawanan dan pengorbanan manusia di balik ledakan reaktor nuklir terburuk dalam sejarah.',
+        genreEn: 'History, Disaster Drama',
+        genreId: 'Sejarah, Drama Bencana',
+        synopsisEn: 'The true story of the 1986 nuclear disaster in Soviet Ukraine and the courageous responders who saved Europe.',
+        synopsisId: 'Kisah nyata kepahlawanan dan pengorbanan manusia di balik ledakan reaktor nuklir terburuk dalam sejarah.',
       },
       {
         id: 'tv-4614',
@@ -693,8 +784,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/c1aBrG5s5xFa6Tbnihu2Hhj4t2q.jpg',
         year: 2001,
         rating: 8.5,
-        genre: 'Sejarah Perang Dunia II',
-        synopsis: 'Perjuangan nyata kompi terjun payung Easy Company dalam pertempuran sengit PD II di tanah Eropa.',
+        genreEn: 'WWII True History, War Drama',
+        genreId: 'Sejarah Perang Dunia II',
+        synopsisEn: 'The legendary true journey of the US Army Easy Company from jump training to the fall of Nazi Germany.',
+        synopsisId: 'Perjuangan nyata kompi terjun payung Easy Company dalam pertempuran sengit PD II di tanah Eropa.',
       },
       {
         id: 'movie-899082',
@@ -705,8 +798,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/8rft8A9nH43IReybFtYt21ezfMK.jpg',
         year: 2022,
         rating: 7.3,
-        genre: 'Dokumenter Reuni',
-        synopsis: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts mengenang 20 tahun keajaiban film.',
+        genreEn: 'Documentary, Magical Reunion',
+        genreId: 'Dokumenter Reuni',
+        synopsisEn: 'Cast members reunite in the Great Hall to celebrate the twenty-year legacy of the Harry Potter film franchise.',
+        synopsisId: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts mengenang 20 tahun keajaiban film.',
       },
       {
         id: 'tv-61818',
@@ -717,8 +812,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/dfX2UaHVE5c7kLBFbgmEZJuy4Ev.jpg',
         year: 2014,
         rating: 6.7,
-        genre: 'Reality Show',
-        synopsis: 'Dinamika cinta dan drama pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
+        genreEn: 'Reality Show, Romance',
+        genreId: 'Reality Show',
+        synopsisEn: 'International couples navigate cultural divides and relationship tests during their 90-day K-1 fiancé visa deadline.',
+        synopsisId: 'Dinamika cinta dan drama pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
       },
       {
         id: 'tv-17937',
@@ -729,8 +826,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/u64huzTnF3jEYUXJ4BDlpHy2L3K.jpg',
         year: 2008,
         rating: 7.4,
-        genre: 'Paranormal Realita',
-        synopsis: 'Investigasi langsung ke lokasi-lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
+        genreEn: 'Paranormal Reality, Investigation',
+        genreId: 'Paranormal Realita',
+        synopsisEn: 'Zak Bagans and his crew explore notorious haunted sites worldwide, conducting intense dusk-to-dawn lockdowns.',
+        synopsisId: 'Investigasi langsung ke lokasi-lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
       },
     ],
   },
@@ -755,8 +854,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/p5ozvmdgsmbWe0H8Xk7Rc8SCwAB.jpg',
         year: 2024,
         rating: 7.5,
-        genre: 'Animasi, Keluarga & Emosi',
-        synopsis: 'Riley memasuki masa remaja dengan emosi-emosi baru yang mengambil alih ruang kendali di kepalanya.',
+        genreEn: 'Animation, Family & Emotions',
+        genreId: 'Animasi, Keluarga & Emosi',
+        synopsisEn: 'Teenage Riley faces turbulent new emotions led by Anxiety as her inner Headquarters undergoes a sudden remodel.',
+        synopsisId: 'Riley memasuki masa remaja dengan emosi-emosi baru yang mengambil alih ruang kendali di kepalanya.',
       },
       {
         id: 'movie-1184918',
@@ -767,8 +868,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/1pmXyN3sKeYoUhu5VBZiDU4BX21.jpg',
         year: 2024,
         rating: 8.3,
-        genre: 'Animasi, Petualangan Menyentuh',
-        synopsis: 'Robot Roz terdampar di pulau liar dan menjalin ikatan kasih menyentuh dengan seekor anak angsa yatim.',
+        genreEn: 'Animation, Heartfelt Adventure',
+        genreId: 'Animasi, Petualangan Menyentuh',
+        synopsisEn: 'Shipwrecked robot Roz adapts to wild island life and forms a tender, maternal bond with an orphaned gosling.',
+        synopsisId: 'Robot Roz terdampar di pulau liar dan menjalin ikatan kasih menyentuh dengan seekor anak angsa yatim.',
       },
       {
         id: 'movie-1087192',
@@ -779,8 +882,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/8J6UlIFcU7eZfq9iCLbgc8Auklg.jpg',
         year: 2025,
         rating: 7.9,
-        genre: 'Fantasi, Petualangan',
-        synopsis: 'Persahabatan magis Hiccup dan naga Toothless mengubah takdir Pulau Berk selamanya.',
+        genreEn: 'Fantasy, Family Adventure',
+        genreId: 'Fantasi, Petualangan',
+        synopsisEn: 'Young Viking Hiccup defies generations of dragon-fighting tradition by befriending an injured Night Fury dragon.',
+        synopsisId: 'Persahabatan magis Hiccup dan naga Toothless mengubah takdir Pulau Berk selamanya.',
       },
       {
         id: 'movie-1175942',
@@ -791,8 +896,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/jvpkBenB6hv19WWYVlaiow8zklq.jpg',
         year: 2025,
         rating: 7.6,
-        genre: 'Animasi, Komedi Heist',
-        synopsis: 'Geng Bad Guys berusaha menjadi pahlawan sebelum terseret misi pencurian baru yang mendebarkan.',
+        genreEn: 'Animation, Heist Comedy',
+        genreId: 'Animasi, Komedi Heist',
+        synopsisEn: 'The reformed Bad Guys struggle to stay on the good side when an all-female criminal squad pulls them into one last job.',
+        synopsisId: 'Geng Bad Guys berusaha menjadi pahlawan sebelum terseret misi pencurian baru yang mendebarkan.',
       },
       {
         id: 'movie-950387',
@@ -803,8 +910,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/2Nti3gYAX513wvhp8IiLL6ZDyOm.jpg',
         year: 2025,
         rating: 6.2,
-        genre: 'Keluarga, Petualangan',
-        synopsis: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit legendaris.',
+        genreEn: 'Family, Video Game Adventure',
+        genreId: 'Keluarga, Petualangan',
+        synopsisEn: 'Four misfits are pulled through a mysterious portal into the blocky Overworld where they team up with crafter Steve.',
+        synopsisId: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit legendaris.',
       },
       {
         id: 'tv-15260',
@@ -815,8 +924,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         backdrop: 'https://image.tmdb.org/t/p/w1280/pe4B3OYBb7qYCdkAz7nKWordbls.jpg',
         year: 2010,
         rating: 8.5,
-        genre: 'Animasi, Fantasi Ajaib',
-        synopsis: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
+        genreEn: 'Animation, Surreal Fantasy',
+        genreId: 'Animasi, Fantasi Ajaib',
+        synopsisEn: 'Bizarre and wondrous journeys of Finn the Human and his shape-shifting magical canine brother Jake in the Land of Ooo.',
+        synopsisId: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
       },
     ],
   },
@@ -868,8 +979,11 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       setLoadingMediaId(null);
     }
 
-    // Fallback: construct instant MediaItem
+    // Fallback: construct instant MediaItem with active language values
     const isMovie = item.type === 'movie';
+    const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
+    const displayGenre = language === 'en' ? item.genreEn : item.genreId;
+
     const fallbackMedia: MediaItem = {
       id: `${item.type}-${item.tmdbId}`,
       tmdbId: item.tmdbId,
@@ -883,13 +997,15 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       duration: isMovie ? '120 min' : '45 min',
       quality: '1080p FHD',
       ageRating: '13+',
-      genres: item.genre.split(',').map((g) => g.trim()),
+      genres: displayGenre.split(',').map((g) => g.trim()),
       country: 'United States',
       director: 'Warner Bros / HBO Discovery',
       cast: [],
       audioTracks: ['English (Original)', 'Indonesian'],
       subtitles: ['Indonesia', 'English'],
-      synopsis: item.synopsis,
+      synopsis: displaySynopsis,
+      synopsisEn: item.synopsisEn,
+      synopsisId: item.synopsisId,
       servers: isMovie ? createMovieServers(item.tmdbId) : createTvServers(item.tmdbId, 1, 1),
     };
 
@@ -967,6 +1083,9 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
           {activeGenre.items.map((item) => {
             const isLoading = loadingMediaId === item.id;
+            const displayGenre = language === 'en' ? item.genreEn : item.genreId;
+            const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
+
             return (
               <div
                 key={item.id}
@@ -1002,7 +1121,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Content / Title + Synopsis */}
+                {/* Bottom Content / Title + Synopsis (Auto-Switches with Language) */}
                 <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 z-10 space-y-0.5 sm:space-y-1 pr-7 sm:pr-0">
                   <h3 className="text-xs sm:text-sm lg:text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 drop-shadow-md">
                     {item.title}
@@ -1010,10 +1129,10 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-amber-300/90 font-medium">
                     <span>{item.year}</span>
                     <span>•</span>
-                    <span className="line-clamp-1 text-slate-300 font-normal">{item.genre}</span>
+                    <span className="line-clamp-1 text-slate-300 font-normal">{displayGenre}</span>
                   </div>
                   <p className="hidden xs:line-clamp-2 text-[10px] sm:text-[11px] text-slate-300/90 font-light leading-relaxed">
-                    {item.synopsis}
+                    {displaySynopsis}
                   </p>
                 </div>
 
@@ -1086,7 +1205,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
       {/* ───────────────────────────────────────────────────────── */}
       {/* SECTION 2: THE 5 HBO MAX-STYLE THEMATIC BANNERS          */}
-      {/* (More compact, 6 recommendations per banner, with synopsis) */}
+      {/* (Bilingual Auto-Translate, Compact 6-Col Grid)           */}
       {/* ───────────────────────────────────────────────────────── */}
       <div className="space-y-6 sm:space-y-8 lg:space-y-10">
         {THEMATIC_BANNERS.map((banner) => {
@@ -1130,6 +1249,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0">
                   {banner.items.map((item) => {
                     const isLoading = loadingMediaId === item.id;
+                    const displayGenre = language === 'en' ? item.genreEn : item.genreId;
+                    const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
 
                     return (
                       <div
@@ -1159,7 +1280,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           <span>{item.rating.toFixed(1)}</span>
                         </div>
 
-                        {/* Bottom Information with Title, Metadata, and Synopsis */}
+                        {/* Bottom Information with Title, Metadata, and Bilingual Synopsis */}
                         <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 z-10 space-y-0.5 sm:space-y-1 bg-gradient-to-t from-black/95 via-black/85 to-transparent pt-8 sm:pt-10 pr-7 sm:pr-2.5">
                           <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow">
                             {item.title}
@@ -1167,10 +1288,10 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-300/90 font-medium">
                             <span>{item.year}</span>
                             <span>•</span>
-                            <span className="line-clamp-1 text-slate-300 font-normal">{item.genre}</span>
+                            <span className="line-clamp-1 text-slate-300 font-normal">{displayGenre}</span>
                           </div>
                           <p className="text-[10px] sm:text-[11px] text-slate-300/90 font-light line-clamp-2 leading-relaxed drop-shadow-sm">
-                            {item.synopsis}
+                            {displaySynopsis}
                           </p>
                         </div>
 
