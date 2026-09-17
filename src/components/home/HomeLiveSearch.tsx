@@ -814,7 +814,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               {displayItems.length} {language === 'en' ? 'Titles' : 'Judul'}
             </span>
 
-            {!query.trim() && (
+            {!query.trim() && isTrendingOpen && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -822,28 +822,49 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                   toggleTrendingDropdown();
                 }}
                 onMouseEnter={playHover}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/15 border border-white/10 hover:border-white/20 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer select-none"
-                title={
-                  isTrendingOpen
-                    ? language === 'en' ? 'Hide trending section' : 'Sembunyikan bagian trending'
-                    : language === 'en' ? 'Show trending section' : 'Tampilkan bagian trending'
-                }
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-[#E50914] border border-white/10 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer select-none"
+                title={language === 'en' ? 'Collapse trending section' : 'Sembunyikan bagian trending'}
               >
                 <span className="hidden sm:inline">
-                  {isTrendingOpen ? (language === 'en' ? 'Hide' : 'Sembunyikan') : (language === 'en' ? 'Show' : 'Tampilkan')}
+                  {language === 'en' ? 'Collapse' : 'Sembunyikan'}
                 </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-300 ${
-                    isTrendingOpen ? 'rotate-180 text-[#E50914]' : 'text-neutral-400'
-                  }`}
-                />
+                <ChevronDown className="w-3.5 h-3.5 rotate-180 text-neutral-300" />
               </button>
             )}
           </div>
         </div>
 
-        {/* Content Section: Rendered when searching or when trending is expanded */}
-        {(Boolean(query.trim()) || isTrendingOpen) && (
+        {/* If user is not searching and trending is collapsed: display sleek compact dropdown bar */}
+        {!query.trim() && !isTrendingOpen ? (
+          <div
+            onClick={toggleTrendingDropdown}
+            onMouseEnter={playHover}
+            className="w-full py-4 px-5 sm:px-6 rounded-2xl bg-[#181818]/70 hover:bg-[#202020] border border-white/10 hover:border-[#E50914]/40 flex items-center justify-between cursor-pointer transition-all duration-300 shadow-lg group select-none animate-fadeIn"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-[#E50914]/20 text-[#E50914] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Flame className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-white group-hover:text-[#E50914] transition-colors">
+                  {language === 'en'
+                    ? `Click to view ${displayItems.length} trending titles`
+                    : `Klik untuk menampilkan ${displayItems.length} karya tren populer`}
+                </p>
+                <p className="text-[11px] text-neutral-400 font-light">
+                  {language === 'en'
+                    ? 'Movies, series, and anime updated daily on TMDB'
+                    : 'Film, serial, dan anime paling banyak ditonton hari ini'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 group-hover:bg-[#E50914] text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
+              <span>{language === 'en' ? 'Expand' : 'Tampilkan'}</span>
+              <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+        ) : (
           <div className="transition-all duration-500 ease-in-out animate-fadeIn">
             {/* Loading Skeleton */}
             {(isSearching || (isLoadingTrending && !query.trim())) && (
@@ -886,23 +907,41 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
             {/* Movie/Series Cards Grid */}
             {!isSearching && !isLoadingTrending && displayItems.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
-                {displayItems.map((item) => (
-                  <HomeLiveSearchCard
-                    key={item.id}
-                    item={item}
-                    language={language}
-                    isLoadingThis={loadingItemId === item.id}
-                    loadingAction={loadingAction}
-                    isInWatchlist={isInWatchlist}
-                    handleSelectMedia={handleSelectMedia}
-                    handleWatchlistToggle={handleWatchlistToggle}
-                    playClick={playClick}
-                    playHover={playHover}
-                    t={t}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
+                  {displayItems.map((item) => (
+                    <HomeLiveSearchCard
+                      key={item.id}
+                      item={item}
+                      language={language}
+                      isLoadingThis={loadingItemId === item.id}
+                      loadingAction={loadingAction}
+                      isInWatchlist={isInWatchlist}
+                      handleSelectMedia={handleSelectMedia}
+                      handleWatchlistToggle={handleWatchlistToggle}
+                      playClick={playClick}
+                      playHover={playHover}
+                      t={t}
+                    />
+                  ))}
+                </div>
+
+                {!query.trim() && isTrendingOpen && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTrendingDropdown();
+                      }}
+                      onMouseEnter={playHover}
+                      className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#181818]/90 hover:bg-[#E50914] border border-white/10 hover:border-[#E50914] text-xs font-semibold text-neutral-300 hover:text-white transition-all duration-200 cursor-pointer shadow-lg group select-none"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 rotate-180 group-hover:-translate-y-0.5 transition-transform" />
+                      <span>{language === 'en' ? 'Collapse Trending' : 'Tutup Bagian Tren'}</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
