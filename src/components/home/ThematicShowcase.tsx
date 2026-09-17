@@ -387,7 +387,7 @@ const DISCOVER_GENRES: GenreCategory[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// DATA: 5 Thematic Curated Banners (HBO Max Aesthetic)
+// DATA: 5 Thematic Curated Banners (6 Curated Titles Each)
 // ─────────────────────────────────────────────────────────────
 const THEMATIC_BANNERS: ThematicBannerDef[] = [
   {
@@ -412,7 +412,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2023,
         rating: 8.4,
         genre: 'Drama, Apokaliptik',
-        synopsis: 'Joel dan Ellie melintasi sisa-sisa peradaban manusia.',
+        synopsis: 'Perjalanan berbahaya Joel dan Ellie melintasi sisa-sisa peradaban manusia yang hancur pasca wabah jamur.',
       },
       {
         id: 'tv-111803',
@@ -424,7 +424,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2021,
         rating: 7.6,
         genre: 'Drama, Satir',
-        synopsis: 'Kemelut intrik para tamu berduit di resor eksotis.',
+        synopsis: 'Kemelut intrik para tamu berduit dan rahasia gelap para pegawai di resor tropis mewah.',
       },
       {
         id: 'tv-250307',
@@ -436,7 +436,31 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 8.7,
         genre: 'Drama, Medis',
-        synopsis: 'Perjuangan para tenaga medis di IGD paling padat.',
+        synopsis: 'Perjuangan para tenaga medis di unit gawat darurat tersibuk menyelamatkan nyawa di garis depan.',
+      },
+      {
+        id: 'tv-76331',
+        tmdbId: 76331,
+        type: 'tv',
+        title: 'Succession',
+        poster: 'https://image.tmdb.org/t/p/w500/z0XiwdrCQ9yVIr4O0pxzaAYRxdW.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/d87JXX3DLkRJMfm5StCmmnmhHuX.jpg',
+        year: 2018,
+        rating: 8.3,
+        genre: 'Drama, Bisnis & Politik',
+        synopsis: 'Intrik perebutan tahta kekuasaan dinasti media raksasa keluarga Roy yang kejam dan tak terduga.',
+      },
+      {
+        id: 'tv-46648',
+        tmdbId: 46648,
+        type: 'tv',
+        title: 'True Detective',
+        poster: 'https://image.tmdb.org/t/p/w500/cuV2O5ZyDLHSOWzg3nLVljp1ubw.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/v8YFr8BbU9qsO8PYIulzTeM6Qk.jpg',
+        year: 2014,
+        rating: 8.3,
+        genre: 'Drama Kriminal, Neo-Noir',
+        synopsis: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
       },
       {
         id: 'tv-200875',
@@ -448,7 +472,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 8.2,
         genre: 'Horor, Misteri',
-        synopsis: 'Asal-usul teror Pennywise di kota Derry tahun 1960-an.',
+        synopsis: 'Asal-usul teror Pennywise di kota Derry tahun 1960-an sebelum peristiwa film IT dimulai.',
       },
     ],
   },
@@ -474,7 +498,31 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 7.3,
         genre: 'Aksi, Superhero',
-        synopsis: 'Awal era baru sang Man of Steel arahan sutradara James Gunn.',
+        synopsis: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
+      },
+      {
+        id: 'movie-693134',
+        tmdbId: 693134,
+        type: 'movie',
+        title: 'Dune: Part Two',
+        poster: 'https://image.tmdb.org/t/p/w500/6izwz7rsy95ARzTR3poZ8H6c5pp.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
+        year: 2024,
+        rating: 8.1,
+        genre: 'Aksi, Sci-Fi Epik',
+        synopsis: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
+      },
+      {
+        id: 'movie-533535',
+        tmdbId: 533535,
+        type: 'movie',
+        title: 'Deadpool & Wolverine',
+        poster: 'https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg',
+        year: 2024,
+        rating: 7.6,
+        genre: 'Aksi, Komedi Superhero',
+        synopsis: 'Wade Wilson dan Wolverine bekerja sama menyelamatkan multiverse dengan aksi brutal dan kocak.',
       },
       {
         id: 'movie-575265',
@@ -486,7 +534,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 7.2,
         genre: 'Aksi, Spionase',
-        synopsis: 'Misi pamungkas Ethan Hunt menghentikan kecerdasan buatan The Entity.',
+        synopsis: 'Misi pamungkas Ethan Hunt menghentikan kecerdasan buatan The Entity demi nasib peradaban dunia.',
       },
       {
         id: 'movie-1234821',
@@ -498,7 +546,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 6.3,
         genre: 'Aksi, Dinosaurus',
-        synopsis: 'Operasi rahasia mengamankan materi genetik predator purba.',
+        synopsis: 'Operasi rahasia mengamankan materi genetik purba dari pulau predator raksasa paling berbahaya.',
       },
       {
         id: 'movie-1233413',
@@ -510,7 +558,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 7.5,
         genre: 'Horor, Aksi Thriller',
-        synopsis: 'Kisah saudara kembar berhadapan dengan kegelapan di tanah kelahiran.',
+        synopsis: 'Kisah saudara kembar berhadapan dengan teror kegelapan supranatural di tanah kelahiran mereka.',
       },
     ],
   },
@@ -536,7 +584,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 1994,
         rating: 8.4,
         genre: 'Sitkom Komedi',
-        synopsis: 'Persahabatan abadi enam kawan di Central Perk New York.',
+        synopsis: 'Persahabatan abadi enam kawan mengarungi lika-liku hidup dan asmara di New York.',
       },
       {
         id: 'tv-1418',
@@ -548,7 +596,19 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2007,
         rating: 7.9,
         genre: 'Sitkom Genius',
-        synopsis: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan.',
+        synopsis: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan saat bertetangga dengan Penny.',
+      },
+      {
+        id: 'tv-1396',
+        tmdbId: 1396,
+        type: 'tv',
+        title: 'Breaking Bad',
+        poster: 'https://image.tmdb.org/t/p/w500/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
+        year: 2008,
+        rating: 8.9,
+        genre: 'Drama Kriminal Legendaris',
+        synopsis: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
       },
       {
         id: 'tv-1399',
@@ -560,7 +620,19 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2011,
         rating: 8.5,
         genre: 'Fantasi Epik',
-        synopsis: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik berdarah.',
+        synopsis: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
+      },
+      {
+        id: 'movie-155',
+        tmdbId: 155,
+        type: 'movie',
+        title: 'The Dark Knight',
+        poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg',
+        year: 2008,
+        rating: 8.5,
+        genre: 'Aksi Kriminal, Masterpiece',
+        synopsis: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
       },
       {
         id: 'movie-120',
@@ -572,7 +644,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2001,
         rating: 8.4,
         genre: 'Fantasi Epik',
-        synopsis: 'Awal perjalanan Frodo Baggins menghancurkan Cincin Utama ke Mordor.',
+        synopsis: 'Perjalanan epik Frodo Baggins bersama Persaudaraan Cincin demi menghancurkan Cincin Utama di Mordor.',
       },
     ],
   },
@@ -589,16 +661,16 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     characterAlt: 'Harry Potter 20th Anniversary',
     items: [
       {
-        id: 'movie-899082',
-        tmdbId: 899082,
+        id: 'movie-872585',
+        tmdbId: 872585,
         type: 'movie',
-        title: 'Harry Potter 20th Anniversary: Return to Hogwarts',
-        poster: 'https://image.tmdb.org/t/p/w500/jntLBq0MLR3hrwKaTQswxACRPMs.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/8rft8A9nH43IReybFtYt21ezfMK.jpg',
-        year: 2022,
-        rating: 7.3,
-        genre: 'Dokumenter Reuni',
-        synopsis: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts setelah 20 tahun.',
+        title: 'Oppenheimer',
+        poster: 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/7CENyUim29IEsaJhUxIGymCRvPu.jpg',
+        year: 2023,
+        rating: 8.0,
+        genre: 'Biopik, Sejarah & Drama',
+        synopsis: 'Kisah J. Robert Oppenheimer memimpin Proyek Manhattan dan pergulatan moral senjata pemusnah massal.',
       },
       {
         id: 'tv-87108',
@@ -610,7 +682,31 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2019,
         rating: 8.7,
         genre: 'Sejarah, Drama Bencana',
-        synopsis: 'Kisah nyata kepahlawanan dan pengorbanan di balik bencana reaktor nuklir terburuk dalam sejarah.',
+        synopsis: 'Kisah nyata kepahlawanan dan pengorbanan manusia di balik ledakan reaktor nuklir terburuk dalam sejarah.',
+      },
+      {
+        id: 'tv-4614',
+        tmdbId: 4614,
+        type: 'tv',
+        title: 'Band of Brothers',
+        poster: 'https://image.tmdb.org/t/p/w500/mBcu8d6x6zB1el3MPNl7cZQEQ31.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/c1aBrG5s5xFa6Tbnihu2Hhj4t2q.jpg',
+        year: 2001,
+        rating: 8.5,
+        genre: 'Sejarah Perang Dunia II',
+        synopsis: 'Perjuangan nyata kompi terjun payung Easy Company dalam pertempuran sengit PD II di tanah Eropa.',
+      },
+      {
+        id: 'movie-899082',
+        tmdbId: 899082,
+        type: 'movie',
+        title: 'Harry Potter 20th Anniversary: Return to Hogwarts',
+        poster: 'https://image.tmdb.org/t/p/w500/jntLBq0MLR3hrwKaTQswxACRPMs.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/8rft8A9nH43IReybFtYt21ezfMK.jpg',
+        year: 2022,
+        rating: 7.3,
+        genre: 'Dokumenter Reuni',
+        synopsis: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts mengenang 20 tahun keajaiban film.',
       },
       {
         id: 'tv-61818',
@@ -622,7 +718,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2014,
         rating: 6.7,
         genre: 'Reality Show',
-        synopsis: 'Dinamika pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
+        synopsis: 'Dinamika cinta dan drama pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
       },
       {
         id: 'tv-17937',
@@ -634,7 +730,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2008,
         rating: 7.4,
         genre: 'Paranormal Realita',
-        synopsis: 'Investigasi lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
+        synopsis: 'Investigasi langsung ke lokasi-lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
       },
     ],
   },
@@ -651,16 +747,28 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     characterAlt: 'Adventure Time & Cartoon Characters',
     items: [
       {
-        id: 'movie-950387',
-        tmdbId: 950387,
+        id: 'movie-1022789',
+        tmdbId: 1022789,
         type: 'movie',
-        title: 'A Minecraft Movie',
-        poster: 'https://image.tmdb.org/t/p/w500/yFHHfHcUgGAxziP1C3lLt0q2T4s.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/2Nti3gYAX513wvhp8IiLL6ZDyOm.jpg',
-        year: 2025,
-        rating: 6.2,
-        genre: 'Keluarga, Petualangan',
-        synopsis: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit.',
+        title: 'Inside Out 2',
+        poster: 'https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/p5ozvmdgsmbWe0H8Xk7Rc8SCwAB.jpg',
+        year: 2024,
+        rating: 7.5,
+        genre: 'Animasi, Keluarga & Emosi',
+        synopsis: 'Riley memasuki masa remaja dengan emosi-emosi baru yang mengambil alih ruang kendali di kepalanya.',
+      },
+      {
+        id: 'movie-1184918',
+        tmdbId: 1184918,
+        type: 'movie',
+        title: 'The Wild Robot',
+        poster: 'https://image.tmdb.org/t/p/w500/wTnV3PCVW5O92JMrFvvrRcV39RU.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/1pmXyN3sKeYoUhu5VBZiDU4BX21.jpg',
+        year: 2024,
+        rating: 8.3,
+        genre: 'Animasi, Petualangan Menyentuh',
+        synopsis: 'Robot Roz terdampar di pulau liar dan menjalin ikatan kasih menyentuh dengan seekor anak angsa yatim.',
       },
       {
         id: 'movie-1087192',
@@ -672,7 +780,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 7.9,
         genre: 'Fantasi, Petualangan',
-        synopsis: 'Persahabatan magis Hiccup dan naga Toothless di Pulau Berk.',
+        synopsis: 'Persahabatan magis Hiccup dan naga Toothless mengubah takdir Pulau Berk selamanya.',
       },
       {
         id: 'movie-1175942',
@@ -684,7 +792,19 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2025,
         rating: 7.6,
         genre: 'Animasi, Komedi Heist',
-        synopsis: 'Geng Bad Guys berusaha jadi baik sebelum terlibat misi pencurian global baru.',
+        synopsis: 'Geng Bad Guys berusaha menjadi pahlawan sebelum terseret misi pencurian baru yang mendebarkan.',
+      },
+      {
+        id: 'movie-950387',
+        tmdbId: 950387,
+        type: 'movie',
+        title: 'A Minecraft Movie',
+        poster: 'https://image.tmdb.org/t/p/w500/yFHHfHcUgGAxziP1C3lLt0q2T4s.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/2Nti3gYAX513wvhp8IiLL6ZDyOm.jpg',
+        year: 2025,
+        rating: 6.2,
+        genre: 'Keluarga, Petualangan',
+        synopsis: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit legendaris.',
       },
       {
         id: 'tv-15260',
@@ -696,7 +816,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         year: 2010,
         rating: 8.5,
         genre: 'Animasi, Fantasi Ajaib',
-        synopsis: 'Petualangan surreal Finn si bocah dan Jake anjing ajaib di Negeri Ooo.',
+        synopsis: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
       },
     ],
   },
@@ -781,13 +901,13 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
   };
 
   return (
-    <section className="relative w-full py-6 sm:py-10 lg:py-14 space-y-10 sm:space-y-14 overflow-hidden">
+    <section className="relative w-full py-6 sm:py-8 lg:py-10 space-y-8 sm:space-y-12 overflow-hidden">
       {/* ───────────────────────────────────────────────────────── */}
       {/* SECTION 1: "DISCOVER THE BEST OF" (Interactive Genre Hub) */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-5 sm:space-y-8">
+      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-4 sm:space-y-6">
         {/* Header with Title & Genre Switcher */}
-        <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
+        <div className="flex flex-col items-center text-center space-y-2.5 sm:space-y-3">
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] text-[10px] sm:text-[11px] font-sans tracking-[0.2em] sm:tracking-[0.25em] text-brand-champagne uppercase font-medium">
             <Sparkles className="w-3 h-3 text-brand-gold" />
             <span>{language === 'en' ? 'Curated Selection' : 'Pilihan Paling Populer'}</span>
@@ -798,7 +918,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           </h2>
 
           {/* Genre Tabs with Navigation Arrows (Touch-friendly & Responsive) */}
-          <div className="w-full flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-1.5 px-1">
+          <div className="w-full flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-1 px-1">
             <button
               onClick={handlePrevGenre}
               onMouseEnter={playHover}
@@ -882,19 +1002,22 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Content / Title */}
+                {/* Bottom Content / Title + Synopsis */}
                 <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 z-10 space-y-0.5 sm:space-y-1 pr-7 sm:pr-0">
                   <h3 className="text-xs sm:text-sm lg:text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 drop-shadow-md">
                     {item.title}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-slate-300 font-light">
+                  <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-amber-300/90 font-medium">
                     <span>{item.year}</span>
                     <span>•</span>
-                    <span className="line-clamp-1">{item.genre}</span>
+                    <span className="line-clamp-1 text-slate-300 font-normal">{item.genre}</span>
                   </div>
+                  <p className="hidden xs:line-clamp-2 text-[10px] sm:text-[11px] text-slate-300/90 font-light leading-relaxed">
+                    {item.synopsis}
+                  </p>
                 </div>
 
-                {/* Mobile / Tablet Quick-Play Button (Visible on touch, hidden on desktop hover) */}
+                {/* Mobile / Tablet Quick-Play Button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -963,8 +1086,9 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
       {/* ───────────────────────────────────────────────────────── */}
       {/* SECTION 2: THE 5 HBO MAX-STYLE THEMATIC BANNERS          */}
+      {/* (More compact, 6 recommendations per banner, with synopsis) */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="space-y-6 sm:space-y-10 lg:space-y-14">
+      <div className="space-y-6 sm:space-y-8 lg:space-y-10">
         {THEMATIC_BANNERS.map((banner) => {
           const displayTitle = language === 'en' ? banner.titleEn : banner.titleId;
           const displayTagline = language === 'en' ? banner.taglineEn : banner.taglineId;
@@ -972,13 +1096,13 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           return (
             <div
               key={banner.id}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} py-6 sm:py-9 lg:py-12 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} py-5 sm:py-7 lg:py-8 overflow-hidden transition-colors duration-500`}
             >
               {/* Subtle background ambient overlay */}
               <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
-              {/* Character Floating Artwork (Scaled & masked for mobile/tablet) */}
-              <div className="absolute -top-3 sm:-top-8 lg:-top-10 -right-2 sm:right-6 lg:right-16 w-32 sm:w-60 lg:w-88 h-32 sm:h-60 lg:h-88 pointer-events-none opacity-20 sm:opacity-25 lg:opacity-35 select-none mix-blend-screen overflow-hidden">
+              {/* Character Floating Artwork (Scaled compactly) */}
+              <div className="absolute -top-3 sm:-top-6 lg:-top-8 -right-2 sm:right-6 lg:right-12 w-28 sm:w-48 lg:w-64 h-28 sm:h-48 lg:h-64 pointer-events-none opacity-15 sm:opacity-20 lg:opacity-25 select-none mix-blend-screen overflow-hidden">
                 <img
                   src={banner.characterArt}
                   alt={banner.characterAlt}
@@ -991,19 +1115,19 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 />
               </div>
 
-              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-4 sm:space-y-6 lg:space-y-8 z-10">
+              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-10">
                 {/* Banner Heading */}
-                <div className="space-y-0.5 sm:space-y-1 max-w-[78%] sm:max-w-xl">
-                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-display font-medium text-white tracking-wide drop-shadow-lg">
+                <div className="space-y-0.5 sm:space-y-1 max-w-[80%] sm:max-w-xl">
+                  <h3 className="text-base sm:text-xl lg:text-2xl font-display font-medium text-white tracking-wide drop-shadow-md">
                     {displayTitle}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-300/80 font-light leading-relaxed line-clamp-2 sm:line-clamp-none">
+                  <p className="text-xs sm:text-sm text-slate-300/80 font-light leading-relaxed line-clamp-1 sm:line-clamp-none">
                     {displayTagline}
                   </p>
                 </div>
 
-                {/* 4 Poster Cards: Mobile Horizontal Snap Rail & Tablet/Desktop 4-Col Grid */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-4 sm:gap-4 lg:gap-5 sm:mx-0 sm:px-0 sm:pb-0">
+                {/* 6 Poster Cards: Mobile Swipe Carousel, Tablet 3-Col, Desktop 6-Col Grid */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0">
                   {banner.items.map((item) => {
                     const isLoading = loadingMediaId === item.id;
 
@@ -1012,7 +1136,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         key={item.id}
                         onClick={() => handleItemAction(item, 'details')}
                         onMouseEnter={playHover}
-                        className="group relative w-[130px] xs:w-[145px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border border-white/[0.1] hover:border-white/40 shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl cursor-pointer"
+                        className="group relative w-[140px] xs:w-[155px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-xl overflow-hidden bg-cinema-950 border border-white/[0.1] hover:border-white/40 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
                       >
                         {/* Poster Image with onError fallback */}
                         <img
@@ -1027,7 +1151,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         />
 
                         {/* Gradient Shadow Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
 
                         {/* Top Rating Badge */}
                         <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-bold text-amber-400">
@@ -1035,16 +1159,19 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           <span>{item.rating.toFixed(1)}</span>
                         </div>
 
-                        {/* Bottom Information */}
-                        <div className="absolute bottom-2 left-2 right-2 sm:bottom-2.5 sm:left-2.5 sm:right-2.5 z-10 space-y-0.5 pr-6 sm:pr-0">
-                          <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
+                        {/* Bottom Information with Title, Metadata, and Synopsis */}
+                        <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 z-10 space-y-0.5 sm:space-y-1 bg-gradient-to-t from-black/95 via-black/85 to-transparent pt-8 sm:pt-10 pr-7 sm:pr-2.5">
+                          <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow">
                             {item.title}
                           </h4>
-                          <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-slate-300/80">
+                          <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-300/90 font-medium">
                             <span>{item.year}</span>
                             <span>•</span>
-                            <span className="line-clamp-1">{item.genre}</span>
+                            <span className="line-clamp-1 text-slate-300 font-normal">{item.genre}</span>
                           </div>
+                          <p className="text-[10px] sm:text-[11px] text-slate-300/90 font-light line-clamp-2 leading-relaxed drop-shadow-sm">
+                            {item.synopsis}
+                          </p>
                         </div>
 
                         {/* Mobile / Tablet Quick-Play Button */}
