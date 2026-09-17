@@ -11,6 +11,7 @@ import { WatchSection } from './components/details/WatchSection';
 import { SearchModal } from './components/search/SearchModal';
 import { CustomStreamModal } from './components/custom/CustomStreamModal';
 import { ContinueWatchingRow } from './components/home/ContinueWatchingRow';
+import { ThematicShowcase } from './components/home/ThematicShowcase';
 import { HistoryView } from './components/history/HistoryView';
 import { WatchedView } from './components/history/WatchedView';
 import { AdvancedSearchView } from './components/search/AdvancedSearchView';
@@ -871,6 +872,10 @@ const MainContent: React.FC = () => {
                 <ContinueWatchingRow
                   onPlayMedia={(m, time, epId) => handleOpenMedia(m, time, epId)}
                   onOpenDetails={(m) => handleOpenMedia(m)}
+                />
+                <ThematicShowcase
+                  onPlayMedia={handleOpenMedia}
+                  onOpenDetails={handleOpenMedia}
                 />
                 <HomeLiveSearch
                   onPlayMedia={handleOpenMedia}
