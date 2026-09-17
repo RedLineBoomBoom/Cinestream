@@ -200,14 +200,14 @@ const DISCOVER_GENRES: GenreCategory[] = [
         synopsisId: 'Keseruan hidup para fisikawan kutu buku saat bertetangga dengan gadis pirang ceria.',
       },
       {
-        id: 'tv-124834',
-        tmdbId: 124834,
+        id: 'tv-124101',
+        tmdbId: 124101,
         type: 'tv',
         title: 'Hacks',
-        poster: 'https://image.tmdb.org/t/p/w500/dQc0QbDiHjGmWxTfKtBgYtS4bj5.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/8cpXau1LjYMBjiaHUS75JmlgGsU.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/ca5XiEFgyGsI38QT3wEKa1QVGX.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/bbAR4qKxjnjyKAt4YMrL725Mtfw.jpg',
         year: 2021,
-        rating: 8.6,
+        rating: 8.2,
         genreEn: 'Comedy, Showbiz',
         genreId: 'Komedi, Showbiz',
         synopsisEn: 'Explores a dark mentorship that forms between a legendary Las Vegas comedian and an entitled 25-year-old outcast.',
@@ -382,14 +382,14 @@ const DISCOVER_GENRES: GenreCategory[] = [
         synopsisId: 'Penghuni bunker bawah tanah menghadapi keanehan dunia luar bumi yang terdistorsi radiasi nuklir.',
       },
       {
-        id: 'tv-95557',
-        tmdbId: 95557,
+        id: 'tv-95396',
+        tmdbId: 95396,
         type: 'tv',
         title: 'Severance',
-        poster: 'https://image.tmdb.org/t/p/w500/4tblBrslcKSifMVZ3TmtT2ukMor.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/9qrroces8C6R9aKr08hACNPVXdZ.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/ixgFmf1X59PUZam2qbAfskx2gQr.jpg',
         year: 2022,
-        rating: 8.6,
+        rating: 8.4,
         genreEn: 'Sci-Fi Mystery, Psychological',
         genreId: 'Sci-Fi Misteri, Thriller',
         synopsisEn: 'Office workers whose memories are split between work and home discover a dark web of corporate conspiracies at Lumon.',
@@ -827,19 +827,19 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         logoArt: 'https://image.tmdb.org/t/p/w500/f7kz7QLMMfBnM9sMfri4q6FhuvE.png',
       },
       {
-        id: 'tv-4614',
-        tmdbId: 4614,
+        id: 'tv-4613',
+        tmdbId: 4613,
         type: 'tv',
         title: 'Band of Brothers',
-        poster: 'https://image.tmdb.org/t/p/w500/mBcu8d6x6zB1el3MPNl7cZQEQ31.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/c1aBrG5s5xFa6Tbnihu2Hhj4t2q.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/pGzV187ogXzgJrvPRy2YPi29ofH.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/2yDV0xLyqW88dn5qE7YCRnoYmfy.jpg',
         year: 2001,
-        rating: 8.5,
+        rating: 8.6,
         genreEn: 'WWII True History, War Drama',
         genreId: 'Sejarah Perang Dunia II',
         synopsisEn: 'The legendary true journey of the US Army Easy Company from jump training to the fall of Nazi Germany.',
         synopsisId: 'Perjuangan nyata kompi terjun payung Easy Company dalam pertempuran sengit PD II di tanah Eropa.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/qPPt1TxKmHhyjumbHdIJchBUVdq.png',
+        logoArt: 'https://image.tmdb.org/t/p/w500/cRYVIUJo0d5JJgD7g37gsq7TDwM.png',
       },
       {
         id: 'movie-899082',
@@ -1285,7 +1285,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   return next;
                 });
               }}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-7 sm:pt-10 sm:pb-9 lg:pt-12 lg:pb-10 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-7 sm:pt-11 sm:pb-9 lg:pt-14 lg:pb-10 overflow-hidden transition-colors duration-500`}
             >
               {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
               <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-transparent to-[#141414] pointer-events-none z-[4]" />
@@ -1308,8 +1308,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 }}
               />
 
-              {/* High-Impact Character Cutout PNG (Raised to upper-right hero position, clearly visible above the cards) */}
-              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-2 sm:top-3 md:top-4 lg:top-5 h-[270px] sm:h-[370px] md:h-[430px] lg:h-[490px] xl:h-[550px] 2xl:h-[600px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
+              {/* High-Impact Character Cutout PNG (Feathered top & bottom mask, perfectly framed above cards) */}
+              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-3 sm:top-5 md:top-6 lg:top-7 h-[270px] sm:h-[370px] md:h-[430px] lg:h-[490px] xl:h-[550px] 2xl:h-[600px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_8%,black_75%,transparent_100%)]">
                 <img
                   src={banner.cutoutArt}
                   alt={banner.cutoutAlt}
@@ -1323,7 +1323,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-20">
                 {/* Banner Header: Badge, Show Title Logo, & Tagline / Synopsis */}
-                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[96px] sm:min-h-[116px] lg:min-h-[136px] flex flex-col justify-end">
+                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[104px] sm:min-h-[124px] lg:min-h-[144px] flex flex-col justify-end">
                   {/* Category Pill / Badge with dynamic genre hint when hovered */}
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300 w-fit transition-all duration-300">
                     <Sparkles className="w-3 h-3 text-amber-400" />
