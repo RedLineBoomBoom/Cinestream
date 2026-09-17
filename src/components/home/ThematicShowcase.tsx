@@ -1285,7 +1285,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   return next;
                 });
               }}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-7 sm:pt-11 sm:pb-9 lg:pt-14 lg:pb-10 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-6 sm:pt-12 sm:pb-8 lg:pt-16 lg:pb-10 overflow-hidden transition-colors duration-500`}
             >
               {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
               <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-transparent to-[#141414] pointer-events-none z-[4]" />
@@ -1308,8 +1308,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 }}
               />
 
-              {/* High-Impact Character Cutout PNG (Feathered top & bottom mask, perfectly framed above cards) */}
-              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-3 sm:top-5 md:top-6 lg:top-7 h-[270px] sm:h-[370px] md:h-[430px] lg:h-[490px] xl:h-[550px] 2xl:h-[600px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_8%,black_75%,transparent_100%)]">
+              {/* High-Impact Character Cutout PNG (Feathered top & bottom mask, prominently revealed above compact cards) */}
+              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-2 sm:top-3 md:top-4 lg:top-5 h-[300px] sm:h-[400px] md:h-[470px] lg:h-[540px] xl:h-[610px] 2xl:h-[660px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_75%,transparent_100%)]">
                 <img
                   src={banner.cutoutArt}
                   alt={banner.cutoutAlt}
@@ -1321,9 +1321,9 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 />
               </div>
 
-              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-20">
+              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3 sm:space-y-4 z-20">
                 {/* Banner Header: Badge, Show Title Logo, & Tagline / Synopsis */}
-                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[104px] sm:min-h-[124px] lg:min-h-[144px] flex flex-col justify-end">
+                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[105px] sm:min-h-[130px] lg:min-h-[155px] flex flex-col justify-end">
                   {/* Category Pill / Badge with dynamic genre hint when hovered */}
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300 w-fit transition-all duration-300">
                     <Sparkles className="w-3 h-3 text-amber-400" />
@@ -1368,12 +1368,11 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   </p>
                 </div>
 
-                {/* 6 Poster Cards: Mobile Swipe Carousel, Tablet 3-Col, Desktop 6-Col Grid */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0 relative z-20">
+                {/* 6 Poster Cards: Compact sizing so character cutout behind is prominently visible */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-6 sm:gap-2.5 lg:gap-3 sm:mx-0 sm:px-0 sm:pb-0 max-w-5xl lg:max-w-6xl xl:max-w-[1360px] 2xl:max-w-[1440px] relative z-20">
                   {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
-                    const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
                     const isCardActive = hoveredIdx === idx;
 
                     return (
@@ -1387,7 +1386,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           playHover();
                           setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
                         }}
-                        className={`group relative w-[140px] xs:w-[155px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-xl overflow-hidden bg-cinema-950 border ${
+                        className={`group relative w-[115px] xs:w-[126px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[165px] xl:max-w-[180px] rounded-lg sm:rounded-xl overflow-hidden bg-cinema-950 border ${
                           isCardActive
                             ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-1.5 shadow-2xl shadow-amber-500/15'
                             : 'border-white/[0.1] hover:border-white/40'
@@ -1409,24 +1408,21 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
 
                         {/* Top Rating Badge */}
-                        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-bold text-amber-400">
+                        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[8.5px] sm:text-[9.5px] font-bold text-amber-400">
                           <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                           <span>{item.rating.toFixed(1)}</span>
                         </div>
 
-                        {/* Bottom Information with Title, Metadata, and Bilingual Synopsis */}
-                        <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 z-10 space-y-0.5 sm:space-y-1 bg-gradient-to-t from-black/95 via-black/85 to-transparent pt-8 sm:pt-10 pr-7 sm:pr-2.5">
-                          <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow">
+                        {/* Bottom Information with Title & Metadata */}
+                        <div className="absolute bottom-0 inset-x-0 p-2 sm:p-2.5 z-10 space-y-0.5 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-6 sm:pt-8 pr-6 sm:pr-2">
+                          <h4 className="text-[11px] sm:text-xs font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow leading-tight">
                             {item.title}
                           </h4>
-                          <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-300/90 font-medium">
+                          <div className="flex items-center gap-1 text-[8.5px] sm:text-[9.5px] text-amber-300/90 font-medium">
                             <span>{item.year}</span>
                             <span>•</span>
                             <span className="line-clamp-1 text-slate-300 font-normal">{displayGenre}</span>
                           </div>
-                          <p className="text-[10px] sm:text-[11px] text-slate-300/90 font-light line-clamp-2 leading-relaxed drop-shadow-sm">
-                            {displaySynopsis}
-                          </p>
                         </div>
 
                         {/* Mobile / Tablet Quick-Play Button */}
