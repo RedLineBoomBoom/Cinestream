@@ -101,11 +101,12 @@ export function appendSubtitleParams(rawUrl: string, lang: 'id' | 'en', autoPlay
     // Explicit language preference key to ensure complete iframe unmount & fresh embed context
     parsed.searchParams.set('pref_lang', subCode);
 
-    // Volume params — force max volume in embed players that respect URL params
+    // Volume params — set volume without forcing unmuted state so browser autoplay policies
+    // prevent rogue outstream/VAST background audio ads in third-party embed servers like AutoEmbed
     parsed.searchParams.set('volume', '100');
     parsed.searchParams.set('vol', '100');
-    parsed.searchParams.set('muted', '0');
-    parsed.searchParams.set('autoMute', '0');
+    parsed.searchParams.delete('muted');
+    parsed.searchParams.delete('autoMute');
     parsed.searchParams.set('primaryColor', 'E50914');
 
     if (autoPlay) {
