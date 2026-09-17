@@ -2723,6 +2723,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   })}
                 </div>
 
+                {/* Server 5 PC Browser Quick Tip */}
+                {(activeServer.id.includes('smashy') || activeServer.name.includes('Server 5') || activeServer.name.includes('SmashyStream')) && (
+                  <div
+                    className="hidden xl:flex items-center gap-1.5 bg-cyan-950/80 border border-cyan-500/40 text-cyan-200 text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md shadow-md cursor-help flex-shrink-0"
+                    title={
+                      language === 'en'
+                        ? 'Tip: If Server 5 is loading on PC, click "Tap to continue" inside the player, or pause your AdBlocker.'
+                        : 'Tips: Jika Server 5 loading lama di PC, klik "Tap to continue" di player atau jeda sejenak AdBlocker.'
+                    }
+                  >
+                    <span>💡</span>
+                    <span className="font-semibold text-cyan-300">
+                      {language === 'en' ? 'Click "Tap to continue" if loading' : 'Klik "Tap to continue" jika loading'}
+                    </span>
+                  </div>
+                )}
+
                 {/* Emergency / Smart Failover Button */}
                 <button
                   onClick={handleSmartFailover}

@@ -492,14 +492,14 @@ export function getDefaultServer(
     };
   }
 
-  // 1. KHUSUS Film & Series Indonesia: Prioritaskan Server 2 (AutoEmbed Ultra - Anti-Macet HD) atau Server 1 (VidSrc Prime)
+  // 1. KHUSUS Film & Series Indonesia: Prioritaskan Server 5 (SmashyStream: Sub Indo Multi-Host) sebagai andalan utama
   if (isIndonesianMedia(media)) {
-    const server2 = list.find((s) => {
+    const server5 = list.find((s) => {
       const id = (s.id || '').toLowerCase();
       const name = (s.name || '').toLowerCase();
-      return id.includes('autoembed') || name.includes('server 2') || name.includes('server-2');
+      return id.includes('smashy') || id.includes('vidsrc-pro') || name.includes('server 5') || name.includes('server-5') || id.includes('server-5');
     });
-    if (server2) return server2;
+    if (server5) return server5;
 
     const server1 = list.find((s) => {
       const id = (s.id || '').toLowerCase();
@@ -508,15 +508,22 @@ export function getDefaultServer(
     });
     if (server1) return server1;
 
-    const server5 = list.find((s) => {
+    const server4 = list.find((s) => {
       const id = (s.id || '').toLowerCase();
       const name = (s.name || '').toLowerCase();
-      return id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('server 5') || name.includes('server-5') || id.includes('server-5');
+      return id.includes('multiembed') || name.includes('server 4') || name.includes('server-4');
     });
-    if (server5) return server5;
+    if (server4) return server4;
+
+    const server3 = list.find((s) => {
+      const id = (s.id || '').toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      return id.includes('2embed') || name.includes('server 3') || name.includes('server-3');
+    });
+    if (server3) return server3;
   }
 
-  // 2. KHUSUS Anime: Prioritaskan Server 3 (2Embed: Original Japanese Audio), lalu Server 5 (VidSrc Pro: Multi-Sub Cepat)
+  // 2. KHUSUS Anime: Prioritaskan Server 3 (2Embed: Original Japanese Audio), lalu Server 5 (SmashyStream: Sub Indo Multi-Host)
   if (isAnimeMedia(media)) {
     const serverAnime = list.find((s) => {
       const id = (s.id || '').toLowerCase();
@@ -528,7 +535,7 @@ export function getDefaultServer(
     const serverPro = list.find((s) => {
       const id = (s.id || '').toLowerCase();
       const name = (s.name || '').toLowerCase();
-      return id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('server 5') || name.includes('server-5');
+      return id.includes('smashy') || id.includes('vidsrc-pro') || name.includes('server 5') || name.includes('server-5');
     });
     if (serverPro) return serverPro;
   }
@@ -559,16 +566,10 @@ export function getServerBadgeInfo(
 
   // Indonesian cinema badges
   if (isIndonesian) {
-    if (id.includes('autoembed') || name.includes('autoembed')) {
+    if (id.includes('smashy') || id.includes('vidsrc-pro') || name.includes('smashy') || name.includes('server 5')) {
       return {
-        label: lang === 'en' ? '⚡ 60fps HD (Recommended)' : '⚡ 60fps HD (Rekomendasi)',
+        label: lang === 'en' ? '🇮🇩 Indo Cinema (Primary)' : '🇮🇩 Utama Sinema Indo (Server 5)',
         color: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30 font-bold',
-      };
-    }
-    if (id.includes('vidsrc-pro') || id.includes('smashy') || name.includes('vidsrc pro') || name.includes('server 5')) {
-      return {
-        label: lang === 'en' ? '🇮🇩 Multi-Sub Pro (S5)' : '🇮🇩 Multi-Sub Cepat (Server 5)',
-        color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30 font-bold',
       };
     }
     if (id.includes('vidsrc') || name.includes('vidsrc')) {
@@ -577,10 +578,22 @@ export function getServerBadgeInfo(
         color: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
       };
     }
+    if (id.includes('multiembed') || name.includes('multiembed') || name.includes('server 4')) {
+      return {
+        label: lang === 'en' ? '🔄 Multi-Source Failover' : '🔄 Multi-Sumber Cadangan',
+        color: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
+      };
+    }
     if (id.includes('2embed') || name.includes('2embed')) {
       return {
         label: lang === 'en' ? '🌏 Asian Backup' : '🌏 Cadangan Asia',
         color: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+      };
+    }
+    if (id.includes('autoembed') || name.includes('autoembed')) {
+      return {
+        label: lang === 'en' ? '⚡ Global / Hollywood Only' : '⚡ Khusus Film Global',
+        color: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
       };
     }
   }

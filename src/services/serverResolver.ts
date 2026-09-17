@@ -86,23 +86,23 @@ export async function resolveBestServer(options: {
     const url = (srv.url || '').toLowerCase();
     let baseScore = 50;
 
-    if (id.includes('vidsrc-pro') || url.includes('vidsrc.pm') || id.includes('smashy')) {
-      // VidSrc Pro: NextGen Cloud Fabric with fast multi-subtitles
-      baseScore += isIndo ? 50 : isAnime ? 45 : isAsian ? 45 : 40;
+    if (id.includes('smashy') || id.includes('vidsrc-pro') || url.includes('smashystream') || url.includes('anyembed')) {
+      // Server 5: SmashyStream (Sub Indo Multi-Host) - primary hub for Indonesian cinema & series
+      baseScore += isIndo ? 75 : isAnime ? 45 : isAsian ? 45 : 40;
     } else if (id.includes('autoembed') || url.includes('autoembed')) {
-      // Ultra-fast CDN 60fps HD with verified Indonesian movie coverage
-      baseScore += isIndo ? 65 : isAnime ? -20 : isAsian ? 30 : 60;
+      // AutoEmbed: Great for Hollywood/Western, but does not catalog Indonesian cinema/indie titles (leads to 404)
+      baseScore += isIndo ? -40 : isAnime ? -20 : isAsian ? 30 : 60;
     } else if (id.includes('2embed') || url.includes('2embed')) {
       // 2Embed has proven unmatched coverage for Asian drama & Anime original Japanese audio
       baseScore += isIndo ? 35 : isAnime ? 65 : isAsian ? 55 : 35;
     } else if (id.includes('vidlink') || url.includes('vidlink')) {
       // VidLink supports dual audio track switching
-      baseScore += isIndo ? 40 : isAnime ? 35 : 30;
+      baseScore += isIndo ? 30 : isAnime ? 35 : 30;
     } else if (id.includes('vidsrc') || url.includes('vidsrc')) {
       // VidSrc Prime has massive global library for Hollywood, local, and worldwide titles
       baseScore += isIndo ? 55 : isAnime ? 25 : isAsian ? 45 : 55;
     } else if (id.includes('multiembed') || url.includes('multiembed')) {
-      baseScore += 28;
+      baseScore += isIndo ? 45 : 28;
     }
 
     return { server: srv, baseScore };
@@ -118,37 +118,37 @@ export async function resolveBestServer(options: {
           signal: AbortSignal.timeout(1800),
         });
         const latency = Math.round(performance.now() - t0);
-        const latencyBonus = Math.max(0, Math.round(25 - latency / 80));
+        // Reward faster latency
+        const latencyBonus = Math.max(0, 30 - Math.floor(latency / 50));
         return {
-          ...item,
-          totalScore: item.baseScore + latencyBonus,
+          server: item.server,
           latency,
-          isHealthy: true,
+          totalScore: item.baseScore + latencyBonus,
         };
       } catch {
+        // Fallback score if ping times out or fails
         return {
-          ...item,
-          totalScore: item.baseScore - 60,
-          latency: 9999,
-          isHealthy: false,
+          server: item.server,
+          latency: 999,
+          totalScore: item.baseScore - 15,
         };
       }
     })
   );
 
-  // 5. Select Champion Server
+  // 5. Select the highest scored server
   probeResults.sort((a, b) => b.totalScore - a.totalScore);
   const winner = probeResults[0];
 
   const rawClean = winner.server.name.split('•')[1]?.trim() || winner.server.name;
   const cleanName = formatServerName(rawClean, lang);
   let reason = '';
-  if (isIndo && (winner.server.id.includes('autoembed') || winner.server.id.includes('vidsrc'))) {
-    reason = lang === 'en' ? 'Verified Ultra-Fast Indonesian Stream' : 'Jalur Lancar Sinema & Serial Indonesia';
+  if (isIndo && (winner.server.id.includes('smashy') || winner.server.url.includes('smashystream') || winner.server.id.includes('vidsrc'))) {
+    reason = lang === 'en' ? 'Verified Indonesian Cinema Primary Stream' : 'Jalur Andalan Sinema & Serial Indonesia';
   } else if (isAnime && winner.server.id.includes('2embed')) {
     reason = lang === 'en' ? 'Original Japanese Audio (Subbed)' : 'Prioritas Audio Asli Jepang (Sub)';
-  } else if (winner.server.id.includes('vidsrc-pro') || winner.server.url.includes('vidsrc.pm')) {
-    reason = lang === 'en' ? 'NextGen Multi-Sub & Fast Stream' : 'Jalur Cepat Multi-Sub HD';
+  } else if (winner.server.id.includes('smashy') || winner.server.url.includes('smashystream')) {
+    reason = lang === 'en' ? 'SmashyStream Sub Indo Multi-Host' : 'SmashyStream Sub Indo Multi-Host';
   } else if (isAsian && (winner.server.id.includes('2embed') || winner.server.id.includes('vidlink'))) {
     reason = lang === 'en' ? 'Optimized for Asian Drama & Cinema' : 'Optimal untuk Drama & Sinema Asia';
   } else if (winner.latency < 700) {
