@@ -12,6 +12,7 @@ import { SearchModal } from './components/search/SearchModal';
 import { CustomStreamModal } from './components/custom/CustomStreamModal';
 import { ContinueWatchingRow } from './components/home/ContinueWatchingRow';
 import { ThematicShowcase } from './components/home/ThematicShowcase';
+import { HomeFaqSection } from './components/home/HomeFaqSection';
 import { HistoryView } from './components/history/HistoryView';
 import { WatchedView } from './components/history/WatchedView';
 import { AdvancedSearchView } from './components/search/AdvancedSearchView';
@@ -881,6 +882,7 @@ const MainContent: React.FC = () => {
                   onPlayMedia={handleOpenMedia}
                   onOpenDetails={handleOpenMedia}
                 />
+                <HomeFaqSection />
               </>
             )}
 
