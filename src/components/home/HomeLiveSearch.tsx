@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   X,
@@ -103,7 +104,9 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   const sectionRef = useRef<HTMLElement>(null);
   const searchCardRef = useRef<HTMLDivElement>(null);
   const floatingInputRef = useRef<HTMLInputElement>(null);
+  const floatingContainerRef = useRef<HTMLDivElement>(null);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
+  const [isFloatingDropdownOpen, setIsFloatingDropdownOpen] = useState(true);
 
   // Trending on TMDB Collapsible Dropdown State
   const [isTrendingOpen, setIsTrendingOpen] = useState<boolean>(() => {
@@ -133,13 +136,28 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
     });
   };
 
+  // Close floating dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        floatingContainerRef.current &&
+        !floatingContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsFloatingDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Floating Pop Up Search Bar: appears when scrolling down past search bar, returns when scrolling back up to it
   useEffect(() => {
     const handleScroll = () => {
       if (searchCardRef.current) {
         const rect = searchCardRef.current.getBoundingClientRect();
-        // As soon as the main search card scrolls above the viewport
-        const isPast = rect.bottom <= 40;
+        // Trigger as soon as the main search card scrolls behind the sticky navbar (~70px)
+        const isPast = rect.bottom <= 70;
         setShowFloatingBar(isPast);
       }
     };
@@ -408,187 +426,207 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#E50914]/5 blur-[120px] pointer-events-none -z-10" />
 
       {/* Floating Pop Up Search Bar (Appears when scrolling down past search bar, returns when scrolling back up) */}
-      <div
-        className={`fixed top-3 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-4 transition-all duration-300 ease-out ${
-          showFloatingBar
-            ? 'translate-y-0 opacity-100 scale-100 pointer-events-auto'
-            : '-translate-y-24 opacity-0 scale-95 pointer-events-none'
-        }`}
-      >
-        <div className="relative max-w-2xl w-full">
-          <div className="w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/30 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_20px_rgba(229,9,20,0.25)] flex items-center gap-2 sm:gap-3 transition-all">
-            {/* Glowing Red Search Icon / Spinner */}
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#E50914]/40">
-              {isSearching ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-              ) : (
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              )}
-            </div>
-
-            {/* Quick Search Input */}
-            <input
-              ref={floatingInputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-              placeholder={
-                activeFilter === 'anime'
-                  ? language === 'en'
-                    ? 'Search anime...'
-                    : 'Cari anime...'
-                  : language === 'en'
-                  ? 'Search movies, series, anime...'
-                  : 'Cari film, serial, anime...'
-              }
-              className="flex-1 bg-transparent text-white placeholder:text-neutral-400 text-xs sm:text-sm font-light focus:outline-none min-w-0"
-            />
-
-            {/* Clear Button */}
-            {query && (
-              <button
-                type="button"
-                onClick={handleClearQuery}
-                className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
-                title={language === 'en' ? 'Clear' : 'Hapus'}
-                aria-label={language === 'en' ? 'Clear' : 'Hapus'}
-              >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            )}
-
-            {/* Quick Filter Pills (visible on tablet/desktop) */}
-            <div className="hidden sm:flex items-center gap-1 border-l border-white/10 pl-2 shrink-0">
-              {(['all', 'movie', 'tv', 'anime'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => handleSelectFilter(filter)}
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
-                    activeFilter === filter
-                      ? filter === 'anime'
-                        ? 'bg-fuchsia-600 text-white font-bold shadow-sm'
-                        : filter === 'all'
-                        ? 'bg-white text-black font-bold shadow-sm'
-                        : 'bg-[#E50914] text-white font-bold shadow-sm shadow-[#E50914]/40'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {filter === 'all'
-                    ? language === 'en'
-                      ? 'All'
-                      : 'Semua'
-                    : filter === 'movie'
-                    ? language === 'en'
-                      ? 'Movies'
-                      : 'Film'
-                    : filter === 'tv'
-                    ? language === 'en'
-                      ? 'Series'
-                      : 'Serial'
-                    : 'Anime'}
-                </button>
-              ))}
-            </div>
-
-            {/* Jump to Main Search Bar Button */}
-            <button
-              type="button"
-              onClick={() => {
-                playClick();
-                searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => inputRef.current?.focus(), 400);
-              }}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-              title={language === 'en' ? 'Back to Search Card' : 'Kembali ke Kolom Pencarian'}
-              aria-label="Back to Search Card"
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className={`fixed top-[62px] sm:top-[70px] lg:top-[78px] inset-x-0 z-[45] flex justify-center px-3 sm:px-6 pointer-events-none transition-all duration-300 ease-out ${
+              showFloatingBar
+                ? 'translate-y-0 opacity-100 scale-100'
+                : '-translate-y-8 opacity-0 scale-95 pointer-events-none'
+            }`}
+          >
+            <div
+              ref={floatingContainerRef}
+              className={`relative max-w-xl md:max-w-2xl w-full transition-all ${
+                showFloatingBar ? 'pointer-events-auto' : 'pointer-events-none'
+              }`}
             >
-              <ArrowUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          </div>
-
-          {/* Quick Floating Live Search Results Pop-up Dropdown */}
-          {query.trim() && (
-            <div className="absolute top-full mt-2 inset-x-0 bg-[#181818]/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden p-2 space-y-1 z-50 max-h-[380px] overflow-y-auto animate-fadeIn">
-              {isSearching ? (
-                <div className="py-6 flex items-center justify-center gap-2 text-xs text-neutral-400">
-                  <Loader2 className="w-4 h-4 text-[#E50914] animate-spin" />
-                  <span>{language === 'en' ? 'Searching...' : 'Mencari...'}</span>
+              <div className="w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/35 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_25px_rgba(229,9,20,0.3)] flex items-center gap-2 sm:gap-3 transition-all">
+                {/* Glowing Red Search Icon / Spinner */}
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#E50914]/40">
+                  {isSearching ? (
+                    <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  )}
                 </div>
-              ) : results.length > 0 ? (
-                <>
-                  <div className="px-3 py-1 flex items-center justify-between text-[11px] text-neutral-400 font-mono border-b border-white/[0.06]">
-                    <span>{language === 'en' ? 'Quick Results' : 'Hasil Cepat'}</span>
-                    <span className="text-[#E50914]">{results.length} {language === 'en' ? 'found' : 'ditemukan'}</span>
-                  </div>
-                  {results.slice(0, 5).map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectMedia(item, 'play')}
-                      onMouseEnter={playHover}
-                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
-                    >
-                      <img
-                        src={getMediaPoster(item, language)}
-                        alt={getMediaTitle(item, language)}
-                        className="w-10 h-14 object-cover rounded-lg shrink-0 shadow-sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-white group-hover:text-[#E50914] truncate transition-colors">
-                          {getMediaTitle(item, language)}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono mt-0.5">
-                          <span>{item.year || 'N/A'}</span>
-                          <span>•</span>
-                          <span className="uppercase">{item.mediaType}</span>
-                          {item.rating > 0 && (
-                            <>
-                              <span>•</span>
-                              <span className="text-amber-400">★ {item.rating.toFixed(1)}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectMedia(item, 'details');
-                        }}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white transition-colors cursor-pointer"
-                        title={language === 'en' ? 'Details' : 'Detail'}
-                      >
-                        <Info className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+
+                {/* Quick Search Input */}
+                <input
+                  ref={floatingInputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setIsFloatingDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsFloatingDropdownOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else if (e.key === 'Escape') {
+                      setIsFloatingDropdownOpen(false);
+                    }
+                  }}
+                  placeholder={
+                    activeFilter === 'anime'
+                      ? language === 'en'
+                        ? 'Search anime...'
+                        : 'Cari anime...'
+                      : language === 'en'
+                      ? 'Search movies, series...'
+                      : 'Cari film, serial...'
+                  }
+                  className="flex-1 bg-transparent text-white placeholder:text-neutral-400 text-xs sm:text-sm font-light focus:outline-none min-w-0"
+                />
+
+                {/* Clear Button */}
+                {query && (
                   <button
                     type="button"
-                    onClick={() => {
-                      playClick();
-                      searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className="w-full py-2 text-center text-xs text-[#E50914] hover:text-white font-semibold hover:bg-[#E50914]/20 rounded-xl transition-colors cursor-pointer mt-1"
+                    onClick={handleClearQuery}
+                    className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                    title={language === 'en' ? 'Clear' : 'Hapus'}
+                    aria-label={language === 'en' ? 'Clear' : 'Hapus'}
                   >
-                    {language === 'en'
-                      ? `View all ${results.length} results in catalog ↓`
-                      : `Lihat semua ${results.length} hasil di katalog ↓`}
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
-                </>
-              ) : (
-                <div className="py-6 text-center text-xs text-neutral-400">
-                  {language === 'en' ? 'No matches found' : 'Tidak ada tayangan yang cocok'}
+                )}
+
+                {/* Quick Filter Pills (visible on tablet/desktop) */}
+                <div className="hidden sm:flex items-center gap-1 border-l border-white/10 pl-2 shrink-0">
+                  {(['all', 'movie', 'tv', 'anime'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => handleSelectFilter(filter)}
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                        activeFilter === filter
+                          ? filter === 'anime'
+                            ? 'bg-fuchsia-600 text-white font-bold shadow-sm'
+                            : filter === 'all'
+                            ? 'bg-white text-black font-bold shadow-sm'
+                            : 'bg-[#E50914] text-white font-bold shadow-sm shadow-[#E50914]/40'
+                          : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {filter === 'all'
+                        ? language === 'en'
+                          ? 'All'
+                          : 'Semua'
+                        : filter === 'movie'
+                        ? language === 'en'
+                          ? 'Movies'
+                          : 'Film'
+                        : filter === 'tv'
+                        ? language === 'en'
+                          ? 'Series'
+                          : 'Serial'
+                        : 'Anime'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Jump to Main Search Bar Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => inputRef.current?.focus(), 400);
+                  }}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                  title={language === 'en' ? 'Back to Search Card' : 'Kembali ke Kolom Pencarian'}
+                  aria-label="Back to Search Card"
+                >
+                  <ArrowUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+
+              {/* Quick Floating Live Search Results Pop-up Dropdown */}
+              {query.trim() && isFloatingDropdownOpen && (
+                <div className="absolute top-full mt-2 inset-x-0 bg-[#181818]/98 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden p-2 space-y-1 z-50 max-h-[min(380px,calc(100vh-160px))] overflow-y-auto animate-fadeIn">
+                  {isSearching ? (
+                    <div className="py-6 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                      <Loader2 className="w-4 h-4 text-[#E50914] animate-spin" />
+                      <span>{language === 'en' ? 'Searching...' : 'Mencari...'}</span>
+                    </div>
+                  ) : results.length > 0 ? (
+                    <>
+                      <div className="px-3 py-1 flex items-center justify-between text-[11px] text-neutral-400 font-mono border-b border-white/[0.06]">
+                        <span>{language === 'en' ? 'Quick Results' : 'Hasil Cepat'}</span>
+                        <span className="text-[#E50914]">{results.length} {language === 'en' ? 'found' : 'ditemukan'}</span>
+                      </div>
+                      {results.slice(0, 5).map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setIsFloatingDropdownOpen(false);
+                            handleSelectMedia(item, 'play');
+                          }}
+                          onMouseEnter={playHover}
+                          className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
+                        >
+                          <img
+                            src={getMediaPoster(item, language)}
+                            alt={getMediaTitle(item, language)}
+                            className="w-10 h-14 object-cover rounded-lg shrink-0 shadow-sm"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold text-white group-hover:text-[#E50914] truncate transition-colors">
+                              {getMediaTitle(item, language)}
+                            </h4>
+                            <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono mt-0.5">
+                              <span>{item.year || 'N/A'}</span>
+                              <span>•</span>
+                              <span className="uppercase">{item.mediaType}</span>
+                              {item.rating > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-amber-400">★ {item.rating.toFixed(1)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsFloatingDropdownOpen(false);
+                              handleSelectMedia(item, 'details');
+                            }}
+                            className="p-1.5 rounded-lg bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                            title={language === 'en' ? 'Details' : 'Detail'}
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playClick();
+                          setIsFloatingDropdownOpen(false);
+                          searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="w-full py-2 text-center text-xs text-[#E50914] hover:text-white font-semibold hover:bg-[#E50914]/20 rounded-xl transition-colors cursor-pointer mt-1"
+                      >
+                        {language === 'en'
+                          ? `View all ${results.length} results in catalog ↓`
+                          : `Lihat semua ${results.length} hasil di katalog ↓`}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="py-6 text-center text-xs text-neutral-400">
+                      {language === 'en' ? 'No matches found' : 'Tidak ada tayangan yang cocok'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>,
+          document.body
+        )}
 
       {/* Main Search Bar Card */}
       <div
