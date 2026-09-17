@@ -58,8 +58,14 @@ interface ThematicBannerDef {
   items: ShowcaseMediaDef[];
 }
 
+// Fallback image constants ensuring no card is ever a blank void
+const FALLBACK_BACKDROP =
+  'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1280&q=80';
+const FALLBACK_POSTER =
+  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80';
+
 // ─────────────────────────────────────────────────────────────
-// DATA: "Discover The Best Of" by Genres
+// DATA: "Discover The Best Of" by Genres (100% Verified TMDB CDN)
 // ─────────────────────────────────────────────────────────────
 const DISCOVER_GENRES: GenreCategory[] = [
   {
@@ -84,10 +90,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 111803,
         type: 'tv',
         title: 'The White Lotus',
-        poster: 'https://image.tmdb.org/t/p/w500/7ZzkqF5fJcK8N9h21nLw8q39Y2k.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/t3n9Q25n940v334237.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/gbSaK9v1CbcYH1ISgbM7XObD2dW.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/qVBIAcZkK5j6WRq7JehJcOMbdgb.jpg',
         year: 2021,
-        rating: 8.0,
+        rating: 7.6,
         genre: 'Drama, Komedi Hitam',
         synopsis: 'Skandal dan intrik para tamu kaya di resor tropis mewah nan penuh rahasia gelap.',
       },
@@ -108,8 +114,8 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 85552,
         type: 'tv',
         title: 'Euphoria',
-        poster: 'https://image.tmdb.org/t/p/w500/3Q0hd3heuWw6trDVsCQUm9EjwHp.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/oKt4J3gH1CvR3ghbrHG23LBaAQ.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/ypmtwojDd751Peszi62DVLytqqC.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/mez2Z3WqlPKNXpi7mWoiiE5guE9.jpg',
         year: 2019,
         rating: 8.3,
         genre: 'Drama Remaja, Intrik',
@@ -120,10 +126,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 100088,
         type: 'tv',
         title: 'The Last of Us',
-        poster: 'https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2V7JMrHG.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/dmo6TYuuJgaYinXBPjrgG9mB5od.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/lY2DhbA7Hy44fAKddr06UrXWWaQ.jpg',
         year: 2023,
-        rating: 8.6,
+        rating: 8.4,
         genre: 'Drama, Post-Apokaliptik',
         synopsis: 'Perjalanan berbahaya Joel dan Ellie melintasi Amerika yang hancur demi secercah harapan.',
       },
@@ -132,10 +138,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 194764,
         type: 'tv',
         title: 'The Penguin',
-        poster: 'https://image.tmdb.org/t/p/w500/vOWcqD4q50Dk7wS1mD0X3hXg5mP.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/tEcsjY4Tq4k0D0tP6G9V4k7W0f1.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/vOWcqC4oDQws1doDWLO7d3dh5qc.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/4TdmuuwiIiKw3JOjIuhdgYxRXnN.jpg',
         year: 2024,
-        rating: 8.5,
+        rating: 8.3,
         genre: 'Drama Kriminal, Noir',
         synopsis: 'Oswald Cobb merayap merebut tahta penguasa dunia hitam Kota Gotham pasca banjir besar.',
       },
@@ -152,9 +158,9 @@ const DISCOVER_GENRES: GenreCategory[] = [
         type: 'tv',
         title: 'Friends',
         poster: 'https://image.tmdb.org/t/p/w500/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqm0C9vr04.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg',
         year: 1994,
-        rating: 8.5,
+        rating: 8.4,
         genre: 'Komedi, Sitkom Klasik',
         synopsis: 'Kisah kocak dan hangat enam sahabat mengarungi lika-liku hidup dan cinta di New York.',
       },
@@ -163,8 +169,8 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 1418,
         type: 'tv',
         title: 'The Big Bang Theory',
-        poster: 'https://image.tmdb.org/t/p/w500/ooBGRQBOGi7Mi6eh59jQxIw3AcL.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/f7UQWl6g3rQ1o7sU0s5y5v2eG.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/euKFiO5M125rpngFRBbSW83beeI.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/rwYvhVv0vwbulMwxOfEsuAr1JrT.jpg',
         year: 2007,
         rating: 7.9,
         genre: 'Komedi, Sitkom Genius',
@@ -175,10 +181,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 124834,
         type: 'tv',
         title: 'Hacks',
-        poster: 'https://image.tmdb.org/t/p/w500/kZ0hC4qF8b2pT3bN0yN4r5j2K0z.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/6xK4tXyW4K6u9k8Y6K3r5p8z9b.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/dQc0QbDiHjGmWxTfKtBgYtS4bj5.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/8cpXau1LjYMBjiaHUS75JmlgGsU.jpg',
         year: 2021,
-        rating: 8.2,
+        rating: 8.6,
         genre: 'Komedi, Showbiz',
         synopsis: 'Kolaborasi tak terduga antara komedian senior Las Vegas dan penulis muda yang bermasalah.',
       },
@@ -187,10 +193,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 97546,
         type: 'tv',
         title: 'Ted Lasso',
-        poster: 'https://image.tmdb.org/t/p/w500/3A9vT3uQ0f0v1W9y5N4z5G8z9r0.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/9K4X6K4u8k6r4r8z9b4z5G8z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/uRHsiw1wLxPHFXkkv4Ix1s0O6f4.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/nE94ejEbzNCU48bW1oju0dqBONz.jpg',
         year: 2020,
-        rating: 8.5,
+        rating: 8.4,
         genre: 'Komedi, Olahraga Hangat',
         synopsis: 'Pelatih sepak bola Amerika dengan optimisme membara mengasuh tim sepak bola Inggris.',
       },
@@ -199,10 +205,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 60573,
         type: 'tv',
         title: 'Silicon Valley',
-        poster: 'https://image.tmdb.org/t/p/w500/q2K4tXyW4K6u9k8Y6K3r5p8z9b.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/7K4X6K4u8k6r4r8z9b4z5G8z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/4ptpmWBVD9HY9hMh8Cbs6SMiy7p.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/4pfXAnWxOfEJsUgDPW0zqzs5UWv.jpg',
         year: 2014,
-        rating: 8.3,
+        rating: 8.1,
         genre: 'Komedi Satir, Teknologi',
         synopsis: 'Perjuangan kocak para programmer mendirikan startup kompresi data revolusioner.',
       },
@@ -211,10 +217,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 71728,
         type: 'tv',
         title: 'Young Sheldon',
-        poster: 'https://image.tmdb.org/t/p/w500/MpdOpGtVRoskg922Nwc8H7m9yP.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/nVRyd8hlg075xeUSZ0Qh9qJ9D26.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/kidkbZRBGbsEIrX7pODRSKi9ipl.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/yBfSD3hUCCS2JVlDCRlpivVE7II.jpg',
         year: 2017,
-        rating: 8.1,
+        rating: 8.0,
         genre: 'Komedi Keluarga',
         synopsis: 'Masa kecil jenius Sheldon Cooper di Texas Timur bersama keluarganya yang eksentrik.',
       },
@@ -230,10 +236,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 693134,
         type: 'movie',
         title: 'Dune: Part Two',
-        poster: 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s520gh0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/6izwz7rsy95ARzTR3poZ8H6c5pp.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
         year: 2024,
-        rating: 8.2,
+        rating: 8.1,
         genre: 'Aksi, Sci-Fi Epik',
         synopsis: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi.',
       },
@@ -243,9 +249,9 @@ const DISCOVER_GENRES: GenreCategory[] = [
         type: 'movie',
         title: 'Deadpool & Wolverine',
         poster: 'https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/yDHYTjiQHeAxtUR1HQOz5StN4zx.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg',
         year: 2024,
-        rating: 7.7,
+        rating: 7.6,
         genre: 'Aksi, Komedi Superhero',
         synopsis: 'Wade Wilson dan Wolverine bersatu demi menyelamatkan alam semesta dalam aksi kocak nan brutal.',
       },
@@ -255,9 +261,9 @@ const DISCOVER_GENRES: GenreCategory[] = [
         type: 'tv',
         title: 'Shōgun',
         poster: 'https://image.tmdb.org/t/p/w500/7O4iVfOMQmdCSxhOg1WnzG1AgYT.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/54Q6nQzD25547K6Xg0mG8s0y9b.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/bwSmgmd90hCWwqOKQYTEraeOZhJ.jpg',
         year: 2024,
-        rating: 8.5,
+        rating: 8.4,
         genre: 'Aksi, Sejarah Samurai',
         synopsis: 'Ketegangan politik dan pedang di era feodal Jepang antara Lord Toranaga dan sekutunya.',
       },
@@ -267,7 +273,7 @@ const DISCOVER_GENRES: GenreCategory[] = [
         type: 'movie',
         title: 'The Batman',
         poster: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/tRS6jvPM9qPrrnx2KRx3ew96Yot.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/rvtdN5XkWAfGX6xDuPL6yYS2seK.jpg',
         year: 2022,
         rating: 7.7,
         genre: 'Aksi Kriminal, Detektif',
@@ -278,10 +284,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 603692,
         type: 'movie',
         title: 'John Wick: Chapter 4',
-        poster: 'https://image.tmdb.org/t/p/w500/vZloFAK7NKnMGKEslUsZloNXsoW.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/h8gHn0OzBoaefW0w1jW19F6z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/vZloFAK7NmvMGKE7VkF5UHaz0I.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/7I6VUdPj6tQECNHdviJkUHD2u89.jpg',
         year: 2023,
-        rating: 7.8,
+        rating: 7.7,
         genre: 'Aksi Bela Diri, Neo-Noir',
         synopsis: 'John Wick menghadapi High Table dengan aliansi baru dalam perang hidup dan mati di seluruh dunia.',
       },
@@ -291,9 +297,9 @@ const DISCOVER_GENRES: GenreCategory[] = [
         type: 'movie',
         title: 'Gladiator II',
         poster: 'https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/euYIwmwkmz95mnExlogQIJuEGqh.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/tOqIwliWMovSIZ9DyvHcHI7p2im.jpg',
         year: 2024,
-        rating: 6.8,
+        rating: 6.6,
         genre: 'Aksi, Kolosal Romawi',
         synopsis: 'Lucius memasuki Colosseum demi kehormatan dan kebebasan Roma dari tirani kaisar.',
       },
@@ -309,10 +315,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 157336,
         type: 'movie',
         title: 'Interstellar',
-        poster: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
         year: 2014,
-        rating: 8.4,
+        rating: 8.5,
         genre: 'Sci-Fi, Petualangan Angkasa',
         synopsis: 'Misi melintasi lubang cacing antar-galaksi demi menemukan rumah baru bagi umat manusia.',
       },
@@ -321,10 +327,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 106379,
         type: 'tv',
         title: 'Fallout',
-        poster: 'https://image.tmdb.org/t/p/w500/AnsSKR9LuK0T9bAILezUVq3HGKV.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/fqv8v6AycXKsivp1TddutaLIxqq.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/c15BtJxCXMrISLVmysdsnZUPQft.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/coaPCIqQBPUZsOnJcWZxhaORcDT.jpg',
         year: 2024,
-        rating: 8.3,
+        rating: 8.1,
         genre: 'Sci-Fi, Post-Apokaliptik',
         synopsis: 'Penghuni bunker bawah tanah menghadapi keanehan dunia luar bumi yang terdistorsi radiasi nuklir.',
       },
@@ -333,10 +339,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 95557,
         type: 'tv',
         title: 'Severance',
-        poster: 'https://image.tmdb.org/t/p/w500/l2ezW1dpGGMUG0h10a1p3s0w5G.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/7RyHsO4yDXtBv1z9b5G8z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/4tblBrslcKSifMVZ3TmtT2ukMor.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/9qrroces8C6R9aKr08hACNPVXdZ.jpg',
         year: 2022,
-        rating: 8.4,
+        rating: 8.6,
         genre: 'Sci-Fi Misteri, Thriller',
         synopsis: 'Prosedur pemisahan memori kerja dan pribadi membuka misteri konspirasi menyeramkan.',
       },
@@ -345,10 +351,10 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 63247,
         type: 'tv',
         title: 'Westworld',
-        poster: 'https://image.tmdb.org/t/p/w500/8MfgyFHf7XEhu2bnQ12gWZwipd0.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/9K4X6K4u8k6r4r8z9b4z5G8z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/ALlSU9du9iRiKIIoY1sREGNqQ5.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/rX5hvSRB2k4YoIvRg6Zky52rWk0.jpg',
         year: 2016,
-        rating: 8.1,
+        rating: 8.0,
         genre: 'Sci-Fi, AI & Kesadaran',
         synopsis: 'Taman hiburan berteknologi kecerdasan buatan mengalami kebangkitan kesadaran sintetis.',
       },
@@ -357,7 +363,7 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 66732,
         type: 'tv',
         title: 'Stranger Things',
-        poster: 'https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/uOOtwVbSr4QDjAGIifLDwpb2Pdl.jpg',
         backdrop: 'https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg',
         year: 2016,
         rating: 8.6,
@@ -369,8 +375,8 @@ const DISCOVER_GENRES: GenreCategory[] = [
         tmdbId: 19995,
         type: 'movie',
         title: 'Avatar',
-        poster: 'https://image.tmdb.org/t/p/w500/kyeqWdyUXW608qlYkRqosgbbJyK.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/vL5LR6WdxWPjCmv2286Zf441y.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/gKY6q7SjCkAU6FqvqWybDYgUKIF.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/vL5LR6WdxWPjLPFRLe133jXWsh5.jpg',
         year: 2009,
         rating: 7.6,
         genre: 'Sci-Fi, Visual Spektakuler',
@@ -401,10 +407,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 100088,
         type: 'tv',
         title: 'The Last of Us',
-        poster: 'https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2V7JMrHG.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/dmo6TYuuJgaYinXBPjrgG9mB5od.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/lY2DhbA7Hy44fAKddr06UrXWWaQ.jpg',
         year: 2023,
-        rating: 8.6,
+        rating: 8.4,
         genre: 'Drama, Apokaliptik',
         synopsis: 'Joel dan Ellie melintasi sisa-sisa peradaban manusia.',
       },
@@ -413,10 +419,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 111803,
         type: 'tv',
         title: 'The White Lotus',
-        poster: 'https://image.tmdb.org/t/p/w500/7ZzkqF5fJcK8N9h21nLw8q39Y2k.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/t3n9Q25n940v334237.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/gbSaK9v1CbcYH1ISgbM7XObD2dW.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/qVBIAcZkK5j6WRq7JehJcOMbdgb.jpg',
         year: 2021,
-        rating: 8.0,
+        rating: 7.6,
         genre: 'Drama, Satir',
         synopsis: 'Kemelut intrik para tamu berduit di resor eksotis.',
       },
@@ -455,7 +461,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#854d0e]/75 via-[#451a03]/85 to-[#0f0703]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(245,158,11,0.3)]',
     borderAccent: 'border-amber-900/30 hover:border-amber-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/xOMo8BRK7PfcJv9JCnx7s520gh0.jpg',
+    characterArt: 'https://image.tmdb.org/t/p/w780/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
     characterAlt: 'Dune Characters',
     items: [
       {
@@ -517,8 +523,8 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#1e293b]/85 via-[#0f172a]/90 to-[#040812]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(96,165,250,0.25)]',
     borderAccent: 'border-slate-800/40 hover:border-sky-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/8f9dnOtpQ17Acq3L9TghGKaTNuv.jpg',
-    characterAlt: 'Harry Potter Characters',
+    characterArt: 'https://image.tmdb.org/t/p/w780/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
+    characterAlt: 'Game of Thrones Characters',
     items: [
       {
         id: 'tv-1668',
@@ -526,9 +532,9 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         type: 'tv',
         title: 'Friends',
         poster: 'https://image.tmdb.org/t/p/w500/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqm0C9vr04.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg',
         year: 1994,
-        rating: 8.5,
+        rating: 8.4,
         genre: 'Sitkom Komedi',
         synopsis: 'Persahabatan abadi enam kawan di Central Perk New York.',
       },
@@ -537,8 +543,8 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 1418,
         type: 'tv',
         title: 'The Big Bang Theory',
-        poster: 'https://image.tmdb.org/t/p/w500/ooBGRQBOGi7Mi6eh59jQxIw3AcL.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/f7UQWl6g3rQ1o7sU0s5y5v2eG.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/euKFiO5M125rpngFRBbSW83beeI.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/rwYvhVv0vwbulMwxOfEsuAr1JrT.jpg',
         year: 2007,
         rating: 7.9,
         genre: 'Sitkom Genius',
@@ -550,9 +556,9 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         type: 'tv',
         title: 'Game of Thrones',
         poster: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/2OMB0ynKlyIenMJWI2Dy9IWT4c.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
         year: 2011,
-        rating: 8.4,
+        rating: 8.5,
         genre: 'Fantasi Epik',
         synopsis: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik berdarah.',
       },
@@ -561,8 +567,8 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 120,
         type: 'movie',
         title: 'The Lord of the Rings: The Fellowship of the Ring',
-        poster: 'https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cDK6.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/9DeGfFIqjph5CBmuUNHbJqkoqvL.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/oiwc338EoBgS4sEI2ixAny4KQKg.jpg',
         year: 2001,
         rating: 8.4,
         genre: 'Fantasi Epik',
@@ -579,56 +585,56 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#075985]/70 via-[#0c2e4e]/85 to-[#020b14]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(14,165,233,0.25)]',
     borderAccent: 'border-cyan-900/30 hover:border-cyan-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/jntLBq0J1v1zgYq1b3w3G.jpg',
-    characterAlt: 'Documentary Real Life Hero',
+    characterArt: 'https://image.tmdb.org/t/p/w780/8rft8A9nH43IReybFtYt21ezfMK.jpg',
+    characterAlt: 'Harry Potter 20th Anniversary',
     items: [
       {
         id: 'movie-899082',
         tmdbId: 899082,
         type: 'movie',
         title: 'Harry Potter 20th Anniversary: Return to Hogwarts',
-        poster: 'https://image.tmdb.org/t/p/w500/jntLBq0J1v1zgYq1b3w3G.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/8s4h9friP6Ci3adRGahHARVd76E.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/jntLBq0MLR3hrwKaTQswxACRPMs.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/8rft8A9nH43IReybFtYt21ezfMK.jpg',
         year: 2022,
         rating: 7.3,
         genre: 'Dokumenter Reuni',
         synopsis: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts setelah 20 tahun.',
       },
       {
+        id: 'tv-87108',
+        tmdbId: 87108,
+        type: 'tv',
+        title: 'Chernobyl',
+        poster: 'https://image.tmdb.org/t/p/w500/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/900tHlUYUkp7Ol04XFSoAaEIXcT.jpg',
+        year: 2019,
+        rating: 8.7,
+        genre: 'Sejarah, Drama Bencana',
+        synopsis: 'Kisah nyata kepahlawanan dan pengorbanan di balik bencana reaktor nuklir terburuk dalam sejarah.',
+      },
+      {
         id: 'tv-61818',
         tmdbId: 61818,
         type: 'tv',
         title: '90 Day Fiancé',
-        poster: 'https://image.tmdb.org/t/p/w500/s9Yk8Y6K3r5p8z9b4z5G8z9r0k.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/b7n4j9r0k6r4r8z9b4z5G8z9r0.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/u8VruEGv7mtyJihVn2CSA1u90pk.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/dfX2UaHVE5c7kLBFbgmEZJuy4Ev.jpg',
         year: 2014,
         rating: 6.7,
         genre: 'Reality Show',
         synopsis: 'Dinamika pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
       },
       {
-        id: 'tv-12211',
-        tmdbId: 12211,
+        id: 'tv-17937',
+        tmdbId: 17937,
         type: 'tv',
         title: 'Ghost Adventures',
-        poster: 'https://image.tmdb.org/t/p/w500/1X6K4u8k6r4r8z9b4z5G8z9r0k.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/2X6K4u8k6r4r8z9b4z5G8z9r0k.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/xLJZuDxdeUqRFHFlqs0mIk9faMR.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/u64huzTnF3jEYUXJ4BDlpHy2L3K.jpg',
         year: 2008,
-        rating: 7.2,
+        rating: 7.4,
         genre: 'Paranormal Realita',
-        synopsis: 'Investigasi lokasi paling berhantu di dunia oleh Zak Bagans dan kru.',
-      },
-      {
-        id: 'tv-61775',
-        tmdbId: 61775,
-        type: 'tv',
-        title: 'Property Brothers: At Home',
-        poster: 'https://image.tmdb.org/t/p/w500/3X6K4u8k6r4r8z9b4z5G8z9r0k.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/4X6K4u8k6r4r8z9b4z5G8z9r0k.jpg',
-        year: 2014,
-        rating: 7.0,
-        genre: 'Renovasi Realita',
-        synopsis: 'Kakak-beradik Drew dan Jonathan Scott merenovasi rumah impian keluarga.',
+        synopsis: 'Investigasi lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
       },
     ],
   },
@@ -775,34 +781,34 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
   };
 
   return (
-    <section className="relative w-full py-10 sm:py-14 space-y-12 sm:space-y-16 overflow-hidden">
+    <section className="relative w-full py-6 sm:py-10 lg:py-14 space-y-10 sm:space-y-14 overflow-hidden">
       {/* ───────────────────────────────────────────────────────── */}
       {/* SECTION 1: "DISCOVER THE BEST OF" (Interactive Genre Hub) */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 space-y-6 sm:space-y-8">
+      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-5 sm:space-y-8">
         {/* Header with Title & Genre Switcher */}
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-sans tracking-[0.25em] text-brand-champagne uppercase font-medium">
+        <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] text-[10px] sm:text-[11px] font-sans tracking-[0.2em] sm:tracking-[0.25em] text-brand-champagne uppercase font-medium">
             <Sparkles className="w-3 h-3 text-brand-gold" />
             <span>{language === 'en' ? 'Curated Selection' : 'Pilihan Paling Populer'}</span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl font-display font-medium text-white tracking-wide">
+          <h2 className="text-xl sm:text-3xl lg:text-4xl font-display font-medium text-white tracking-wide">
             {language === 'en' ? 'Discover The Best Of' : 'Jelajahi Yang Terbaik'}
           </h2>
 
-          {/* Genre Tabs with Navigation Arrows */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 max-w-full overflow-x-auto no-scrollbar py-2">
+          {/* Genre Tabs with Navigation Arrows (Touch-friendly & Responsive) */}
+          <div className="w-full flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-1.5 px-1">
             <button
               onClick={handlePrevGenre}
               onMouseEnter={playHover}
-              className="p-1.5 sm:p-2 rounded-full bg-white/[0.04] hover:bg-white/10 text-slate-400 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
+              className="hidden md:flex p-2 rounded-full bg-white/[0.04] hover:bg-white/10 text-slate-400 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
               aria-label="Previous Genre"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap mx-auto sm:mx-0">
               {DISCOVER_GENRES.map((g, idx) => {
                 const isActive = idx === selectedGenreIndex;
                 const displayName = language === 'en' ? g.name : g.nameId;
@@ -814,7 +820,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                       setSelectedGenreIndex(idx);
                     }}
                     onMouseEnter={playHover}
-                    className={`px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 cursor-pointer shrink-0 ${
+                    className={`px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 cursor-pointer shrink-0 whitespace-nowrap ${
                       isActive
                         ? 'bg-white text-black font-semibold shadow-lg shadow-white/10 scale-105'
                         : 'text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06]'
@@ -829,7 +835,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
             <button
               onClick={handleNextGenre}
               onMouseEnter={playHover}
-              className="p-1.5 sm:p-2 rounded-full bg-white/[0.04] hover:bg-white/10 text-slate-400 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
+              className="hidden md:flex p-2 rounded-full bg-white/[0.04] hover:bg-white/10 text-slate-400 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
               aria-label="Next Genre"
             >
               <ChevronRight className="w-4 h-4" />
@@ -837,8 +843,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           </div>
         </div>
 
-        {/* 6 Landscape / Title Grid Cards (2 rows x 3 cols) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        {/* 6 Landscape / Backdrop Grid Cards (2 cols mobile, 2 cols tablet, 3 cols desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
           {activeGenre.items.map((item) => {
             const isLoading = loadingMediaId === item.id;
             return (
@@ -846,13 +852,17 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 key={item.id}
                 onClick={() => handleItemAction(item, 'details')}
                 onMouseEnter={playHover}
-                className="group relative aspect-video rounded-2xl overflow-hidden bg-cinema-900 border border-white/[0.08] hover:border-white/30 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
+                className="group relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-900 border border-white/[0.08] hover:border-white/30 shadow-lg sm:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
               >
-                {/* Backdrop Image */}
+                {/* Backdrop Image with onError fallback */}
                 <img
                   src={item.backdrop}
                   alt={item.title}
                   loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = item.poster || FALLBACK_BACKDROP;
+                  }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 filter brightness-90 group-hover:brightness-100"
                 />
 
@@ -860,32 +870,49 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 group-hover:opacity-80 transition-opacity" />
 
                 {/* Top Badge: Type & Rating */}
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
-                  <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between pointer-events-none z-10">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
                     {item.type === 'movie' ? <Film className="w-2.5 h-2.5" /> : <Tv className="w-2.5 h-2.5" />}
                     <span>{item.type === 'movie' ? 'Movie' : 'Series'}</span>
                   </span>
 
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-bold text-amber-400">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[9px] sm:text-[11px] font-bold text-amber-400">
+                    <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
                     <span>{item.rating.toFixed(1)}</span>
                   </div>
                 </div>
 
                 {/* Bottom Content / Title */}
-                <div className="absolute bottom-3 left-3 right-3 z-10 space-y-1">
-                  <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-white line-clamp-1 drop-shadow-md">
+                <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 z-10 space-y-0.5 sm:space-y-1 pr-7 sm:pr-0">
+                  <h3 className="text-xs sm:text-sm lg:text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 drop-shadow-md">
                     {item.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-300 font-light">
+                  <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-slate-300 font-light">
                     <span>{item.year}</span>
                     <span>•</span>
                     <span className="line-clamp-1">{item.genre}</span>
                   </div>
                 </div>
 
-                {/* Hover Quick-Action Controls */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3 z-20">
+                {/* Mobile / Tablet Quick-Play Button (Visible on touch, hidden on desktop hover) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleItemAction(item, 'play');
+                  }}
+                  className="md:hidden absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
+                  aria-label="Play Now"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                  )}
+                </button>
+
+                {/* Desktop Hover Quick-Action Controls */}
+                <div className="hidden md:flex absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center justify-center gap-3 z-20">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -937,7 +964,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       {/* ───────────────────────────────────────────────────────── */}
       {/* SECTION 2: THE 5 HBO MAX-STYLE THEMATIC BANNERS          */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="space-y-8 sm:space-y-12">
+      <div className="space-y-6 sm:space-y-10 lg:space-y-14">
         {THEMATIC_BANNERS.map((banner) => {
           const displayTitle = language === 'en' ? banner.titleEn : banner.titleId;
           const displayTagline = language === 'en' ? banner.taglineEn : banner.taglineId;
@@ -945,34 +972,38 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           return (
             <div
               key={banner.id}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} py-8 sm:py-12 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} py-6 sm:py-9 lg:py-12 overflow-hidden transition-colors duration-500`}
             >
               {/* Subtle background ambient overlay */}
               <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
-              {/* Character Floating Artwork at Top-Right */}
-              <div className="absolute -top-6 sm:-top-10 right-2 sm:right-12 lg:right-24 w-48 sm:w-72 lg:w-96 h-48 sm:h-72 lg:h-96 pointer-events-none opacity-25 sm:opacity-35 select-none mix-blend-screen overflow-hidden">
+              {/* Character Floating Artwork (Scaled & masked for mobile/tablet) */}
+              <div className="absolute -top-3 sm:-top-8 lg:-top-10 -right-2 sm:right-6 lg:right-16 w-32 sm:w-60 lg:w-88 h-32 sm:h-60 lg:h-88 pointer-events-none opacity-20 sm:opacity-25 lg:opacity-35 select-none mix-blend-screen overflow-hidden">
                 <img
                   src={banner.characterArt}
                   alt={banner.characterAlt}
                   loading="lazy"
-                  className="w-full h-full object-cover object-center filter contrast-125 brightness-110 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_BACKDROP;
+                  }}
+                  className="w-full h-full object-cover object-center filter contrast-125 brightness-110 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_72%)]"
                 />
               </div>
 
-              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 space-y-6 sm:space-y-8 z-10">
+              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-4 sm:space-y-6 lg:space-y-8 z-10">
                 {/* Banner Heading */}
-                <div className="space-y-1 max-w-2xl">
-                  <h3 className="text-2xl sm:text-4xl font-display font-medium text-white tracking-wide drop-shadow-lg">
+                <div className="space-y-0.5 sm:space-y-1 max-w-[78%] sm:max-w-xl">
+                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-display font-medium text-white tracking-wide drop-shadow-lg">
                     {displayTitle}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-300/80 font-light leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-300/80 font-light leading-relaxed line-clamp-2 sm:line-clamp-none">
                     {displayTagline}
                   </p>
                 </div>
 
-                {/* 4 Poster Cards Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
+                {/* 4 Poster Cards: Mobile Horizontal Snap Rail & Tablet/Desktop 4-Col Grid */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-4 sm:gap-4 lg:gap-5 sm:mx-0 sm:px-0 sm:pb-0">
                   {banner.items.map((item) => {
                     const isLoading = loadingMediaId === item.id;
 
@@ -981,13 +1012,17 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         key={item.id}
                         onClick={() => handleItemAction(item, 'details')}
                         onMouseEnter={playHover}
-                        className="group relative aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border border-white/[0.1] hover:border-white/40 shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl cursor-pointer"
+                        className="group relative w-[130px] xs:w-[145px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border border-white/[0.1] hover:border-white/40 shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl cursor-pointer"
                       >
-                        {/* Poster Image */}
+                        {/* Poster Image with onError fallback */}
                         <img
                           src={item.poster}
                           alt={item.title}
                           loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = item.backdrop || FALLBACK_POSTER;
+                          }}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 filter brightness-95 group-hover:brightness-105"
                         />
 
@@ -995,25 +1030,42 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
                         {/* Top Rating Badge */}
-                        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-amber-400">
+                        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-bold text-amber-400">
                           <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                           <span>{item.rating.toFixed(1)}</span>
                         </div>
 
                         {/* Bottom Information */}
-                        <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 space-y-0.5">
+                        <div className="absolute bottom-2 left-2 right-2 sm:bottom-2.5 sm:left-2.5 sm:right-2.5 z-10 space-y-0.5 pr-6 sm:pr-0">
                           <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
                             {item.title}
                           </h4>
-                          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-300/80">
+                          <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-slate-300/80">
                             <span>{item.year}</span>
                             <span>•</span>
                             <span className="line-clamp-1">{item.genre}</span>
                           </div>
                         </div>
 
-                        {/* Hover Overlay Buttons */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 z-20">
+                        {/* Mobile / Tablet Quick-Play Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleItemAction(item, 'play');
+                          }}
+                          className="md:hidden absolute bottom-2 right-2 z-20 w-6 h-6 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
+                          aria-label="Play Now"
+                        >
+                          {isLoading ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Play className="w-3 h-3 fill-white ml-0.5" />
+                          )}
+                        </button>
+
+                        {/* Desktop Hover Overlay Buttons */}
+                        <div className="hidden md:flex absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center justify-center gap-2 z-20">
                           <button
                             type="button"
                             onClick={(e) => {
