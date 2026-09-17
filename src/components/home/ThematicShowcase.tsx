@@ -56,8 +56,11 @@ interface ThematicBannerDef {
   bgGradient: string;
   accentGlow: string;
   borderAccent: string;
-  characterArt: string;
-  characterAlt: string;
+  radialGlow: string;
+  cutoutArt: string;
+  cutoutAlt: string;
+  logoArt: string;
+  logoAlt: string;
   items: ShowcaseMediaDef[];
 }
 
@@ -447,12 +450,29 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     titleId: 'Serial Fenomenal',
     taglineEn: 'Emmy-winning masterpieces and prestige storytelling',
     taglineId: 'Karya peraih Emmy dengan narasi sinematik terbaik',
-    bgGradient: 'from-[#380b18]/80 via-[#1b060d]/90 to-[#0c0407]',
-    accentGlow: 'shadow-[0_0_80px_-20px_rgba(225,29,72,0.3)]',
+    bgGradient: 'from-[#3a0815]/90 via-[#1e050c]/95 to-[#0b0306]',
+    accentGlow: 'shadow-[0_0_80px_-20px_rgba(225,29,72,0.35)]',
     borderAccent: 'border-rose-900/30 hover:border-rose-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/577eXC8wFQT0eUrJcgznSiFPRmk.jpg',
-    characterAlt: 'House of the Dragon Characters',
+    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(225,29,72,0.32) 0%, rgba(159,18,57,0.15) 45%, transparent 75%)',
+    cutoutArt: '/assets/cutouts/hotd-cutout.png',
+    cutoutAlt: 'House of the Dragon - Daemon Targaryen',
+    logoArt: 'https://image.tmdb.org/t/p/w500/sWW8VURTOT0yVLS6Jlxw6BQQUSZ.png',
+    logoAlt: 'House of the Dragon',
     items: [
+      {
+        id: 'tv-94997',
+        tmdbId: 94997,
+        type: 'tv',
+        title: 'House of the Dragon',
+        poster: 'https://image.tmdb.org/t/p/w500/7V0Ebks0GgpKvQ7QbLAIdX5dos4.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/577eXC8wFQT0eUrJcgznSiFPRmk.jpg',
+        year: 2022,
+        rating: 8.4,
+        genreEn: 'Drama, Epic Fantasy',
+        genreId: 'Drama, Fantasi',
+        synopsisEn: 'The Targaryen dynasty is at the height of its power, but the seeds of a brutal civil war are about to be sown.',
+        synopsisId: 'Perang saudara berdarah klan Targaryen memperebutkan Tahta Besi di Westeros.',
+      },
       {
         id: 'tv-100088',
         tmdbId: 100088,
@@ -523,20 +543,6 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         synopsisEn: 'Uncompromising detectives confront harrowing psychological cases and macabre murders across the American south.',
         synopsisId: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
       },
-      {
-        id: 'tv-200875',
-        tmdbId: 200875,
-        type: 'tv',
-        title: 'IT: Welcome to Derry',
-        poster: 'https://image.tmdb.org/t/p/w500/nyy3BITeIjviv6PFIXtqvc8i6xi.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/2fOKVDoc2O3eZmBZesWPuE5kgPN.jpg',
-        year: 2025,
-        rating: 8.2,
-        genreEn: 'Horror, Mystery',
-        genreId: 'Horor, Misteri',
-        synopsisEn: 'The chilling origins of Pennywise the Dancing Clown terrorizing the town of Derry in the 1960s.',
-        synopsisId: 'Asal-usul teror Pennywise di kota Derry tahun 1960-an sebelum peristiwa film IT dimulai.',
-      },
     ],
   },
   {
@@ -545,26 +551,15 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     titleId: 'Film Terlaris Dunia',
     taglineEn: 'Epic spectacles, colossal heroes, and unforgettable action',
     taglineId: 'Koleksi film layar lebar termegah penuh aksi spektakuler',
-    bgGradient: 'from-[#854d0e]/75 via-[#451a03]/85 to-[#0f0703]',
-    accentGlow: 'shadow-[0_0_80px_-20px_rgba(245,158,11,0.3)]',
+    bgGradient: 'from-[#6b3306]/85 via-[#381602]/95 to-[#0d0501]',
+    accentGlow: 'shadow-[0_0_80px_-20px_rgba(245,158,11,0.35)]',
     borderAccent: 'border-amber-900/30 hover:border-amber-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
-    characterAlt: 'Dune Characters',
+    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(245,158,11,0.32) 0%, rgba(180,83,9,0.15) 45%, transparent 75%)',
+    cutoutArt: '/assets/cutouts/dune-cutout.png',
+    cutoutAlt: 'Dune: Part Two - Paul Atreides & Chani',
+    logoArt: 'https://image.tmdb.org/t/p/w500/eYvF1LhPKuoBxOAmWjFTAK7EPWl.png',
+    logoAlt: 'Dune: Part Two',
     items: [
-      {
-        id: 'movie-1061474',
-        tmdbId: 1061474,
-        type: 'movie',
-        title: 'Superman',
-        poster: 'https://image.tmdb.org/t/p/w500/ldyfo0BKmz5rWtJJKCvwaNS4cJT.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/yRBc6WY3r1Fz5Cjd6DhSvzqunED.jpg',
-        year: 2025,
-        rating: 7.3,
-        genreEn: 'Action, Superhero',
-        genreId: 'Aksi, Superhero',
-        synopsisEn: 'The dawn of a new DC Universe as Superman balances his Kryptonian heritage with his human upbringing.',
-        synopsisId: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
-      },
       {
         id: 'movie-693134',
         tmdbId: 693134,
@@ -578,6 +573,20 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Sci-Fi Epik',
         synopsisEn: 'Paul Atreides leads the Fremen in a planetary holy war to reclaim Arrakis and avenge his fallen dynasty.',
         synopsisId: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
+      },
+      {
+        id: 'movie-1061474',
+        tmdbId: 1061474,
+        type: 'movie',
+        title: 'Superman',
+        poster: 'https://image.tmdb.org/t/p/w500/ldyfo0BKmz5rWtJJKCvwaNS4cJT.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/yRBc6WY3r1Fz5Cjd6DhSvzqunED.jpg',
+        year: 2025,
+        rating: 7.3,
+        genreEn: 'Action, Superhero',
+        genreId: 'Aksi, Superhero',
+        synopsisEn: 'The dawn of a new DC Universe as Superman balances his Kryptonian heritage with his human upbringing.',
+        synopsisId: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
       },
       {
         id: 'movie-533535',
@@ -643,12 +652,57 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     titleId: 'Karya Ikonik Abadi',
     taglineEn: 'Timeless pop culture legends and binge-worthy phenomena',
     taglineId: 'Legenda budaya pop yang tak lekang oleh waktu',
-    bgGradient: 'from-[#1e293b]/85 via-[#0f172a]/90 to-[#040812]',
-    accentGlow: 'shadow-[0_0_80px_-20px_rgba(96,165,250,0.25)]',
-    borderAccent: 'border-slate-800/40 hover:border-sky-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
-    characterAlt: 'Game of Thrones Characters',
+    bgGradient: 'from-[#0f223d]/90 via-[#0a1527]/95 to-[#020712]',
+    accentGlow: 'shadow-[0_0_80px_-20px_rgba(56,189,248,0.3)]',
+    borderAccent: 'border-sky-900/30 hover:border-sky-500/40',
+    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(56,189,248,0.3) 0%, rgba(14,116,144,0.15) 45%, transparent 75%)',
+    cutoutArt: '/assets/cutouts/got-cutout.png',
+    cutoutAlt: 'Game of Thrones - Daenerys Targaryen & Jon Snow',
+    logoArt: 'https://image.tmdb.org/t/p/w500/6pObznbCoxVpY1lPQwJxETd7Phe.png',
+    logoAlt: 'Game of Thrones',
     items: [
+      {
+        id: 'tv-1399',
+        tmdbId: 1399,
+        type: 'tv',
+        title: 'Game of Thrones',
+        poster: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
+        year: 2011,
+        rating: 8.5,
+        genreEn: 'Epic Fantasy, Intrigue',
+        genreId: 'Fantasi Epik',
+        synopsisEn: 'Noble houses clash in a deadly, deceitful war for the Iron Throne of Westeros while an ancient menace wakes.',
+        synopsisId: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
+      },
+      {
+        id: 'tv-1396',
+        tmdbId: 1396,
+        type: 'tv',
+        title: 'Breaking Bad',
+        poster: 'https://image.tmdb.org/t/p/w500/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
+        year: 2008,
+        rating: 8.9,
+        genreEn: 'Crime Drama, Legendary',
+        genreId: 'Drama Kriminal Legendaris',
+        synopsisEn: 'A high school chemistry teacher diagnosed with lung cancer partners with a former student to build an empire.',
+        synopsisId: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
+      },
+      {
+        id: 'movie-155',
+        tmdbId: 155,
+        type: 'movie',
+        title: 'The Dark Knight',
+        poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg',
+        year: 2008,
+        rating: 8.5,
+        genreEn: 'Action Crime, Masterpiece',
+        genreId: 'Aksi Kriminal, Masterpiece',
+        synopsisEn: 'Batman faces his greatest moral and physical test when the sadistic anarchist Joker brings chaos to Gotham.',
+        synopsisId: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
+      },
       {
         id: 'tv-1668',
         tmdbId: 1668,
@@ -678,48 +732,6 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         synopsisId: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan saat bertetangga dengan Penny.',
       },
       {
-        id: 'tv-1396',
-        tmdbId: 1396,
-        type: 'tv',
-        title: 'Breaking Bad',
-        poster: 'https://image.tmdb.org/t/p/w500/anFx9aTOOYqgS3v7x3R84Kz67ly.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
-        year: 2008,
-        rating: 8.9,
-        genreEn: 'Crime Drama, Legendary',
-        genreId: 'Drama Kriminal Legendaris',
-        synopsisEn: 'A high school chemistry teacher diagnosed with lung cancer partners with a former student to build an empire.',
-        synopsisId: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
-      },
-      {
-        id: 'tv-1399',
-        tmdbId: 1399,
-        type: 'tv',
-        title: 'Game of Thrones',
-        poster: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg',
-        year: 2011,
-        rating: 8.5,
-        genreEn: 'Epic Fantasy, Intrigue',
-        genreId: 'Fantasi Epik',
-        synopsisEn: 'Noble houses clash in a deadly, deceitful war for the Iron Throne of Westeros while an ancient menace wakes.',
-        synopsisId: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
-      },
-      {
-        id: 'movie-155',
-        tmdbId: 155,
-        type: 'movie',
-        title: 'The Dark Knight',
-        poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg',
-        year: 2008,
-        rating: 8.5,
-        genreEn: 'Action Crime, Masterpiece',
-        genreId: 'Aksi Kriminal, Masterpiece',
-        synopsisEn: 'Batman faces his greatest moral and physical test when the sadistic anarchist Joker brings chaos to Gotham.',
-        synopsisId: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
-      },
-      {
         id: 'movie-120',
         tmdbId: 120,
         type: 'movie',
@@ -741,12 +753,29 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     titleId: 'Kisah Nyata & Dokumenter',
     taglineEn: 'Riveting documentaries, unscripted reality, and true legends',
     taglineId: 'Dokumenter memikat, realita nyata, dan kisah inspiratif',
-    bgGradient: 'from-[#075985]/70 via-[#0c2e4e]/85 to-[#020b14]',
-    accentGlow: 'shadow-[0_0_80px_-20px_rgba(14,165,233,0.25)]',
-    borderAccent: 'border-cyan-900/30 hover:border-cyan-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/8rft8A9nH43IReybFtYt21ezfMK.jpg',
-    characterAlt: 'Harry Potter 20th Anniversary',
+    bgGradient: 'from-[#044336]/85 via-[#022720]/95 to-[#010e0b]',
+    accentGlow: 'shadow-[0_0_80px_-20px_rgba(20,184,166,0.35)]',
+    borderAccent: 'border-teal-900/30 hover:border-teal-500/40',
+    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(20,184,166,0.32) 0%, rgba(13,148,136,0.15) 45%, transparent 75%)',
+    cutoutArt: '/assets/cutouts/naked-and-afraid-cutout.png',
+    cutoutAlt: 'Naked and Afraid Survivalists',
+    logoArt: 'https://image.tmdb.org/t/p/w500/8czXfVg26ohZB41TijcXkMcbedc.png',
+    logoAlt: 'Naked and Afraid',
     items: [
+      {
+        id: 'tv-58832',
+        tmdbId: 58832,
+        type: 'tv',
+        title: 'Naked and Afraid',
+        poster: 'https://image.tmdb.org/t/p/w500/nDXJn6wEIQ6AfaWbt1APNQmyswU.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/92nx3yNRsDaxLNBj95UZ1cQEMjv.jpg',
+        year: 2013,
+        rating: 6.8,
+        genreEn: 'Reality, Survival Adventure',
+        genreId: 'Realita, Bertahan Hidup',
+        synopsisEn: 'Two complete strangers are dropped in extreme wilderness with no food, water, or clothes, challenged to survive 21 days.',
+        synopsisId: 'Dua orang asing tanpa busana, makanan, dan pakaian diuji bertahan hidup selama 21 hari di alam liar.',
+      },
       {
         id: 'movie-872585',
         tmdbId: 872585,
@@ -804,20 +833,6 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         synopsisId: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts mengenang 20 tahun keajaiban film.',
       },
       {
-        id: 'tv-61818',
-        tmdbId: 61818,
-        type: 'tv',
-        title: '90 Day Fiancé',
-        poster: 'https://image.tmdb.org/t/p/w500/u8VruEGv7mtyJihVn2CSA1u90pk.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/dfX2UaHVE5c7kLBFbgmEZJuy4Ev.jpg',
-        year: 2014,
-        rating: 6.7,
-        genreEn: 'Reality Show, Romance',
-        genreId: 'Reality Show',
-        synopsisEn: 'International couples navigate cultural divides and relationship tests during their 90-day K-1 fiancé visa deadline.',
-        synopsisId: 'Dinamika cinta dan drama pasangan lintas negara dalam tenggat visa K-1 selama 90 hari.',
-      },
-      {
         id: 'tv-17937',
         tmdbId: 17937,
         type: 'tv',
@@ -839,12 +854,29 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     titleId: 'Favorit Keluarga & Animasi',
     taglineEn: 'Heartwarming animated adventures and delightful fun for all ages',
     taglineId: 'Petualangan animasi hangat dan tontonan seru seluruh keluarga',
-    bgGradient: 'from-[#a16207]/75 via-[#713f12]/80 to-[#120a02]',
-    accentGlow: 'shadow-[0_0_80px_-20px_rgba(234,179,8,0.3)]',
+    bgGradient: 'from-[#713f12]/85 via-[#452207]/95 to-[#120701]',
+    accentGlow: 'shadow-[0_0_80px_-20px_rgba(234,179,8,0.35)]',
     borderAccent: 'border-yellow-900/30 hover:border-yellow-500/40',
-    characterArt: 'https://image.tmdb.org/t/p/w780/pe4B3OYBb7qYCdkAz7nKWordbls.jpg',
-    characterAlt: 'Adventure Time & Cartoon Characters',
+    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(234,179,8,0.32) 0%, rgba(161,98,7,0.15) 45%, transparent 75%)',
+    cutoutArt: '/assets/cutouts/family-cutout.png',
+    cutoutAlt: 'Adventure Time - Finn & Jake',
+    logoArt: 'https://image.tmdb.org/t/p/w500/rIi0lY2UftYuKDJ4OlIefDdijve.png',
+    logoAlt: 'Adventure Time',
     items: [
+      {
+        id: 'tv-15260',
+        tmdbId: 15260,
+        type: 'tv',
+        title: 'Adventure Time',
+        poster: 'https://image.tmdb.org/t/p/w500/qk3eQ8jW4opJ48gFWYUXWaMT4l.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/pe4B3OYBb7qYCdkAz7nKWordbls.jpg',
+        year: 2010,
+        rating: 8.5,
+        genreEn: 'Animation, Surreal Fantasy',
+        genreId: 'Animasi, Fantasi Ajaib',
+        synopsisEn: 'Bizarre and wondrous journeys of Finn the Human and his shape-shifting magical canine brother Jake in the Land of Ooo.',
+        synopsisId: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
+      },
       {
         id: 'movie-1022789',
         tmdbId: 1022789,
@@ -914,20 +946,6 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Keluarga, Petualangan',
         synopsisEn: 'Four misfits are pulled through a mysterious portal into the blocky Overworld where they team up with crafter Steve.',
         synopsisId: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit legendaris.',
-      },
-      {
-        id: 'tv-15260',
-        tmdbId: 15260,
-        type: 'tv',
-        title: 'Adventure Time',
-        poster: 'https://image.tmdb.org/t/p/w500/qk3eQ8jW4opJ48gFWYUXWaMT4l.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/pe4B3OYBb7qYCdkAz7nKWordbls.jpg',
-        year: 2010,
-        rating: 8.5,
-        genreEn: 'Animation, Surreal Fantasy',
-        genreId: 'Animasi, Fantasi Ajaib',
-        synopsisEn: 'Bizarre and wondrous journeys of Finn the Human and his shape-shifting magical canine brother Jake in the Land of Ooo.',
-        synopsisId: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
       },
     ],
   },
@@ -1215,38 +1233,62 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           return (
             <div
               key={banner.id}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} py-5 sm:py-7 lg:py-8 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} border-y ${banner.borderAccent} pt-6 pb-5 sm:pt-8 sm:pb-7 lg:pt-10 lg:pb-8 overflow-hidden transition-colors duration-500`}
             >
               {/* Subtle background ambient overlay */}
               <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
-              {/* Character Floating Artwork (Scaled compactly) */}
-              <div className="absolute -top-3 sm:-top-6 lg:-top-8 -right-2 sm:right-6 lg:right-12 w-28 sm:w-48 lg:w-64 h-28 sm:h-48 lg:h-64 pointer-events-none opacity-15 sm:opacity-20 lg:opacity-25 select-none mix-blend-screen overflow-hidden">
+              {/* Dynamic Atmospheric Radial Glow behind character cutout */}
+              <div
+                className="absolute right-0 sm:right-6 lg:right-20 top-0 bottom-0 w-72 sm:w-[500px] lg:w-[680px] pointer-events-none select-none opacity-80"
+                style={{
+                  background: banner.radialGlow,
+                }}
+              />
+
+              {/* High-Impact Character Cutout PNG (Layered behind cards at z-10) */}
+              <div className="absolute right-2 sm:right-8 md:right-14 lg:right-24 xl:right-32 bottom-5 sm:bottom-7 lg:bottom-8 h-[220px] sm:h-[310px] md:h-[370px] lg:h-[430px] xl:h-[480px] pointer-events-none select-none z-10 flex items-end">
                 <img
-                  src={banner.characterArt}
-                  alt={banner.characterAlt}
+                  src={banner.cutoutArt}
+                  alt={banner.cutoutAlt}
                   loading="lazy"
                   onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = FALLBACK_BACKDROP;
+                    e.currentTarget.style.display = 'none';
                   }}
-                  className="w-full h-full object-cover object-center filter contrast-125 brightness-110 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_72%)]"
+                  className="h-full w-auto object-contain filter drop-shadow-[0_12px_36px_rgba(0,0,0,0.9)] brightness-105"
                 />
               </div>
 
-              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-10">
-                {/* Banner Heading */}
-                <div className="space-y-0.5 sm:space-y-1 max-w-[80%] sm:max-w-xl">
-                  <h3 className="text-base sm:text-xl lg:text-2xl font-display font-medium text-white tracking-wide drop-shadow-md">
-                    {displayTitle}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300/80 font-light leading-relaxed line-clamp-1 sm:line-clamp-none">
+              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-20">
+                {/* Banner Header: Badge, Show Title Logo, & Tagline */}
+                <div className="space-y-1 sm:space-y-1.5 max-w-[65%] sm:max-w-xl">
+                  {/* Category Pill / Badge */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>{displayTitle}</span>
+                  </div>
+
+                  {/* Official Show Logo PNG */}
+                  <div className="h-8 sm:h-11 lg:h-14 flex items-center">
+                    <img
+                      src={banner.logoArt}
+                      alt={banner.logoAlt}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      className="max-h-full max-w-[190px] sm:max-w-[260px] lg:max-w-[320px] object-contain filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)] brightness-110"
+                    />
+                  </div>
+
+                  {/* Tagline */}
+                  <p className="text-xs sm:text-sm text-slate-300/85 font-light leading-relaxed line-clamp-1 sm:line-clamp-none drop-shadow">
                     {displayTagline}
                   </p>
                 </div>
 
                 {/* 6 Poster Cards: Mobile Swipe Carousel, Tablet 3-Col, Desktop 6-Col Grid */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0">
+                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0 relative z-20">
                   {banner.items.map((item) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
