@@ -107,6 +107,9 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   const floatingContainerRef = useRef<HTMLDivElement>(null);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isFloatingDropdownOpen, setIsFloatingDropdownOpen] = useState(true);
+  const [floatingQuery, setFloatingQuery] = useState('');
+  const [floatingResults, setFloatingResults] = useState<UnifiedSearchResult[]>([]);
+  const [isFloatingSearching, setIsFloatingSearching] = useState(false);
 
   // Trending on TMDB Collapsible Dropdown State
   const [isTrendingOpen, setIsTrendingOpen] = useState<boolean>(() => {
@@ -299,6 +302,44 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
     return () => clearTimeout(timeout);
   }, [query, activeFilter, language]);
 
+  // When user is at the top (not using floating bar), sync floatingQuery with main in-place query
+  useEffect(() => {
+    if (!showFloatingBar) {
+      setFloatingQuery(query);
+    }
+  }, [query, showFloatingBar]);
+
+  // Debounced search specifically for floating pop-up search bar (independent from in-place main query)
+  useEffect(() => {
+    const trimmed = floatingQuery.trim();
+    if (!trimmed) {
+      setFloatingResults([]);
+      setIsFloatingSearching(false);
+      return;
+    }
+
+    setIsFloatingSearching(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const sourceMap: Record<MediaFilter, 'all' | 'tmdb' | 'anime' | 'tvmaze'> = {
+          all: 'all',
+          movie: 'tmdb',
+          tv: 'tvmaze',
+          anime: 'anime',
+        };
+        const data = await searchHybrid(trimmed, sourceMap[activeFilter], language);
+        setFloatingResults(data);
+      } catch (err) {
+        console.error('Floating hybrid search error:', err);
+        setFloatingResults([]);
+      } finally {
+        setIsFloatingSearching(false);
+      }
+    }, 280);
+
+    return () => clearTimeout(timeout);
+  }, [floatingQuery, activeFilter, language]);
+
   // Filtered items based on 'all' | 'movie' | 'tv' | 'anime'
   const displayItems = useMemo(() => {
     if (query.trim()) {
@@ -444,7 +485,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               <div className="w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/35 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_25px_rgba(229,9,20,0.3)] flex items-center gap-2 sm:gap-3 transition-all">
                 {/* Glowing Red Search Icon / Spinner */}
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#E50914]/40">
-                  {isSearching ? (
+                  {isFloatingSearching ? (
                     <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
                   ) : (
                     <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -455,15 +496,20 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                 <input
                   ref={floatingInputRef}
                   type="text"
-                  value={query}
+                  value={floatingQuery}
                   onChange={(e) => {
-                    setQuery(e.target.value);
+                    setFloatingQuery(e.target.value);
                     setIsFloatingDropdownOpen(true);
                   }}
                   onFocus={() => setIsFloatingDropdownOpen(true)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      const trimmed = floatingQuery.trim();
+                      if (trimmed) {
+                        setQuery(trimmed);
+                        setIsFloatingDropdownOpen(false);
+                        searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
                     } else if (e.key === 'Escape') {
                       setIsFloatingDropdownOpen(false);
                     }
@@ -481,10 +527,15 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                 />
 
                 {/* Clear Button */}
-                {query && (
+                {floatingQuery && (
                   <button
                     type="button"
-                    onClick={handleClearQuery}
+                    onClick={() => {
+                      playClick();
+                      setFloatingQuery('');
+                      setFloatingResults([]);
+                      floatingInputRef.current?.focus();
+                    }}
                     className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
                     title={language === 'en' ? 'Clear' : 'Hapus'}
                     aria-label={language === 'en' ? 'Clear' : 'Hapus'}
@@ -532,6 +583,9 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                   type="button"
                   onClick={() => {
                     playClick();
+                    if (floatingQuery.trim()) {
+                      setQuery(floatingQuery);
+                    }
                     searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     setTimeout(() => inputRef.current?.focus(), 400);
                   }}
@@ -544,20 +598,20 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               </div>
 
               {/* Quick Floating Live Search Results Pop-up Dropdown */}
-              {query.trim() && isFloatingDropdownOpen && (
+              {floatingQuery.trim() && isFloatingDropdownOpen && (
                 <div className="absolute top-full mt-2 inset-x-0 bg-[#181818]/98 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden p-2 space-y-1 z-50 max-h-[min(380px,calc(100vh-160px))] overflow-y-auto animate-fadeIn">
-                  {isSearching ? (
+                  {isFloatingSearching ? (
                     <div className="py-6 flex items-center justify-center gap-2 text-xs text-neutral-400">
                       <Loader2 className="w-4 h-4 text-[#E50914] animate-spin" />
                       <span>{language === 'en' ? 'Searching...' : 'Mencari...'}</span>
                     </div>
-                  ) : results.length > 0 ? (
+                  ) : floatingResults.length > 0 ? (
                     <>
                       <div className="px-3 py-1 flex items-center justify-between text-[11px] text-neutral-400 font-mono border-b border-white/[0.06]">
                         <span>{language === 'en' ? 'Quick Results' : 'Hasil Cepat'}</span>
-                        <span className="text-[#E50914]">{results.length} {language === 'en' ? 'found' : 'ditemukan'}</span>
+                        <span className="text-[#E50914]">{floatingResults.length} {language === 'en' ? 'found' : 'ditemukan'}</span>
                       </div>
-                      {results.slice(0, 5).map((item) => (
+                      {floatingResults.slice(0, 5).map((item) => (
                         <div
                           key={item.id}
                           onClick={() => {
@@ -606,14 +660,15 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
                         type="button"
                         onClick={() => {
                           playClick();
+                          setQuery(floatingQuery);
                           setIsFloatingDropdownOpen(false);
                           searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }}
                         className="w-full py-2 text-center text-xs text-[#E50914] hover:text-white font-semibold hover:bg-[#E50914]/20 rounded-xl transition-colors cursor-pointer mt-1"
                       >
                         {language === 'en'
-                          ? `View all ${results.length} results in catalog ↓`
-                          : `Lihat semua ${results.length} hasil di katalog ↓`}
+                          ? `View all ${floatingResults.length} results in catalog ↓`
+                          : `Lihat semua ${floatingResults.length} hasil di katalog ↓`}
                       </button>
                     </>
                   ) : (
