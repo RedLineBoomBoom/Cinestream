@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="relative bg-[#0c0c0c] border-t border-white/[0.08] pt-16 pb-24 sm:pb-16 text-slate-400 text-xs mt-20">
+    <footer className="relative bg-[#0c0c0c] border-t border-white/[0.08] pt-16 pb-24 sm:pb-16 text-slate-400 text-xs mt-0">
       <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 space-y-12">
         {/* Top Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
