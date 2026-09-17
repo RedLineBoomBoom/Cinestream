@@ -38,6 +38,7 @@ interface ShowcaseMediaDef {
   taglineId?: string;
   synopsisEn: string;
   synopsisId: string;
+  logoArt?: string;
 }
 
 interface GenreCategory {
@@ -472,6 +473,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Fantasi',
         synopsisEn: 'The Targaryen dynasty is at the height of its power, but the seeds of a brutal civil war are about to be sown.',
         synopsisId: 'Perang saudara berdarah klan Targaryen memperebutkan Tahta Besi di Westeros.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/aMYpHPNO3ZXH9dR3Mchrg2AgoNw.png',
       },
       {
         id: 'tv-100088',
@@ -486,6 +488,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Apokaliptik',
         synopsisEn: 'Joel and Ellie brave dangerous fungal infected and ruthless human survivors across a post-pandemic America.',
         synopsisId: 'Perjalanan berbahaya Joel dan Ellie melintasi sisa-sisa peradaban manusia yang hancur pasca wabah jamur.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/msYtgZbEo8tAOJ37T50kgqulpKf.png',
       },
       {
         id: 'tv-111803',
@@ -500,6 +503,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Satir',
         synopsisEn: 'A sharp social satire chronicling the vacation antics and dark hidden truths of affluent resort guests.',
         synopsisId: 'Kemelut intrik para tamu berduit dan rahasia gelap para pegawai di resor tropis mewah.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/2SwIOcXZ4you4EjPCAw7IucCsgX.png',
       },
       {
         id: 'tv-250307',
@@ -514,6 +518,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Medis',
         synopsisEn: 'A gritty, unflinching front-line look at emergency room workers battling to save lives in Pittsburgh.',
         synopsisId: 'Perjuangan para tenaga medis di unit gawat darurat tersibuk menyelamatkan nyawa di garis depan.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/zqsePGDhPnk5KpSjlZFpmZyy8h6.png',
       },
       {
         id: 'tv-76331',
@@ -528,6 +533,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Bisnis & Politik',
         synopsisEn: 'The ruthless Roy family fights for ultimate control of Waystar RoyCo when their aging patriarch steps back.',
         synopsisId: 'Intrik perebutan tahta kekuasaan dinasti media raksasa keluarga Roy yang kejam dan tak terduga.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/5MAURYSb9Q98fRWuSTOGFlztKIZ.png',
       },
       {
         id: 'tv-46648',
@@ -542,6 +548,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama Kriminal, Neo-Noir',
         synopsisEn: 'Uncompromising detectives confront harrowing psychological cases and macabre murders across the American south.',
         synopsisId: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/6q4KzOcM2eEE1IbhFTadUsQkphl.png',
       },
     ],
   },
@@ -573,6 +580,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Sci-Fi Epik',
         synopsisEn: 'Paul Atreides leads the Fremen in a planetary holy war to reclaim Arrakis and avenge his fallen dynasty.',
         synopsisId: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/eYvF1LhPKuoBxOAmWjFTAK7EPWl.png',
       },
       {
         id: 'movie-1061474',
@@ -587,6 +595,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Superhero',
         synopsisEn: 'The dawn of a new DC Universe as Superman balances his Kryptonian heritage with his human upbringing.',
         synopsisId: 'Awal era baru sang Man of Steel arahan sutradara James Gunn dalam kisah kepahlawanan modern.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/7gQc9y2EORn9pZhGtAEdlEbpcpz.png',
       },
       {
         id: 'movie-533535',
@@ -601,6 +610,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Komedi Superhero',
         synopsisEn: 'The Merc with a Mouth teams up with a cynical Wolverine on a high-stakes, hilarious mission to save their universe.',
         synopsisId: 'Wade Wilson dan Wolverine bekerja sama menyelamatkan multiverse dengan aksi brutal dan kocak.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/2o48U3kMXGIqRAkKZQ3n5OTWSBy.png',
       },
       {
         id: 'movie-575265',
@@ -615,6 +625,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Spionase',
         synopsisEn: 'Ethan Hunt and the IMF team embark on their ultimate, death-defying mission to dismantle The Entity.',
         synopsisId: 'Misi pamungkas Ethan Hunt menghentikan kecerdasan buatan The Entity demi nasib peradaban dunia.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/7yXEfWFDGpqIfq9wdpMOHcHbi8g.png',
       },
       {
         id: 'movie-1234821',
@@ -629,6 +640,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi, Dinosaurus',
         synopsisEn: 'A daring covert expedition to extract vital dinosaur DNA from isolated equatorial biosphere reserves.',
         synopsisId: 'Operasi rahasia mengamankan materi genetik purba dari pulau predator raksasa paling berbahaya.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/tO2Y6RlJuXKtzVMsRRYCGUwgP39.png',
       },
       {
         id: 'movie-1233413',
@@ -643,6 +655,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Horor, Aksi Thriller',
         synopsisEn: 'Twin brothers return to their troubled hometown only to find an unspeakable evil waiting to consume them.',
         synopsisId: 'Kisah saudara kembar berhadapan dengan teror kegelapan supranatural di tanah kelahiran mereka.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/kPUKvxsGgQBZMThi8VbMrTeznX0.png',
       },
     ],
   },
@@ -674,6 +687,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Fantasi Epik',
         synopsisEn: 'Noble houses clash in a deadly, deceitful war for the Iron Throne of Westeros while an ancient menace wakes.',
         synopsisId: 'Perebutan Tahta Besi di benua Westeros yang penuh intrik politik dan perang naga berdarah.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/6pObznbCoxVpY1lPQwJxETd7Phe.png',
       },
       {
         id: 'tv-1396',
@@ -688,6 +702,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama Kriminal Legendaris',
         synopsisEn: 'A high school chemistry teacher diagnosed with lung cancer partners with a former student to build an empire.',
         synopsisId: 'Transformasi dramatis guru kimia yang terdesak menjadi raja obat bius terhebat demi keluarganya.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/chw44B2VnLha8iiTdyZcIW0ZELC.png',
       },
       {
         id: 'movie-155',
@@ -702,6 +717,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Aksi Kriminal, Masterpiece',
         synopsisEn: 'Batman faces his greatest moral and physical test when the sadistic anarchist Joker brings chaos to Gotham.',
         synopsisId: 'Pertarungan fisik dan psikologis sang Ksatria Kegelapan menghadapi anarki The Joker di Gotham.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/nO5Uix3Qr4WjOyU1BMPv0okyNWm.png',
       },
       {
         id: 'tv-1668',
@@ -716,6 +732,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Sitkom Komedi',
         synopsisEn: 'Six lifelong friends share laughs, heartbreaks, and coffee across ten iconic seasons in New York City.',
         synopsisId: 'Persahabatan abadi enam kawan mengarungi lika-liku hidup dan asmara di New York.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/blVfE2u4uytU0f8yUO2XvhNSS2Y.png',
       },
       {
         id: 'tv-1418',
@@ -730,6 +747,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Sitkom Genius',
         synopsisEn: 'Caltech physicists Sheldon and Leonard learn about life and romance when aspiring actress Penny moves in next door.',
         synopsisId: 'Humor sains dan persahabatan Sheldon, Leonard, dan kawan-kawan saat bertetangga dengan Penny.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/krsdhZRZlwx8D31LzXTs893jvYl.png',
       },
       {
         id: 'movie-120',
@@ -744,6 +762,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Fantasi Epik',
         synopsisEn: 'Young hobbit Frodo Baggins is entrusted with the One Ring and sets off on a legendary quest to Mount Doom.',
         synopsisId: 'Perjalanan epik Frodo Baggins bersama Persaudaraan Cincin demi menghancurkan Cincin Utama di Mordor.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/dMAXhf7jVsc8Qsx26wsoOmoQh3r.png',
       },
     ],
   },
@@ -775,6 +794,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Realita, Bertahan Hidup',
         synopsisEn: 'Two complete strangers are dropped in extreme wilderness with no food, water, or clothes, challenged to survive 21 days.',
         synopsisId: 'Dua orang asing tanpa busana, makanan, dan pakaian diuji bertahan hidup selama 21 hari di alam liar.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/aHoUOwrFNAQUhu5IXSbIcMe88wi.png',
       },
       {
         id: 'movie-872585',
@@ -789,6 +809,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Biopik, Sejarah & Drama',
         synopsisEn: 'The gripping story of J. Robert Oppenheimer leading the Manhattan Project to create the first atomic bomb.',
         synopsisId: 'Kisah J. Robert Oppenheimer memimpin Proyek Manhattan dan pergulatan moral senjata pemusnah massal.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/b07VisHvZb0WzUpA8VB77wfMXwg.png',
       },
       {
         id: 'tv-87108',
@@ -803,6 +824,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Sejarah, Drama Bencana',
         synopsisEn: 'The true story of the 1986 nuclear disaster in Soviet Ukraine and the courageous responders who saved Europe.',
         synopsisId: 'Kisah nyata kepahlawanan dan pengorbanan manusia di balik ledakan reaktor nuklir terburuk dalam sejarah.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/f7kz7QLMMfBnM9sMfri4q6FhuvE.png',
       },
       {
         id: 'tv-4614',
@@ -817,6 +839,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Sejarah Perang Dunia II',
         synopsisEn: 'The legendary true journey of the US Army Easy Company from jump training to the fall of Nazi Germany.',
         synopsisId: 'Perjuangan nyata kompi terjun payung Easy Company dalam pertempuran sengit PD II di tanah Eropa.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/qPPt1TxKmHhyjumbHdIJchBUVdq.png',
       },
       {
         id: 'movie-899082',
@@ -831,6 +854,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Dokumenter Reuni',
         synopsisEn: 'Cast members reunite in the Great Hall to celebrate the twenty-year legacy of the Harry Potter film franchise.',
         synopsisId: 'Reuni magis para pemeran legendaris di Aula Utama Hogwarts mengenang 20 tahun keajaiban film.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/fByBlUOlgqSQoLMsEEJQ7Hf8aDA.png',
       },
       {
         id: 'tv-17937',
@@ -845,6 +869,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Paranormal Realita',
         synopsisEn: 'Zak Bagans and his crew explore notorious haunted sites worldwide, conducting intense dusk-to-dawn lockdowns.',
         synopsisId: 'Investigasi langsung ke lokasi-lokasi paling berhantu di dunia oleh Zak Bagans dan kru paranormal.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/8kSwNLygLOYccu9vPSTlIuVquVj.png',
       },
     ],
   },
@@ -876,6 +901,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Animasi, Fantasi Ajaib',
         synopsisEn: 'Bizarre and wondrous journeys of Finn the Human and his shape-shifting magical canine brother Jake in the Land of Ooo.',
         synopsisId: 'Petualangan surreal Finn si bocah petualang dan Jake si anjing ajaib di Negeri Ooo yang penuh keajaiban.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/rIi0lY2UftYuKDJ4OlIefDdijve.png',
       },
       {
         id: 'movie-1022789',
@@ -890,6 +916,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Animasi, Keluarga & Emosi',
         synopsisEn: 'Teenage Riley faces turbulent new emotions led by Anxiety as her inner Headquarters undergoes a sudden remodel.',
         synopsisId: 'Riley memasuki masa remaja dengan emosi-emosi baru yang mengambil alih ruang kendali di kepalanya.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/h40hblm8J1if7T2CBMjCD85HwuD.png',
       },
       {
         id: 'movie-1184918',
@@ -904,6 +931,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Animasi, Petualangan Menyentuh',
         synopsisEn: 'Shipwrecked robot Roz adapts to wild island life and forms a tender, maternal bond with an orphaned gosling.',
         synopsisId: 'Robot Roz terdampar di pulau liar dan menjalin ikatan kasih menyentuh dengan seekor anak angsa yatim.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/xvXJfGKjHHe1m4Usye198DCw7iJ.png',
       },
       {
         id: 'movie-1087192',
@@ -918,6 +946,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Fantasi, Petualangan',
         synopsisEn: 'Young Viking Hiccup defies generations of dragon-fighting tradition by befriending an injured Night Fury dragon.',
         synopsisId: 'Persahabatan magis Hiccup dan naga Toothless mengubah takdir Pulau Berk selamanya.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/mhPb94aGQUaDFINeUMYg1gAXPVO.png',
       },
       {
         id: 'movie-1175942',
@@ -932,6 +961,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Animasi, Komedi Heist',
         synopsisEn: 'The reformed Bad Guys struggle to stay on the good side when an all-female criminal squad pulls them into one last job.',
         synopsisId: 'Geng Bad Guys berusaha menjadi pahlawan sebelum terseret misi pencurian baru yang mendebarkan.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/83GkJm2rUc0BL2n0ZTHl8RLRE47.png',
       },
       {
         id: 'movie-950387',
@@ -946,6 +976,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Keluarga, Petualangan',
         synopsisEn: 'Four misfits are pulled through a mysterious portal into the blocky Overworld where they team up with crafter Steve.',
         synopsisId: 'Empat orang terlempar ke Overworld kotak-kotak bersama Steve sang ahli merakit legendaris.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/5gFN6sNEuzTwx2BY2BrN795JwZl.png',
       },
     ],
   },
@@ -960,6 +991,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
   const [selectedGenreIndex, setSelectedGenreIndex] = useState(0);
   const [loadingMediaId, setLoadingMediaId] = useState<string | number | null>(null);
+  const [hoveredBannerItem, setHoveredBannerItem] = useState<Record<string, number | null>>({});
+  const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
 
   const activeGenre = DISCOVER_GENRES[selectedGenreIndex] || DISCOVER_GENRES[0];
 
@@ -1230,9 +1263,28 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           const displayTitle = language === 'en' ? banner.titleEn : banner.titleId;
           const displayTagline = language === 'en' ? banner.taglineEn : banner.taglineId;
 
+          const hoveredIdx = hoveredBannerItem[banner.id];
+          const isItemHovered = hoveredIdx !== undefined && hoveredIdx !== null;
+          const activeItem = isItemHovered
+            ? (banner.items[hoveredIdx] || banner.items[0])
+            : banner.items[0];
+          const activeLogo = activeItem.logoArt || (isItemHovered ? null : banner.logoArt);
+          const activeGenre = language === 'en' ? activeItem.genreEn : activeItem.genreId;
+          const activeDescription = isItemHovered
+            ? (language === 'en' ? activeItem.synopsisEn : activeItem.synopsisId)
+            : displayTagline;
+
           return (
             <div
               key={banner.id}
+              onMouseLeave={() => {
+                setHoveredBannerItem((prev) => {
+                  if (prev[banner.id] === undefined) return prev;
+                  const next = { ...prev };
+                  delete next[banner.id];
+                  return next;
+                });
+              }}
               className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-7 sm:pt-10 sm:pb-9 lg:pt-12 lg:pb-10 overflow-hidden transition-colors duration-500`}
             >
               {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
@@ -1275,46 +1327,76 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
               </div>
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-5 z-20">
-                {/* Banner Header: Badge, Show Title Logo, & Tagline */}
-                <div className="space-y-1 sm:space-y-1.5 max-w-[65%] sm:max-w-xl">
-                  {/* Category Pill / Badge */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300">
+                {/* Banner Header: Badge, Show Title Logo, & Tagline / Synopsis */}
+                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[96px] sm:min-h-[116px] lg:min-h-[136px] flex flex-col justify-end">
+                  {/* Category Pill / Badge with dynamic genre hint when hovered */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300 w-fit transition-all duration-300">
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     <span>{displayTitle}</span>
+                    {isItemHovered && (
+                      <>
+                        <span className="text-white/30">•</span>
+                        <span className="text-white/80 font-normal normal-case">{activeGenre}</span>
+                      </>
+                    )}
                   </div>
 
-                  {/* Official Show Logo PNG */}
-                  <div className="h-8 sm:h-11 lg:h-14 flex items-center">
-                    <img
-                      src={banner.logoArt}
-                      alt={banner.logoAlt}
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                      className="max-h-full max-w-[190px] sm:max-w-[260px] lg:max-w-[320px] object-contain filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)] brightness-110"
-                    />
+                  {/* Official Show Logo PNG or Typographic Fallback */}
+                  <div className="h-9 sm:h-12 lg:h-14 flex items-center">
+                    {activeLogo && !failedLogos[String(activeItem.id)] ? (
+                      <img
+                        key={String(activeItem.id)}
+                        src={activeLogo}
+                        alt={activeItem.title}
+                        loading="eager"
+                        onError={() => {
+                          setFailedLogos((prev) => ({ ...prev, [String(activeItem.id)]: true }));
+                        }}
+                        className="max-h-full max-w-[190px] sm:max-w-[270px] lg:max-w-[340px] object-contain object-left filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] brightness-110 animate-banner-fade"
+                      />
+                    ) : (
+                      <h3
+                        key={String(activeItem.id)}
+                        className="text-lg sm:text-2xl lg:text-3xl font-black font-display text-white tracking-wider uppercase drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] line-clamp-1 animate-banner-fade"
+                      >
+                        {activeItem.title}
+                      </h3>
+                    )}
                   </div>
 
-                  {/* Tagline */}
-                  <p className="text-xs sm:text-sm text-slate-300/85 font-light leading-relaxed line-clamp-1 sm:line-clamp-none drop-shadow">
-                    {displayTagline}
+                  {/* Tagline / Synopsis with smooth fade animation */}
+                  <p
+                    key={String(activeItem.id) + (isItemHovered ? '-h' : '-d')}
+                    className="text-xs sm:text-sm text-slate-300/85 font-light leading-relaxed line-clamp-2 drop-shadow animate-banner-fade min-h-[32px] sm:min-h-[38px]"
+                  >
+                    {activeDescription}
                   </p>
                 </div>
 
                 {/* 6 Poster Cards: Mobile Swipe Carousel, Tablet 3-Col, Desktop 6-Col Grid */}
                 <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:gap-3 lg:gap-3.5 sm:mx-0 sm:px-0 sm:pb-0 relative z-20">
-                  {banner.items.map((item) => {
+                  {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
                     const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
+                    const isCardActive = hoveredIdx === idx;
 
                     return (
                       <div
                         key={item.id}
-                        onClick={() => handleItemAction(item, 'details')}
-                        onMouseEnter={playHover}
-                        className="group relative w-[140px] xs:w-[155px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-xl overflow-hidden bg-cinema-950 border border-white/[0.1] hover:border-white/40 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
+                        onClick={() => {
+                          setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
+                          handleItemAction(item, 'details');
+                        }}
+                        onMouseEnter={() => {
+                          playHover();
+                          setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
+                        }}
+                        className={`group relative w-[140px] xs:w-[155px] shrink-0 snap-start sm:w-auto sm:shrink aspect-[2/3] rounded-xl sm:rounded-xl overflow-hidden bg-cinema-950 border ${
+                          isCardActive
+                            ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-1.5 shadow-2xl shadow-amber-500/15'
+                            : 'border-white/[0.1] hover:border-white/40'
+                        } shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer`}
                       >
                         {/* Poster Image with onError fallback */}
                         <img

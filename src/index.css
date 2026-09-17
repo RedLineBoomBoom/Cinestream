@@ -266,4 +266,19 @@ input[type=range].video-scrubber:hover::-webkit-slider-thumb {
   will-change: opacity;
 }
 
+@keyframes bannerFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-banner-fade {
+  animation: bannerFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 
