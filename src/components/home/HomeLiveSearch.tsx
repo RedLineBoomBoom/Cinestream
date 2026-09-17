@@ -15,6 +15,8 @@ import {
   Plus,
   Check,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import {
@@ -96,6 +98,60 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   const [isLoadingTrending, setIsLoadingTrending] = useState(true);
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<'play' | 'details' | null>(null);
+
+  // In-Place Auto-Collapse State & Refs
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const lastScrollY = useRef(0);
+  const scrollDelta = useRef(0);
+
+  // In-Place Auto-Collapse on scroll down, Auto-Expand on scroll up
+  useEffect(() => {
+    const handleScroll = () => {
+      // Don't auto-collapse if user is typing, has active query, or input is focused
+      if (query.trim() || isInputFocused) {
+        setIsCollapsed(false);
+        return;
+      }
+
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+
+      // Check the section's position relative to the viewport
+      if (sectionRef.current) {
+        const rect = sectionRef.current.getBoundingClientRect();
+
+        // If the search section is well below the top of the viewport (> 100px), always stay open
+        if (rect.top > 100) {
+          setIsCollapsed(false);
+          lastScrollY.current = currentY;
+          scrollDelta.current = 0;
+          return;
+        }
+
+        // Search section is at or above the top of viewport: track directional scroll
+        if ((delta > 0 && scrollDelta.current < 0) || (delta < 0 && scrollDelta.current > 0)) {
+          scrollDelta.current = 0;
+        }
+        scrollDelta.current += delta;
+
+        // Scrolling DOWN through catalog: collapse search card
+        if (scrollDelta.current > 35) {
+          setIsCollapsed(true);
+        }
+        // Scrolling UP back towards search: expand search card
+        else if (scrollDelta.current < -25) {
+          setIsCollapsed(false);
+        }
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [query, isInputFocused]);
 
   // Keep activeFilter persisted in localStorage on change
   useEffect(() => {
@@ -348,12 +404,64 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   };
 
   return (
-    <section className="relative w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-8 lg:px-12 3xl:px-16 py-5 sm:py-12 z-20">
+    <section
+      ref={sectionRef}
+      className="relative w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-8 lg:px-12 3xl:px-16 py-5 sm:py-8 z-20 transition-all duration-300"
+    >
       {/* Background Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#E50914]/5 blur-[120px] pointer-events-none -z-10" />
 
-      {/* Main Search Bar Card */}
-      <div className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black">
+      {/* Sleek Collapsed Quick-Search Trigger Bar (Visible when Auto-Collapsed) */}
+      {isCollapsed && (
+        <div className="flex items-center justify-center w-full mb-3 sm:mb-5 animate-fadeIn">
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsCollapsed(false);
+              setTimeout(() => inputRef.current?.focus(), 150);
+            }}
+            onMouseEnter={playHover}
+            className="group flex items-center gap-2.5 sm:gap-3.5 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-[#181818]/95 hover:bg-[#222222] border border-white/15 hover:border-[#E50914]/50 shadow-xl shadow-black text-xs sm:text-sm text-slate-300 hover:text-white transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+          >
+            <div className="w-6 h-6 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center group-hover:bg-[#E50914] group-hover:text-white transition-colors">
+              <Search className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-light">
+              {language === 'en'
+                ? 'Search movies, series, or anime...'
+                : 'Cari film, serial, atau anime...'}
+            </span>
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/10 text-amber-300 font-semibold flex items-center gap-1 ml-1 sm:ml-2">
+              <span>{language === 'en' ? 'Expand' : 'Buka'}</span>
+              <ChevronDown className="w-3 h-3" />
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Main Search Bar Card with In-Place Auto-Collapse Transition */}
+      <div
+        className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] transform origin-top overflow-hidden ${
+          isCollapsed
+            ? 'opacity-0 max-h-0 scale-95 pointer-events-none -my-2 p-0 border-transparent shadow-none'
+            : 'opacity-100 max-h-[850px] scale-100 pointer-events-auto relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black mb-6'
+        }`}
+      >
+        {/* Quick Collapse Button in Card Header */}
+        <button
+          type="button"
+          onClick={() => {
+            playClick();
+            setIsCollapsed(true);
+          }}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-full bg-white/[0.05] hover:bg-white/15 text-neutral-400 hover:text-white transition-colors cursor-pointer z-10"
+          title={language === 'en' ? 'Collapse search section' : 'Sembunyikan kotak pencarian'}
+          aria-label="Collapse"
+        >
+          <ChevronUp className="w-4 h-4" />
+        </button>
+
         <div className="max-w-4xl mx-auto flex flex-col items-center">
           {/* Multi-Database Connected Indicator */}
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
@@ -384,6 +492,8 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
               placeholder={
                 activeFilter === 'anime'
                   ? language === 'en'
