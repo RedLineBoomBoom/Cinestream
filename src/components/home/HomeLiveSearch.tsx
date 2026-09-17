@@ -15,6 +15,7 @@ import {
   Plus,
   Check,
   ExternalLink,
+  ChevronDown,
   ArrowUp,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
@@ -98,50 +99,53 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<'play' | 'details' | null>(null);
 
-  // Sticky Floating Mini Search Bar State & Refs
+  // Floating Pop Up Search Bar State & Refs
   const sectionRef = useRef<HTMLElement>(null);
+  const searchCardRef = useRef<HTMLDivElement>(null);
   const floatingInputRef = useRef<HTMLInputElement>(null);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
-  const lastScrollY = useRef(0);
-  const scrollDelta = useRef(0);
 
-  // Sticky Floating Mini Search Bar: appears only when scrolling UP after scrolling past the search + trending section
+  // Trending on TMDB Collapsible Dropdown State
+  const [isTrendingOpen, setIsTrendingOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cinestream_trending_open');
+        if (saved !== null) {
+          return saved === 'true';
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return true;
+  });
+
+  const toggleTrendingDropdown = () => {
+    playClick();
+    setIsTrendingOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cinestream_trending_open', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // Floating Pop Up Search Bar: appears when scrolling down past search bar, returns when scrolling back up to it
   useEffect(() => {
     const handleScroll = () => {
-      const currentY = window.scrollY;
-      const delta = currentY - lastScrollY.current;
-
-      if (sectionRef.current) {
-        const rect = sectionRef.current.getBoundingClientRect();
-
-        // If the search + trending section is still in view or user is near page top, hide floating bar
-        if (rect.bottom > 80 || currentY < 450) {
-          setShowFloatingBar(false);
-          lastScrollY.current = currentY;
-          scrollDelta.current = 0;
-          return;
-        }
-
-        // Section is scrolled off-screen: track directional scroll
-        if ((delta > 0 && scrollDelta.current < 0) || (delta < 0 && scrollDelta.current > 0)) {
-          scrollDelta.current = 0;
-        }
-        scrollDelta.current += delta;
-
-        // Scrolling DOWN through catalog: keep floating bar hidden for clean viewing
-        if (scrollDelta.current > 30) {
-          setShowFloatingBar(false);
-        }
-        // Scrolling UP: smoothly reveal the floating mini search bar
-        else if (scrollDelta.current < -20) {
-          setShowFloatingBar(true);
-        }
+      if (searchCardRef.current) {
+        const rect = searchCardRef.current.getBoundingClientRect();
+        // As soon as the main search card scrolls above the viewport
+        const isPast = rect.bottom <= 40;
+        setShowFloatingBar(isPast);
       }
-
-      lastScrollY.current = currentY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -403,113 +407,194 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
       {/* Background Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#E50914]/5 blur-[120px] pointer-events-none -z-10" />
 
-      {/* Sticky Floating Mini Search Bar (Appears when scrolling UP after scrolling past the search + trending section) */}
+      {/* Floating Pop Up Search Bar (Appears when scrolling down past search bar, returns when scrolling back up) */}
       <div
         className={`fixed top-3 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-4 transition-all duration-300 ease-out ${
           showFloatingBar
-            ? 'translate-y-0 opacity-100 pointer-events-auto'
-            : '-translate-y-24 opacity-0 pointer-events-none'
+            ? 'translate-y-0 opacity-100 scale-100 pointer-events-auto'
+            : '-translate-y-24 opacity-0 scale-95 pointer-events-none'
         }`}
       >
-        <div className="max-w-2xl w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/30 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl shadow-black/90 flex items-center gap-2 sm:gap-3 transition-all">
-          {/* Glowing Red Search Icon / Spinner */}
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#E50914]/40">
-            {isSearching ? (
-              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-            ) : (
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            )}
-          </div>
+        <div className="relative max-w-2xl w-full">
+          <div className="w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/30 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_20px_rgba(229,9,20,0.25)] flex items-center gap-2 sm:gap-3 transition-all">
+            {/* Glowing Red Search Icon / Spinner */}
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E50914] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#E50914]/40">
+              {isSearching ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+              ) : (
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )}
+            </div>
 
-          {/* Quick Search Input */}
-          <input
-            ref={floatingInputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            {/* Quick Search Input */}
+            <input
+              ref={floatingInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              placeholder={
+                activeFilter === 'anime'
+                  ? language === 'en'
+                    ? 'Search anime...'
+                    : 'Cari anime...'
+                  : language === 'en'
+                  ? 'Search movies, series, anime...'
+                  : 'Cari film, serial, anime...'
               }
-            }}
-            placeholder={
-              activeFilter === 'anime'
-                ? language === 'en'
-                  ? 'Quick search anime...'
-                  : 'Cari anime cepat...'
-                : language === 'en'
-                ? 'Quick search movies, series...'
-                : 'Cari cepat film, serial...'
-            }
-            className="flex-1 bg-transparent text-white placeholder:text-neutral-400 text-xs sm:text-sm font-light focus:outline-none min-w-0"
-          />
+              className="flex-1 bg-transparent text-white placeholder:text-neutral-400 text-xs sm:text-sm font-light focus:outline-none min-w-0"
+            />
 
-          {/* Clear Button */}
-          {query && (
+            {/* Clear Button */}
+            {query && (
+              <button
+                type="button"
+                onClick={handleClearQuery}
+                className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                title={language === 'en' ? 'Clear' : 'Hapus'}
+                aria-label={language === 'en' ? 'Clear' : 'Hapus'}
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+
+            {/* Quick Filter Pills (visible on tablet/desktop) */}
+            <div className="hidden sm:flex items-center gap-1 border-l border-white/10 pl-2 shrink-0">
+              {(['all', 'movie', 'tv', 'anime'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => handleSelectFilter(filter)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                    activeFilter === filter
+                      ? filter === 'anime'
+                        ? 'bg-fuchsia-600 text-white font-bold shadow-sm'
+                        : filter === 'all'
+                        ? 'bg-white text-black font-bold shadow-sm'
+                        : 'bg-[#E50914] text-white font-bold shadow-sm shadow-[#E50914]/40'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {filter === 'all'
+                    ? language === 'en'
+                      ? 'All'
+                      : 'Semua'
+                    : filter === 'movie'
+                    ? language === 'en'
+                      ? 'Movies'
+                      : 'Film'
+                    : filter === 'tv'
+                    ? language === 'en'
+                      ? 'Series'
+                      : 'Serial'
+                    : 'Anime'}
+                </button>
+              ))}
+            </div>
+
+            {/* Jump to Main Search Bar Button */}
             <button
               type="button"
-              onClick={handleClearQuery}
-              className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
-              title={language === 'en' ? 'Clear' : 'Hapus'}
-              aria-label={language === 'en' ? 'Clear' : 'Hapus'}
+              onClick={() => {
+                playClick();
+                searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => inputRef.current?.focus(), 400);
+              }}
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+              title={language === 'en' ? 'Back to Search Card' : 'Kembali ke Kolom Pencarian'}
+              aria-label="Back to Search Card"
             >
-              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <ArrowUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-          )}
-
-          {/* Quick Filter Pills (visible on tablet/desktop) */}
-          <div className="hidden sm:flex items-center gap-1 border-l border-white/10 pl-2 shrink-0">
-            {(['all', 'movie', 'tv', 'anime'] as const).map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => handleSelectFilter(filter)}
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
-                  activeFilter === filter
-                    ? filter === 'anime'
-                      ? 'bg-fuchsia-600 text-white font-bold shadow-sm'
-                      : filter === 'all'
-                      ? 'bg-white text-black font-bold shadow-sm'
-                      : 'bg-[#E50914] text-white font-bold shadow-sm shadow-[#E50914]/40'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {filter === 'all'
-                  ? language === 'en'
-                    ? 'All'
-                    : 'Semua'
-                  : filter === 'movie'
-                  ? language === 'en'
-                    ? 'Movies'
-                    : 'Film'
-                  : filter === 'tv'
-                  ? language === 'en'
-                    ? 'Series'
-                    : 'Serial'
-                  : 'Anime'}
-              </button>
-            ))}
           </div>
 
-          {/* Jump to Search & Trending Button */}
-          <button
-            type="button"
-            onClick={() => {
-              playClick();
-              sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              setTimeout(() => inputRef.current?.focus(), 450);
-            }}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-            title={language === 'en' ? 'Back to Search & Trending' : 'Ke Pencarian & Trending'}
-            aria-label="Back to Search and Trending"
-          >
-            <ArrowUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
+          {/* Quick Floating Live Search Results Pop-up Dropdown */}
+          {query.trim() && (
+            <div className="absolute top-full mt-2 inset-x-0 bg-[#181818]/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden p-2 space-y-1 z-50 max-h-[380px] overflow-y-auto animate-fadeIn">
+              {isSearching ? (
+                <div className="py-6 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                  <Loader2 className="w-4 h-4 text-[#E50914] animate-spin" />
+                  <span>{language === 'en' ? 'Searching...' : 'Mencari...'}</span>
+                </div>
+              ) : results.length > 0 ? (
+                <>
+                  <div className="px-3 py-1 flex items-center justify-between text-[11px] text-neutral-400 font-mono border-b border-white/[0.06]">
+                    <span>{language === 'en' ? 'Quick Results' : 'Hasil Cepat'}</span>
+                    <span className="text-[#E50914]">{results.length} {language === 'en' ? 'found' : 'ditemukan'}</span>
+                  </div>
+                  {results.slice(0, 5).map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectMedia(item, 'play')}
+                      onMouseEnter={playHover}
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
+                    >
+                      <img
+                        src={getMediaPoster(item, language)}
+                        alt={getMediaTitle(item, language)}
+                        className="w-10 h-14 object-cover rounded-lg shrink-0 shadow-sm"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-white group-hover:text-[#E50914] truncate transition-colors">
+                          {getMediaTitle(item, language)}
+                        </h4>
+                        <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono mt-0.5">
+                          <span>{item.year || 'N/A'}</span>
+                          <span>•</span>
+                          <span className="uppercase">{item.mediaType}</span>
+                          {item.rating > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-amber-400">★ {item.rating.toFixed(1)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectMedia(item, 'details');
+                        }}
+                        className="p-1.5 rounded-lg bg-white/10 hover:bg-[#E50914] text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                        title={language === 'en' ? 'Details' : 'Detail'}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClick();
+                      searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="w-full py-2 text-center text-xs text-[#E50914] hover:text-white font-semibold hover:bg-[#E50914]/20 rounded-xl transition-colors cursor-pointer mt-1"
+                  >
+                    {language === 'en'
+                      ? `View all ${results.length} results in catalog ↓`
+                      : `Lihat semua ${results.length} hasil di katalog ↓`}
+                  </button>
+                </>
+              ) : (
+                <div className="py-6 text-center text-xs text-neutral-400">
+                  {language === 'en' ? 'No matches found' : 'Tidak ada tayangan yang cocok'}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main Search Bar Card */}
-      <div className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black mb-6">
+      <div
+        ref={searchCardRef}
+        className="relative w-full bg-[#181818]/95 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl shadow-black mb-6"
+      >
         <div className="max-w-4xl mx-auto flex flex-col items-center">
           {/* Multi-Database Connected Indicator */}
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
@@ -635,8 +720,13 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
 
       {/* Results Section */}
       <div className="flex-1 mt-6">
-        {/* Results Header Bar */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 mb-6">
+        {/* Results / Trending Header Bar */}
+        <div
+          className={`flex items-center justify-between border-b border-white/[0.08] pb-3 mb-6 ${
+            !query.trim() ? 'cursor-pointer select-none group' : ''
+          }`}
+          onClick={!query.trim() ? toggleTrendingDropdown : undefined}
+        >
           <div className="flex items-center gap-2.5">
             {query.trim() ? (
               <>
@@ -652,13 +742,18 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               </>
             ) : activeFilter === 'anime' ? (
               <>
-                <div className="p-1.5 rounded-lg bg-fuchsia-500/15 text-fuchsia-400">
+                <div className="p-2 rounded-xl bg-fuchsia-500/15 text-fuchsia-400 group-hover:scale-105 transition-transform">
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm sm:text-base font-display font-black text-white tracking-wider uppercase">
-                    {language === 'en' ? 'Top Trending Anime (MAL / Kitsu)' : 'Serial Anime Terpopuler Saat Ini'}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-fuchsia-400 tracking-wider uppercase transition-colors">
+                      {language === 'en' ? 'Top Trending Anime (MAL / Kitsu)' : 'Serial Anime Terpopuler Saat Ini'}
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">
+                      {isTrendingOpen ? (language === 'en' ? 'Expanded' : 'Terbuka') : (language === 'en' ? 'Collapsed' : 'Tertutup')}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-neutral-400 font-light">
                     {language === 'en' ? 'Curated from global anime database' : 'Dihimpun dari database anime terkemuka dunia'}
                   </p>
@@ -666,13 +761,18 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
               </>
             ) : (
               <>
-                <div className="p-1.5 rounded-lg bg-[#E50914]/15 text-[#E50914]">
+                <div className="p-2 rounded-xl bg-[#E50914]/15 text-[#E50914] group-hover:scale-105 transition-transform">
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm sm:text-base font-display font-black text-white tracking-wider uppercase">
-                    {language === 'en' ? 'Trending on TMDB Today' : 'Karya Tren Populer TMDB Hari Ini'}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm sm:text-base font-display font-black text-white group-hover:text-[#E50914] tracking-wider uppercase transition-colors">
+                      {language === 'en' ? 'Trending on TMDB Today' : 'Karya Tren Populer TMDB Hari Ini'}
+                    </h2>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/10 text-neutral-300 border border-white/15">
+                      {isTrendingOpen ? (language === 'en' ? 'Expanded' : 'Terbuka') : (language === 'en' ? 'Collapsed' : 'Tertutup')}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-neutral-400 font-light">
                     {language === 'en' ? 'Most watched movies & series globally today' : 'Koleksi film dan serial paling banyak ditonton dunia hari ini'}
                   </p>
@@ -681,68 +781,130 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
             )}
           </div>
 
-          <span className="text-xs font-mono font-bold text-white bg-[#E50914]/20 border border-[#E50914]/30 px-3 py-1 rounded-full">
-            {displayItems.length} {language === 'en' ? 'Titles' : 'Judul'}
-          </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs font-mono font-bold text-white bg-[#E50914]/20 border border-[#E50914]/30 px-2.5 sm:px-3 py-1 rounded-full">
+              {displayItems.length} {language === 'en' ? 'Titles' : 'Judul'}
+            </span>
+
+            {!query.trim() && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTrendingDropdown();
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/15 border border-white/10 hover:border-white/20 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer select-none"
+                title={
+                  isTrendingOpen
+                    ? language === 'en' ? 'Hide trending section' : 'Sembunyikan bagian trending'
+                    : language === 'en' ? 'Show trending section' : 'Tampilkan bagian trending'
+                }
+              >
+                <span className="hidden sm:inline">
+                  {isTrendingOpen ? (language === 'en' ? 'Hide' : 'Sembunyikan') : (language === 'en' ? 'Show' : 'Tampilkan')}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                    isTrendingOpen ? 'rotate-180 text-[#E50914]' : 'text-neutral-400'
+                  }`}
+                />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Loading Skeleton */}
-        {(isSearching || (isLoadingTrending && !query.trim())) && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
-            {Array.from({ length: 12 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col rounded-2xl overflow-hidden bg-cinema-900/60 border border-white/[0.05] animate-pulse"
-              >
-                <div className="aspect-[2/3] w-full bg-cinema-850" />
-                <div className="p-3.5 space-y-2">
-                  <div className="h-4 bg-white/10 rounded w-3/4" />
-                  <div className="h-3 bg-white/5 rounded w-1/2" />
-                </div>
+        {/* If user is not searching and trending is collapsed: display sleek compact dropdown bar */}
+        {!query.trim() && !isTrendingOpen ? (
+          <div
+            onClick={toggleTrendingDropdown}
+            onMouseEnter={playHover}
+            className="w-full py-4 px-5 sm:px-6 rounded-2xl bg-[#181818]/70 hover:bg-[#202020] border border-white/10 hover:border-[#E50914]/40 flex items-center justify-between cursor-pointer transition-all duration-300 shadow-lg group select-none animate-fadeIn"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-[#E50914]/20 text-[#E50914] flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Flame className="w-4 h-4" />
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* No Results State */}
-        {!isSearching && !isLoadingTrending && displayItems.length === 0 && (
-          <div className="py-20 text-center space-y-4 max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center mx-auto text-slate-600">
-              <Clapperboard className="w-8 h-8" />
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-white group-hover:text-[#E50914] transition-colors">
+                  {language === 'en'
+                    ? `Click to view ${displayItems.length} trending titles`
+                    : `Klik untuk menampilkan ${displayItems.length} karya tren populer`}
+                </p>
+                <p className="text-[11px] text-neutral-400 font-light">
+                  {language === 'en'
+                    ? 'Movies, series, and anime updated daily on TMDB'
+                    : 'Film, serial, dan anime paling banyak ditonton hari ini'}
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-medium text-white">{t('noResultsTitle')}</h3>
-              <p className="text-xs text-slate-400 font-light">
-                {t('noResultsDesc')}
-              </p>
-            </div>
-            <button
-              onClick={handleClearQuery}
-              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer"
-            >
-              {t('backToTrending')}
-            </button>
-          </div>
-        )}
 
-        {/* Movie/Series Cards Grid */}
-        {!isSearching && !isLoadingTrending && displayItems.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
-            {displayItems.map((item) => (
-              <HomeLiveSearchCard
-                key={item.id}
-                item={item}
-                language={language}
-                isLoadingThis={loadingItemId === item.id}
-                loadingAction={loadingAction}
-                isInWatchlist={isInWatchlist}
-                handleSelectMedia={handleSelectMedia}
-                handleWatchlistToggle={handleWatchlistToggle}
-                playClick={playClick}
-                playHover={playHover}
-                t={t}
-              />
-            ))}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 group-hover:bg-[#E50914] text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
+              <span>{language === 'en' ? 'Expand' : 'Tampilkan'}</span>
+              <ChevronDown className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+        ) : (
+          <div className="transition-all duration-500 ease-in-out animate-fadeIn">
+            {/* Loading Skeleton */}
+            {(isSearching || (isLoadingTrending && !query.trim())) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
+                {Array.from({ length: 12 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col rounded-2xl overflow-hidden bg-cinema-900/60 border border-white/[0.05] animate-pulse"
+                  >
+                    <div className="aspect-[2/3] w-full bg-cinema-850" />
+                    <div className="p-3.5 space-y-2">
+                      <div className="h-4 bg-white/10 rounded w-3/4" />
+                      <div className="h-3 bg-white/5 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* No Results State */}
+            {!isSearching && !isLoadingTrending && displayItems.length === 0 && (
+              <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center mx-auto text-slate-600">
+                  <Clapperboard className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-medium text-white">{t('noResultsTitle')}</h3>
+                  <p className="text-xs text-slate-400 font-light">
+                    {t('noResultsDesc')}
+                  </p>
+                </div>
+                <button
+                  onClick={handleClearQuery}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer"
+                >
+                  {t('backToTrending')}
+                </button>
+              </div>
+            )}
+
+            {/* Movie/Series Cards Grid */}
+            {!isSearching && !isLoadingTrending && displayItems.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 4xl:grid-cols-9 gap-4 sm:gap-5">
+                {displayItems.map((item) => (
+                  <HomeLiveSearchCard
+                    key={item.id}
+                    item={item}
+                    language={language}
+                    isLoadingThis={loadingItemId === item.id}
+                    loadingAction={loadingAction}
+                    isInWatchlist={isInWatchlist}
+                    handleSelectMedia={handleSelectMedia}
+                    handleWatchlistToggle={handleWatchlistToggle}
+                    playClick={playClick}
+                    playHover={playHover}
+                    t={t}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
