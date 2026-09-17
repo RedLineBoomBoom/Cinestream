@@ -189,11 +189,14 @@ export class WatchPartyService {
   /** Send a chat message */
   sendChat(text: string) {
     if (!this.room) return;
+    const cleanText = String(text || '').trim().slice(0, 500);
+    if (!cleanText) return;
+
     const message: PartyMessage = {
       id: msgId(),
       memberId: this.myId,
-      memberName: this.myName,
-      text,
+      memberName: (this.myName || 'User').trim().slice(0, 50),
+      text: cleanText,
       timestamp: Date.now(),
       type: 'chat',
     };
@@ -513,10 +516,18 @@ export class WatchPartyService {
         this._broadcast({ event: 'chat', message: sysMsg });
         this.cbs.onMessage?.(sysMsg);
       } else if (msg.event === 'chat') {
+        if (!msg.message || typeof msg.message.text !== 'string') return;
+        const sanitizedMsg: PartyMessage = {
+          ...msg.message,
+          text: String(msg.message.text).trim().slice(0, 500),
+          memberName: String(msg.message.memberName || 'User').trim().slice(0, 50),
+        };
+        if (!sanitizedMsg.text) return;
+
         // Forward to all
-        this.room!.messages.push(msg.message);
-        this._broadcastExcept({ event: 'chat', message: msg.message }, conn.peer);
-        this.cbs.onMessage?.(msg.message);
+        this.room!.messages.push(sanitizedMsg);
+        this._broadcastExcept({ event: 'chat', message: sanitizedMsg }, conn.peer);
+        this.cbs.onMessage?.(sanitizedMsg);
       } else if (msg.event === 'signal') {
         // In host-only control mode, guests cannot control playback
         if (this.room?.controlMode === 'host_only') {
@@ -597,8 +608,17 @@ export class WatchPartyService {
         this.cbs.onMemberLeft?.(msg.memberId, msg.memberName);
         break;
       case 'chat':
-        this.room?.messages.push(msg.message);
-        this.cbs.onMessage?.(msg.message);
+        if (msg.message && typeof msg.message.text === 'string') {
+          const sanitizedMsg: PartyMessage = {
+            ...msg.message,
+            text: String(msg.message.text).trim().slice(0, 500),
+            memberName: String(msg.message.memberName || 'User').trim().slice(0, 50),
+          };
+          if (sanitizedMsg.text) {
+            this.room?.messages.push(sanitizedMsg);
+            this.cbs.onMessage?.(sanitizedMsg);
+          }
+        }
         break;
       case 'signal':
         this.cbs.onSignal?.(msg.signal, msg.senderName, msg.senderId, msg.alertText);

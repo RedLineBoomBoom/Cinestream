@@ -210,11 +210,26 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const lastSendTimeRef = useRef<number>(0);
+  const [chatWarning, setChatWarning] = useState<string | null>(null);
+
   const handleSendChat = () => {
-    if (!chatInput.trim()) return;
+    const text = chatInput.trim();
+    if (!text) return;
+
+    // Rate limiting / Anti-spam check
+    const now = Date.now();
+    if (now - lastSendTimeRef.current < 500) {
+      setChatWarning(language === 'en' ? 'Slow down, sending too fast!' : 'Kirim pesan terlalu cepat, mohon tunggu sebentar.');
+      setTimeout(() => setChatWarning(null), 2000);
+      return;
+    }
+    lastSendTimeRef.current = now;
+
     playClick();
-    sendChat(chatInput.trim());
+    sendChat(text.slice(0, 500));
     setChatInput('');
+    setChatWarning(null);
     chatInputRef.current?.focus();
   };
 
@@ -1123,20 +1138,38 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             </div>
           </div>
 
+          {/* ── Anti-Spam Warning ────────────────────────────── */}
+          {chatWarning && (
+            <div className="px-3 py-1 bg-amber-500/15 border-t border-amber-500/30 text-amber-300 text-[10px] flex items-center justify-between animate-in fade-in duration-150 shrink-0">
+              <span>{chatWarning}</span>
+            </div>
+          )}
+
           {/* ── Chat input ──────────────────────────────────── */}
           <div className="px-2.5 py-2 border-t border-white/[0.06] flex items-center gap-1.5 shrink-0 bg-white/[0.01]">
-            <input
-              ref={chatInputRef}
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === 'Enter') handleSendChat();
-              }}
-              placeholder={t('partyChatPlaceholder')}
-              className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all cursor-text"
-            />
+            <div className="relative flex-1 flex items-center">
+              <input
+                ref={chatInputRef}
+                type="text"
+                maxLength={500}
+                value={chatInput}
+                onChange={(e) => {
+                  setChatInput(e.target.value);
+                  if (chatWarning) setChatWarning(null);
+                }}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') handleSendChat();
+                }}
+                placeholder={t('partyChatPlaceholder')}
+                className="w-full px-3 py-1.5 pr-14 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-all cursor-text"
+              />
+              {chatInput.length >= 400 && (
+                <span className="absolute right-2 text-[9px] text-amber-400/80 font-mono select-none">
+                  {chatInput.length}/500
+                </span>
+              )}
+            </div>
             <button
               onClick={handleSendChat}
               disabled={!chatInput.trim()}

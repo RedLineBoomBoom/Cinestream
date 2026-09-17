@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Play, Link } from 'lucide-react';
+import { X, Play, Link, AlertTriangle } from 'lucide-react';
 import type { MediaItem, Server } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
 
@@ -18,30 +18,60 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
   const [title, setTitle] = useState('');
   const [isEmbed, setIsEmbed] = useState(false);
   const [posterUrl, setPosterUrl] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { playClick, playSuccess } = useSound();
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!streamUrl.trim()) return;
+    setErrorMessage(null);
+
+    const cleanStreamUrl = streamUrl.trim();
+    if (!cleanStreamUrl) return;
+
+    // Strict URL and protocol validation (prevent javascript:, data:, vbscript:, etc.)
+    try {
+      const parsedStreamUrl = new URL(cleanStreamUrl);
+      if (parsedStreamUrl.protocol !== 'http:' && parsedStreamUrl.protocol !== 'https:') {
+        setErrorMessage('Keamanan: Protokol URL tidak valid. Hanya URL dengan awalan http:// atau https:// yang diperbolehkan.');
+        return;
+      }
+    } catch {
+      setErrorMessage('Keamanan: Format URL streaming tidak valid. Pastikan tautan lengkap dengan https://');
+      return;
+    }
+
+    if (posterUrl.trim()) {
+      try {
+        const parsedPosterUrl = new URL(posterUrl.trim());
+        if (parsedPosterUrl.protocol !== 'http:' && parsedPosterUrl.protocol !== 'https:') {
+          setErrorMessage('Keamanan: URL poster tidak valid. Hanya tautan gambar dengan http:// atau https:// yang diperbolehkan.');
+          return;
+        }
+      } catch {
+        setErrorMessage('Keamanan: Format URL poster tidak valid. Pastikan tautan gambar diawali dengan https://');
+        return;
+      }
+    }
 
     playSuccess();
 
-    const cleanTitle = title.trim() || 'Pemutaran Aliran Kustom';
+    // Sanitize title string from dangerous brackets or tags
+    const cleanTitle = (title.trim() || 'Pemutaran Aliran Kustom').replace(/[<>]/g, '').slice(0, 100);
     const isEmbedUrl =
       isEmbed ||
-      streamUrl.includes('/embed/') ||
-      streamUrl.includes('iframe') ||
-      streamUrl.includes('player') ||
-      streamUrl.includes('vidsrc');
+      cleanStreamUrl.includes('/embed/') ||
+      cleanStreamUrl.includes('iframe') ||
+      cleanStreamUrl.includes('player') ||
+      cleanStreamUrl.includes('vidsrc');
 
     const customServer: Server = {
       id: `custom-srv-${Date.now()}`,
       name: isEmbedUrl ? 'Jalur Embed Web' : 'Jalur Aliran Kustom',
       speed: '18 ms',
       quality: '1080p FHD',
-      url: streamUrl.trim(),
+      url: cleanStreamUrl,
       status: 'online',
       isEmbed: isEmbedUrl,
     };
@@ -56,7 +86,7 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
       backdrop:
         posterUrl.trim() ||
         'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop',
-      synopsis: `Pemutaran media kustom yang dimuat dari tautan eksternal: ${streamUrl.trim()}`,
+      synopsis: `Pemutaran media kustom yang dimuat dari tautan eksternal: ${cleanStreamUrl}`,
       rating: 9.0,
       year: new Date().getFullYear(),
       releaseDate: 'Pemutaran Langsung',
@@ -104,6 +134,13 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
           </p>
         </div>
 
+        {errorMessage && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs animate-in fade-in duration-200">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+            <p className="leading-relaxed">{errorMessage}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[11px] uppercase tracking-wider text-slate-400 font-medium block">
@@ -113,7 +150,10 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
               type="url"
               required
               value={streamUrl}
-              onChange={(e) => setStreamUrl(e.target.value)}
+              onChange={(e) => {
+                setStreamUrl(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+              }}
               placeholder="https://... (mp4, m3u8, atau embed URL)"
               className="w-full bg-cinema-950 border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-gold/60"
             />
@@ -139,7 +179,10 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
             <input
               type="url"
               value={posterUrl}
-              onChange={(e) => setPosterUrl(e.target.value)}
+              onChange={(e) => {
+                setPosterUrl(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+              }}
               placeholder="https://... (URL gambar poster)"
               className="w-full bg-cinema-950 border border-white/[0.08] rounded-xl px-4 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-gold/60"
             />
