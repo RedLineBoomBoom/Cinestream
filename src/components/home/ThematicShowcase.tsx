@@ -1308,8 +1308,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 }}
               />
 
-              {/* High-Impact Character Cutout PNG (Layered behind cards at z-10) */}
-              <div className="absolute right-2 sm:right-8 md:right-14 lg:right-24 xl:right-32 bottom-5 sm:bottom-7 lg:bottom-8 h-[220px] sm:h-[310px] md:h-[370px] lg:h-[430px] xl:h-[480px] pointer-events-none select-none z-10 flex items-end">
+              {/* High-Impact Character Cutout PNG (Raised to upper-right hero position, clearly visible above the cards) */}
+              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-2 sm:top-3 md:top-4 lg:top-5 h-[270px] sm:h-[370px] md:h-[430px] lg:h-[490px] xl:h-[550px] 2xl:h-[600px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
                 <img
                   src={banner.cutoutArt}
                   alt={banner.cutoutAlt}
@@ -1317,7 +1317,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="h-full w-auto object-contain filter drop-shadow-[0_12px_36px_rgba(0,0,0,0.9)] brightness-105"
+                  className="h-full w-auto object-contain object-top filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.85)] brightness-105"
                 />
               </div>
 
