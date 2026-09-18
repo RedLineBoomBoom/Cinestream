@@ -69,7 +69,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     cutoutArt: '/assets/cutouts/hotd-cutout.png',
     cutoutAlt: 'House of the Dragon - Daemon Targaryen',
     cutoutPosition: 'right-2 sm:right-6 md:right-10 lg:right-16 xl:right-22 2xl:right-28',
-    logoArt: 'https://image.tmdb.org/t/p/w500/sWW8VURTOT0yVLS6Jlxw6BQQUSZ.png',
+    logoArt: 'https://image.tmdb.org/t/p/w500/aMYpHPNO3ZXH9dR3Mchrg2AgoNw.png',
     logoAlt: 'House of the Dragon',
     items: [
       {
@@ -145,7 +145,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama, Bisnis & Politik',
         synopsisEn: 'The Roy family is known for controlling the biggest media and entertainment company in the world.',
         synopsisId: 'Keluarga Roy bersaing memperebutkan kendali atas konglomerat media global Waystar RoyCo.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/krsdhZRZlwx8D31LzXTs893jvYl.png',
+        logoArt: 'https://image.tmdb.org/t/p/w500/5MAURYSb9Q98fRWuSTOGFlztKIZ.png',
       },
       {
         id: 'tv-46648',
@@ -160,7 +160,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreId: 'Drama Kriminal, Misteri',
         synopsisEn: 'An anthology series in which police investigations unearth the personal and professional secrets of those involved.',
         synopsisId: 'Serial antologi detektif yang mengungkap rahasia kelam di balik investigasi kasus kriminal rumit.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/7yXEfWFDGpqIfq9wdpMOHcHbi8g.png',
+        logoArt: 'https://image.tmdb.org/t/p/w500/6q4KzOcM2eEE1IbhFTadUsQkphl.png',
       },
     ],
   },
