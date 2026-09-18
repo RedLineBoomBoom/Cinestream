@@ -50,7 +50,7 @@ import {
   type PortalReviewItem,
 } from '../../services/portalReviews';
 import { useAutoTranslateSynopsis, translateText } from '../../services/translator';
-import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName, parseDurationToSeconds } from '../../utils/formatters';
+import { getSeriesStatus, formatGenre, getMediaTitle, getDefaultServer, formatServerName, parseDurationToSeconds, formatAudioTracks, formatSubtitles } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 import {
   getAdjacentEpisodes,
@@ -1781,12 +1781,12 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   <span className="text-slate-500 block mb-1">{t('audioFormat')}</span>
                   <span className="font-medium text-brand-champagne text-sm flex items-center gap-1.5">
                     <Volume2 className="w-3.5 h-3.5" />
-                    {media.audioTracks ? media.audioTracks.join(', ') : 'Dolby Atmos'}
+                    {formatAudioTracks(media.audioTracks, language)}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block mb-1">{t('subtitles')}</span>
-                  <span className="font-medium text-brand-champagne text-sm">{media.subtitles.join(', ')}</span>
+                  <span className="font-medium text-brand-champagne text-sm">{formatSubtitles(media.subtitles, language)}</span>
                 </div>
               </div>
 

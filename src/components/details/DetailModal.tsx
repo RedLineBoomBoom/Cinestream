@@ -26,7 +26,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getImdbUrl } from '../../services/imdb';
-import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis, getDefaultServer } from '../../utils/formatters';
+import { getSeriesStatus, formatGenre, getMediaTitle, getMediaSynopsis, getDefaultServer, formatAudioTracks, formatSubtitles } from '../../utils/formatters';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
   getAdjacentEpisodes,
@@ -681,11 +681,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-500 block mb-1">{language === 'en' ? 'Audio Format' : 'Format Audio'}</span>
-                  <span className="font-medium text-white">{media.audioTracks.join(', ')}</span>
+                  <span className="font-medium text-white">{formatAudioTracks(media.audioTracks, language)}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block mb-1">{language === 'en' ? 'Subtitles' : 'Takarir / Subtitle'}</span>
-                  <span className="font-medium text-brand-champagne">{media.subtitles.join(', ')}</span>
+                  <span className="font-medium text-brand-champagne">{formatSubtitles(media.subtitles, language)}</span>
                 </div>
               </div>
 

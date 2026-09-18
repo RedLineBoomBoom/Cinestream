@@ -1073,3 +1073,64 @@ export function formatMediaDuration(
   return '52m / ep';
 }
 
+/**
+ * Localize audio track labels dynamically between Indonesian & English
+ */
+export function formatAudioTracks(tracks: string[] | undefined, lang: 'id' | 'en'): string {
+  if (!tracks || tracks.length === 0) return lang === 'en' ? 'Dolby Atmos' : 'Dolby Atmos';
+  return tracks
+    .map((track) => {
+      if (lang === 'en') {
+        return track
+          .replace(/Bahasa Asli/gi, 'Original Audio')
+          .replace(/Bahasa Inggris/gi, 'English')
+          .replace(/Bahasa Jepang/gi, 'Japanese')
+          .replace(/Jepang\b/gi, 'Japanese')
+          .replace(/Bahasa Korea/gi, 'Korean')
+          .replace(/Korea\b/gi, 'Korean')
+          .replace(/Bahasa Indonesia/gi, 'Indonesian')
+          .replace(/Indonesia Dub/gi, 'Indonesian Dub')
+          .replace(/Indonesia\b/gi, 'Indonesian');
+      } else {
+        return track
+          .replace(/Original Audio/gi, 'Bahasa Asli')
+          .replace(/\bOriginal\b/gi, 'Asli')
+          .replace(/English\b/gi, 'Bahasa Inggris')
+          .replace(/Japanese\b/gi, 'Bahasa Jepang')
+          .replace(/Korean\b/gi, 'Bahasa Korea')
+          .replace(/Indonesian Dub/gi, 'Dubbing Indonesia')
+          .replace(/Indonesian\b/gi, 'Bahasa Indonesia');
+      }
+    })
+    .join(', ');
+}
+
+/**
+ * Localize subtitle labels dynamically between Indonesian & English
+ */
+export function formatSubtitles(subs: string[] | undefined, lang: 'id' | 'en'): string {
+  if (!subs || subs.length === 0) return '-';
+  return subs
+    .map((sub) => {
+      if (lang === 'en') {
+        return sub
+          .replace(/Bahasa Indonesia \(Lengkap\)/gi, 'Indonesian (Full)')
+          .replace(/Indonesia \(Otomatis\)/gi, 'Indonesian (Auto)')
+          .replace(/Bahasa Indonesia/gi, 'Indonesian')
+          .replace(/\bIndonesia\b/gi, 'Indonesian')
+          .replace(/\(Otomatis\)/gi, '(Auto)')
+          .replace(/\(Lengkap\)/gi, '(Full)');
+      } else {
+        return sub
+          .replace(/Indonesian \(Auto\)/gi, 'Indonesia (Otomatis)')
+          .replace(/Indonesian \(Full\)/gi, 'Bahasa Indonesia (Lengkap)')
+          .replace(/\bIndonesian\b/gi, 'Indonesia')
+          .replace(/English \(CC\)/gi, 'Inggris (CC)')
+          .replace(/\bEnglish\b/gi, 'Inggris')
+          .replace(/\(Auto\)/gi, '(Otomatis)')
+          .replace(/\(Full\)/gi, '(Lengkap)');
+      }
+    })
+    .join(', ');
+}
+

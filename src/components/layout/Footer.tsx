@@ -1,16 +1,9 @@
 import React from 'react';
-import { Play, Shield, ArrowUp } from 'lucide-react';
-import { useSound } from '../../context/SoundContext';
+import { Play, Shield } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const Footer: React.FC = () => {
-  const { playClick, playHover } = useSound();
   const { t } = useLanguage();
-
-  const scrollToTop = () => {
-    playClick();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <footer className="relative bg-[#0c0c0c] border-t border-white/[0.08] pt-16 pb-24 sm:pb-16 text-slate-400 text-xs mt-0">
@@ -45,16 +38,6 @@ export const Footer: React.FC = () => {
             <p className="text-[11px] text-slate-500 leading-relaxed max-w-md">
               {t('eduDesc')}
             </p>
-            <div className="pt-2">
-              <button
-                onClick={scrollToTop}
-                onMouseEnter={playHover}
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/[0.08] hover:bg-[#E50914] hover:text-white border border-white/10 text-slate-300 transition-all duration-200 text-xs font-semibold shadow-sm"
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-                <span>{t('backToTop')}</span>
-              </button>
-            </div>
           </div>
         </div>
 
