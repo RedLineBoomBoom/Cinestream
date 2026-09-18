@@ -85,7 +85,7 @@ Note for matchReason: ${
   }.
 type must be "movie", "series", or "anime". confidence must be integer between 60 and 99.`;
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   for (const model of models) {
     try {
       const controller = new AbortController();
@@ -114,8 +114,24 @@ type must be "movie", "series", or "anime". confidence must be integer between 6
       if (res.ok) {
         const data = await res.json();
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(cleaned);
+        let parsed: any = null;
+
+        // Try direct JSON array extraction
+        const startIdx = rawText.indexOf('[');
+        const endIdx = rawText.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          try {
+            parsed = JSON.parse(rawText.slice(startIdx, endIdx + 1));
+          } catch {}
+        }
+
+        if (!parsed) {
+          const cleaned = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+          try {
+            parsed = JSON.parse(cleaned);
+          } catch {}
+        }
+
         if (Array.isArray(parsed) && parsed.length > 0) {
           const items: AiRecommendationItem[] = parsed.map((item: any) => {
             const mediaType: 'movie' | 'series' | 'anime' =
@@ -128,11 +144,15 @@ type must be "movie", "series", or "anime". confidence must be integer between 6
               confidence: Math.min(99, Math.max(60, Number(item.confidence) || 85)),
             };
           });
-          return items.filter((it) => it.title.length > 0);
+          const valid = items.filter((it) => it.title.length > 0);
+          if (valid.length > 0) return valid;
         }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[Gemini AI] Model ${model} returned HTTP ${res.status}:`, errText);
       }
-    } catch {
-      // Try next model fallback
+    } catch (err) {
+      console.warn(`[Gemini AI] Call failed for ${model}:`, err);
     }
   }
   return [];
@@ -1017,6 +1037,127 @@ async function queryTmdbThematicSearch(
 }
 
 /**
+ * Normalize title strings for high-precision matching
+ */
+function normalizeAiTitle(t: string): string {
+  return (t || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+/**
+ * Detect documentary, behind-the-scenes, specials, or bonus content
+ */
+function isDocumentaryOrSpecialTitle(title: string): boolean {
+  const lower = (title || '').toLowerCase();
+  return (
+    lower.includes("inside '") ||
+    lower.startsWith('inside ') ||
+    lower.includes('making of') ||
+    lower.includes("making '") ||
+    lower.includes('behind the scenes') ||
+    lower.includes('the making') ||
+    lower.includes('relight') ||
+    lower.includes('special:') ||
+    lower.includes('specials') ||
+    lower.includes('bonus features') ||
+    lower.includes('featurette') ||
+    lower.includes('documentary')
+  );
+}
+
+/**
+ * Score a TMDB/Catalog candidate against an AI recommendation item
+ * Ensures iconic blockbuster/series titles outrank obscure behind-the-scenes or subtitle variations
+ */
+function scoreAiCandidate(candidate: UnifiedSearchResult, rec: AiRecommendationItem): number {
+  let score = 0;
+  const candNorm = normalizeAiTitle(candidate.title);
+  const candEnNorm = normalizeAiTitle(candidate.titleEn || '');
+  const candIdNorm = normalizeAiTitle(candidate.titleId || '');
+  const candOrigNorm = normalizeAiTitle(candidate.originalTitle || '');
+  const candRomajiNorm = normalizeAiTitle(candidate.romajiTitle || '');
+  const recNorm = normalizeAiTitle(rec.title);
+
+  const isExactTitle =
+    candNorm === recNorm ||
+    candEnNorm === recNorm ||
+    candIdNorm === recNorm ||
+    candOrigNorm === recNorm ||
+    candRomajiNorm === recNorm;
+
+  if (isExactTitle) {
+    score += 50000;
+  } else {
+    if (candNorm.startsWith(recNorm) || candEnNorm.startsWith(recNorm)) {
+      score += 5000;
+    } else if (candNorm.includes(recNorm) || candEnNorm.includes(recNorm)) {
+      score += 2000;
+    }
+  }
+
+  // Heavily penalize documentary / behind-the-scenes titles unless recommended title asks for it
+  if (isDocumentaryOrSpecialTitle(candidate.title) && !isDocumentaryOrSpecialTitle(rec.title)) {
+    score -= 40000;
+  }
+
+  // Release year proximity
+  if (rec.year && candidate.year) {
+    const yearDiff = Math.abs(candidate.year - rec.year);
+    if (yearDiff === 0) {
+      score += 15000;
+    } else if (yearDiff === 1) {
+      score += 3000;
+    } else if (yearDiff <= 3) {
+      score += 500;
+    } else {
+      score -= Math.min(10000, yearDiff * 500);
+    }
+  }
+
+  // Media type match
+  const recIsTv = rec.type === 'series' || rec.type === 'anime';
+  const candIsTv = candidate.mediaType === 'series' || candidate.mediaType === 'anime';
+  if (rec.type) {
+    if ((recIsTv && candIsTv) || (rec.type === 'movie' && candidate.mediaType === 'movie')) {
+      score += 10000;
+    } else {
+      score -= 8000;
+    }
+  }
+
+  // Vote count & Popularity (distinguishes real iconic works from obscure titles)
+  const votes = candidate.voteCount || 0;
+  if (votes > 10000) {
+    score += 10000;
+  } else if (votes > 100) {
+    score += 6000;
+  } else if (votes > 50) {
+    score += 3000;
+  } else if (votes < 10) {
+    score -= 5000;
+  }
+
+  const pop = candidate.popularity || 0;
+  score += Math.min(5000, Math.round(pop * 20));
+
+  return score;
+}
+
+function smartPickAiMatch(
+  matches: UnifiedSearchResult[],
+  rec: AiRecommendationItem
+): UnifiedSearchResult | null {
+  if (!matches || matches.length === 0) return null;
+  const scored = matches.map((m) => ({ match: m, score: scoreAiCandidate(m, rec) }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.match || null;
+}
+
+/**
  * Main AI Search Entrypoint
  * Identifies movie/show by description and resolves into full UnifiedSearchResult objects with streaming servers
  */
@@ -1055,43 +1196,52 @@ export async function searchWithAI(
 
   if (recommendations.length === 0) return [];
 
-  // Step 4: Resolve each recommended title into rich UnifiedSearchResult from TMDB live catalog
-  const resolvedResults: UnifiedSearchResult[] = [];
-  const resolvedIds = new Set<string>();
-
-  await Promise.all(
-    recommendations.map(async (rec) => {
-      try {
-        const hybridMatches = await searchHybrid(rec.title, 'tmdb', language);
-        if (hybridMatches.length > 0) {
-          // Find best match matching the recommended year/type if possible
-          const best =
-            hybridMatches.find(
-              (m) =>
-                rec.year &&
-                Math.abs((m.year || 0) - rec.year) <= 1 &&
-                (rec.type ? m.mediaType === rec.type : true)
-            ) ||
-            hybridMatches.find((m) => rec.year && Math.abs((m.year || 0) - rec.year) <= 1) ||
-            hybridMatches[0];
-
-          if (best && !resolvedIds.has(best.id)) {
-            resolvedIds.add(best.id);
-            resolvedResults.push({
+  // Step 4: Resolve each recommended title into rich UnifiedSearchResult from live catalogs
+  const resolvedPromises = recommendations.map(async (rec, index) => {
+    try {
+      const searchSource = rec.type === 'anime' ? 'all' : 'tmdb';
+      const hybridMatches = await searchHybrid(rec.title, searchSource, language);
+      if (hybridMatches && hybridMatches.length > 0) {
+        const best = smartPickAiMatch(hybridMatches, rec);
+        if (best) {
+          return {
+            item: {
               ...best,
-              source: 'ai',
+              source: 'ai' as const,
               aiMatchReason: rec.matchReason,
               aiConfidence: rec.confidence,
-            });
-          }
+            },
+            index,
+            confidence: rec.confidence,
+          };
         }
-      } catch {
-        // Continue with other recommendations
       }
-    })
-  );
+    } catch (err) {
+      console.warn(`[AI Search] Failed to resolve recommendation "${rec.title}":`, err);
+    }
+    return null;
+  });
 
-  // Sort by AI confidence descending
-  return resolvedResults.sort((a, b) => (b.aiConfidence || 0) - (a.aiConfidence || 0));
+  const settled = await Promise.all(resolvedPromises);
+  const validResolved = settled
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+    .sort((a, b) => {
+      if (b.confidence !== a.confidence) {
+        return b.confidence - a.confidence;
+      }
+      return a.index - b.index;
+    });
+
+  const finalResults: UnifiedSearchResult[] = [];
+  const seenIds = new Set<string>();
+
+  for (const entry of validResolved) {
+    if (!seenIds.has(entry.item.id)) {
+      seenIds.add(entry.item.id);
+      finalResults.push(entry.item);
+    }
+  }
+
+  return finalResults;
 }
 

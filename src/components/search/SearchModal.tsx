@@ -109,6 +109,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setIsSearching(true);
       try {
         if (source === 'ai') {
+          // If user typed key in input but didn't click save button yet, auto-save now
+          if (apiKeyInput && apiKeyInput.trim() && apiKeyInput.trim() !== getStoredGeminiApiKey()) {
+            setStoredGeminiApiKey(apiKeyInput.trim());
+          }
           const aiResults = await searchWithAI(trimmed, language);
           setResults(aiResults);
         } else {
@@ -289,13 +293,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             }}
             aria-label={t('aiKeyConfig')}
             title={t('aiKeyConfig')}
-            className={`p-1.5 rounded-lg border transition-all shrink-0 cursor-pointer ${
+            className={`relative p-1.5 rounded-lg border transition-all shrink-0 cursor-pointer ${
               showAiKeySettings
                 ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
                 : 'bg-white/[0.05] border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
             <Key className="w-3.5 h-3.5" />
+            {(apiKeyInput.trim() || getStoredGeminiApiKey()) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#181818]" />
+            )}
           </button>
 
           <button
@@ -519,6 +526,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                         key={promptText}
                         onClick={() => {
                           playClick();
+                          if (debounceTimerRef.current) {
+                            clearTimeout(debounceTimerRef.current);
+                          }
                           setQuery(promptText);
                           performSearch(promptText, 'ai');
                         }}

@@ -96,6 +96,8 @@ export interface TmdbSearchResult {
   ongoingSeason?: number;
   seasonBreakdown?: string;
   seasons?: any[];
+  voteCount?: number;
+  popularity?: number;
 }
 
 export function calculateSeriesStatusFromTmdb(tvData: any) {
@@ -495,12 +497,71 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
           ongoingSeason,
           seasonBreakdown,
           seasons: seasonsList,
+          voteCount: typeof enItem.vote_count === 'number' ? enItem.vote_count : 0,
+          popularity: typeof enItem.popularity === 'number' ? enItem.popularity : 0,
         };
       })
     );
 
-    // Urutkan berdasarkan tahun rilis terbaru (newest release year first)
+    // Intelligently rank search results:
+    // 1. Exact title matches to query come first
+    // 2. Penalize behind-the-scenes/documentary titles unless explicitly searched
+    // 3. Rank by popularity and vote count
+    // 4. Newer release year as tie-breaker
+    const cleanQuery = trimmed
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
     return searchResults.sort((a: TmdbSearchResult, b: TmdbSearchResult) => {
+      const cleanA = (a.titleEn || a.title)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+      const cleanB = (b.titleEn || b.title)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+      const exactA = cleanA === cleanQuery;
+      const exactB = cleanB === cleanQuery;
+      if (exactA && !exactB) return -1;
+      if (exactB && !exactA) return 1;
+
+      // Penalize documentary/BTS/inside titles
+      const isDocA =
+        cleanA.includes('inside') ||
+        cleanA.includes('making') ||
+        cleanA.includes('behindthescenes') ||
+        cleanA.includes('relight');
+      const isDocB =
+        cleanB.includes('inside') ||
+        cleanB.includes('making') ||
+        cleanB.includes('behindthescenes') ||
+        cleanB.includes('relight');
+      const queryWantsDoc = cleanQuery.includes('making') || cleanQuery.includes('inside');
+      if (!queryWantsDoc) {
+        if (!isDocA && isDocB) return -1;
+        if (isDocA && !isDocB) return 1;
+      }
+
+      // Prioritize high vote count (e.g. blockbuster movie vs obscure entry)
+      const votesA = a.voteCount || 0;
+      const votesB = b.voteCount || 0;
+      if (Math.abs(votesB - votesA) > 200) {
+        return votesB - votesA;
+      }
+
+      const popA = a.popularity || 0;
+      const popB = b.popularity || 0;
+      if (Math.abs(popB - popA) > 15) {
+        return popB - popA;
+      }
+
+      // Fallback: newer year
       const yearA = a.year || 0;
       const yearB = b.year || 0;
       if (yearB !== yearA) {

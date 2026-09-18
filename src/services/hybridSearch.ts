@@ -65,6 +65,8 @@ export interface UnifiedSearchResult {
   ongoingSeason?: number;
   seasonBreakdown?: string;
   seasons?: any[];
+  voteCount?: number;
+  popularity?: number;
 }
 
 function normalizeTitle(t: string): string {
@@ -206,6 +208,8 @@ function convertTmdbToUnified(item: TmdbSearchResult): UnifiedSearchResult {
     ongoingSeason: item.ongoingSeason,
     seasonBreakdown: item.seasonBreakdown,
     seasons: item.seasons,
+    voteCount: item.voteCount,
+    popularity: item.popularity,
   };
 }
 
@@ -234,6 +238,8 @@ function convertAnimeToUnified(a: AnimeItem): UnifiedSearchResult {
     status: isOngoing ? 'Ongoing' : isEnded ? 'Completed' : a.status,
     isOngoing: resolvedOngoing,
     totalEpisodes: a.episodeCount,
+    voteCount: (a as any).members || 500,
+    popularity: 50,
   };
 }
 
