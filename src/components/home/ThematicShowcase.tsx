@@ -857,7 +857,15 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
               {/* High-Impact Character Cutout PNG (Proportionally framed within the content container) */}
               <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 pointer-events-none overflow-visible z-[12]">
-                <div className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[370px] sm:h-[490px] md:h-[570px] lg:h-[650px] xl:h-[730px] 2xl:h-[800px] pointer-events-none select-none flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]`}>
+                <div
+                  className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[370px] sm:h-[490px] md:h-[570px] lg:h-[650px] xl:h-[730px] 2xl:h-[800px] pointer-events-none select-none flex items-start`}
+                  style={{
+                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 7%, black 74%, transparent 100%), linear-gradient(to left, transparent 0%, black 14%, black 100%)',
+                    maskComposite: 'intersect',
+                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 7%, black 74%, transparent 100%), linear-gradient(to left, transparent 0%, black 14%, black 100%)',
+                    WebkitMaskComposite: 'source-in',
+                  }}
+                >
                   <img
                     src={banner.cutoutArt}
                     alt={banner.cutoutAlt}
@@ -865,7 +873,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
-                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-100 contrast-[1.02]"
+                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-[0.97] contrast-[1.01] blur-[0.6px] saturate-[0.95]"
                   />
                 </div>
               </div>
