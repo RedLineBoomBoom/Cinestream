@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +8,7 @@ import {
   Star,
   Sparkles,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
@@ -16,35 +17,17 @@ import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import { fetchFullMediaItem } from '../../services/tmdb';
 import { createMovieServers, createTvServers } from '../../data/mockCatalog';
 import { PrimeHoverCard } from './PrimeHoverCard';
+import {
+  getActiveWeekIndex,
+  getCuratedGenresForWeek,
+  ARCHIVE_INITIAL_GENRES,
+  type ShowcaseMediaDef,
+  type WeekScheduleInfo,
+} from '../../data/weeklyHighlights';
 
 interface ThematicShowcaseProps {
   onPlayMedia: (media: MediaItem) => void;
   onOpenDetails: (media: MediaItem) => void;
-}
-
-interface ShowcaseMediaDef {
-  id: number | string;
-  tmdbId: number;
-  type: 'movie' | 'tv';
-  title: string;
-  poster: string;
-  backdrop: string;
-  year: number;
-  rating: number;
-  genreEn: string;
-  genreId: string;
-  taglineEn?: string;
-  taglineId?: string;
-  synopsisEn: string;
-  synopsisId: string;
-  logoArt?: string;
-}
-
-interface GenreCategory {
-  id: string;
-  name: string;
-  nameId: string;
-  items: ShowcaseMediaDef[];
 }
 
 interface ThematicBannerDef {
@@ -68,376 +51,6 @@ interface ThematicBannerDef {
 // Fallback image constants ensuring no card is ever a blank void
 const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80';
-
-// ─────────────────────────────────────────────────────────────
-// DATA: "Discover The Best Of" by Genres (Bilingual EN / ID)
-// ─────────────────────────────────────────────────────────────
-const DISCOVER_GENRES: GenreCategory[] = [
-  {
-    id: 'drama',
-    name: 'Drama',
-    nameId: 'Drama',
-    items: [
-      {
-        id: 'tv-94997',
-        tmdbId: 94997,
-        type: 'tv',
-        title: 'House of the Dragon',
-        poster: 'https://image.tmdb.org/t/p/w500/7V0Ebks0GgpKvQ7QbLAIdX5dos4.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/577eXC8wFQT0eUrJcgznSiFPRmk.jpg',
-        year: 2022,
-        rating: 8.4,
-        genreEn: 'Drama, Epic Fantasy',
-        genreId: 'Drama, Fantasi',
-        synopsisEn: 'The Targaryen dynasty is at the height of its power, but the seeds of a brutal civil war are about to be sown.',
-        synopsisId: 'Perang saudara berdarah klan Targaryen memperebutkan Tahta Besi di Westeros.',
-      },
-      {
-        id: 'tv-111803',
-        tmdbId: 111803,
-        type: 'tv',
-        title: 'The White Lotus',
-        poster: 'https://image.tmdb.org/t/p/w500/gbSaK9v1CbcYH1ISgbM7XObD2dW.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/qVBIAcZkK5j6WRq7JehJcOMbdgb.jpg',
-        year: 2021,
-        rating: 7.6,
-        genreEn: 'Drama, Dark Comedy',
-        genreId: 'Drama, Komedi Hitam',
-        synopsisEn: 'A sharp social satire following the exploits of employees and guests at an exclusive luxury resort over a turbulent week.',
-        synopsisId: 'Skandal dan intrik para tamu kaya di resor tropis mewah nan penuh rahasia gelap.',
-      },
-      {
-        id: 'tv-250307',
-        tmdbId: 250307,
-        type: 'tv',
-        title: 'The Pitt',
-        poster: 'https://image.tmdb.org/t/p/w500/kvFSpESyBZMjaeOJDx7RS3P1jey.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/z3BkMbCy5ajZPMyKEUwsPHuz2cV.jpg',
-        year: 2025,
-        rating: 8.7,
-        genreEn: 'Medical Drama, Realistic',
-        genreId: 'Drama Medis, Realistis',
-        synopsisEn: 'A realistic examination of the relentless frontline challenges facing healthcare workers in modern Pittsburgh emergency rooms.',
-        synopsisId: 'Dedikasi tanpa henti para dokter unit gawat darurat Pittsburgh menyelamatkan nyawa di garis depan.',
-      },
-      {
-        id: 'tv-85552',
-        tmdbId: 85552,
-        type: 'tv',
-        title: 'Euphoria',
-        poster: 'https://image.tmdb.org/t/p/w500/ypmtwojDd751Peszi62DVLytqqC.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/mez2Z3WqlPKNXpi7mWoiiE5guE9.jpg',
-        year: 2019,
-        rating: 8.3,
-        genreEn: 'Teen Drama, Mystery',
-        genreId: 'Drama Remaja, Intrik',
-        synopsisEn: 'A look at life for a group of high school students as they grapple with issues of drugs, identity, and love.',
-        synopsisId: 'Pencarian jati diri, cinta, dan luka remaja di tengah gemerlap dunia modern.',
-      },
-      {
-        id: 'tv-100088',
-        tmdbId: 100088,
-        type: 'tv',
-        title: 'The Last of Us',
-        poster: 'https://image.tmdb.org/t/p/w500/dmo6TYuuJgaYinXBPjrgG9mB5od.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/lY2DhbA7Hy44fAKddr06UrXWWaQ.jpg',
-        year: 2023,
-        rating: 8.4,
-        genreEn: 'Drama, Post-Apocalyptic',
-        genreId: 'Drama, Post-Apokaliptik',
-        synopsisEn: 'Joel and Ellie form a powerful bond as they traverse a treacherous post-pandemic America devastated by fungal infection.',
-        synopsisId: 'Perjalanan berbahaya Joel dan Ellie melintasi Amerika yang hancur demi secercah harapan.',
-      },
-      {
-        id: 'tv-194764',
-        tmdbId: 194764,
-        type: 'tv',
-        title: 'The Penguin',
-        poster: 'https://image.tmdb.org/t/p/w500/vOWcqC4oDQws1doDWLO7d3dh5qc.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/4TdmuuwiIiKw3JOjIuhdgYxRXnN.jpg',
-        year: 2024,
-        rating: 8.3,
-        genreEn: 'Crime Drama, Noir',
-        genreId: 'Drama Kriminal, Noir',
-        synopsisEn: 'Following the events of The Batman, Oswald Cobb seeks to seize control of Gotham City\'s criminal underworld.',
-        synopsisId: 'Oswald Cobb merayap merebut tahta penguasa dunia hitam Kota Gotham pasca banjir besar.',
-      },
-    ],
-  },
-  {
-    id: 'comedy',
-    name: 'Comedy',
-    nameId: 'Komedi',
-    items: [
-      {
-        id: 'tv-1668',
-        tmdbId: 1668,
-        type: 'tv',
-        title: 'Friends',
-        poster: 'https://image.tmdb.org/t/p/w500/2koX1xLkpTQM4IZebYvKysFW1Nh.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/l0qVZIpXtIo7km9u5Yqh0nKPOr5.jpg',
-        year: 1994,
-        rating: 8.4,
-        genreEn: 'Comedy, Classic Sitcom',
-        genreId: 'Komedi, Sitkom Klasik',
-        synopsisEn: 'Follow the lives of six reckless young friends living in Manhattan as they indulge in adventures and romance.',
-        synopsisId: 'Kisah kocak dan hangat enam sahabat mengarungi lika-liku hidup dan cinta di New York.',
-      },
-      {
-        id: 'tv-1418',
-        tmdbId: 1418,
-        type: 'tv',
-        title: 'The Big Bang Theory',
-        poster: 'https://image.tmdb.org/t/p/w500/euKFiO5M125rpngFRBbSW83beeI.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/rwYvhVv0vwbulMwxOfEsuAr1JrT.jpg',
-        year: 2007,
-        rating: 7.9,
-        genreEn: 'Comedy, Geek Sitcom',
-        genreId: 'Komedi, Sitkom Genius',
-        synopsisEn: 'The lives of socially awkward physicists are turned upside down when a free-spirited woman moves into the apartment across the hall.',
-        synopsisId: 'Keseruan hidup para fisikawan kutu buku saat bertetangga dengan gadis pirang ceria.',
-      },
-      {
-        id: 'tv-124101',
-        tmdbId: 124101,
-        type: 'tv',
-        title: 'Hacks',
-        poster: 'https://image.tmdb.org/t/p/w500/ca5XiEFgyGsI38QT3wEKa1QVGX.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/bbAR4qKxjnjyKAt4YMrL725Mtfw.jpg',
-        year: 2021,
-        rating: 8.2,
-        genreEn: 'Comedy, Showbiz',
-        genreId: 'Komedi, Showbiz',
-        synopsisEn: 'Explores a dark mentorship that forms between a legendary Las Vegas comedian and an entitled 25-year-old outcast.',
-        synopsisId: 'Kolaborasi tak terduga antara komedian senior Las Vegas dan penulis muda yang bermasalah.',
-      },
-      {
-        id: 'tv-97546',
-        tmdbId: 97546,
-        type: 'tv',
-        title: 'Ted Lasso',
-        poster: 'https://image.tmdb.org/t/p/w500/uRHsiw1wLxPHFXkkv4Ix1s0O6f4.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/nE94ejEbzNCU48bW1oju0dqBONz.jpg',
-        year: 2020,
-        rating: 8.4,
-        genreEn: 'Comedy, Feel-good Sports',
-        genreId: 'Komedi, Olahraga Hangat',
-        synopsisEn: 'An American college football coach is hired to manage a British soccer team, using infectious optimism to win over his squad.',
-        synopsisId: 'Pelatih sepak bola Amerika dengan optimisme membara mengasuh tim sepak bola Inggris.',
-      },
-      {
-        id: 'tv-60573',
-        tmdbId: 60573,
-        type: 'tv',
-        title: 'Silicon Valley',
-        poster: 'https://image.tmdb.org/t/p/w500/4ptpmWBVD9HY9hMh8Cbs6SMiy7p.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/4pfXAnWxOfEJsUgDPW0zqzs5UWv.jpg',
-        year: 2014,
-        rating: 8.1,
-        genreEn: 'Satirical Comedy, Tech',
-        genreId: 'Komedi Satir, Teknologi',
-        synopsisEn: 'In the high-tech gold rush of modern Silicon Valley, programmers build a revolutionary data compression startup.',
-        synopsisId: 'Perjuangan kocak para programmer mendirikan startup kompresi data revolusioner.',
-      },
-      {
-        id: 'tv-71728',
-        tmdbId: 71728,
-        type: 'tv',
-        title: 'Young Sheldon',
-        poster: 'https://image.tmdb.org/t/p/w500/kidkbZRBGbsEIrX7pODRSKi9ipl.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/yBfSD3hUCCS2JVlDCRlpivVE7II.jpg',
-        year: 2017,
-        rating: 8.0,
-        genreEn: 'Family Comedy, Coming-of-Age',
-        genreId: 'Komedi Keluarga',
-        synopsisEn: 'Follow nine-year-old child genius Sheldon Cooper as he navigates high school and eccentric family life in East Texas.',
-        synopsisId: 'Masa kecil jenius Sheldon Cooper di Texas Timur bersama keluarganya yang eksentrik.',
-      },
-    ],
-  },
-  {
-    id: 'action',
-    name: 'Action & Adventure',
-    nameId: 'Aksi & Petualangan',
-    items: [
-      {
-        id: 'movie-693134',
-        tmdbId: 693134,
-        type: 'movie',
-        title: 'Dune: Part Two',
-        poster: 'https://image.tmdb.org/t/p/w500/6izwz7rsy95ARzTR3poZ8H6c5pp.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/eZ239CUp1d6OryZEBPnO2n87gMG.jpg',
-        year: 2024,
-        rating: 8.1,
-        genreEn: 'Action, Epic Sci-Fi',
-        genreId: 'Aksi, Sci-Fi Epik',
-        synopsisEn: 'Paul Atreides unites with Chani and the Fremen to lead a holy revolution against the conspirators on Arrakis.',
-        synopsisId: 'Paul Atreides memimpin kaum Fremen dalam revolusi suci melawan kekaisaran galaksi di gurun Arrakis.',
-      },
-      {
-        id: 'movie-533535',
-        tmdbId: 533535,
-        type: 'movie',
-        title: 'Deadpool & Wolverine',
-        poster: 'https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/by8z9Fe8y7p4jo2YlW2SZDnptyT.jpg',
-        year: 2024,
-        rating: 7.6,
-        genreEn: 'Action, Superhero Comedy',
-        genreId: 'Aksi, Komedi Superhero',
-        synopsisEn: 'Wade Wilson and Wolverine reluctantly join forces on a high-stakes multiversal mission full of brutal combat and comedy.',
-        synopsisId: 'Wade Wilson dan Wolverine bersatu demi menyelamatkan alam semesta dalam aksi kocak nan brutal.',
-      },
-      {
-        id: 'tv-126308',
-        tmdbId: 126308,
-        type: 'tv',
-        title: 'Shōgun',
-        poster: 'https://image.tmdb.org/t/p/w500/7O4iVfOMQmdCSxhOg1WnzG1AgYT.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/bwSmgmd90hCWwqOKQYTEraeOZhJ.jpg',
-        year: 2024,
-        rating: 8.4,
-        genreEn: 'Action, Samurai History',
-        genreId: 'Aksi, Sejarah Samurai',
-        synopsisEn: 'In feudal Japan, Lord Yoshii Toranaga engages in intense political and martial warfare against his council rivals.',
-        synopsisId: 'Ketegangan politik dan pedang di era feodal Jepang antara Lord Toranaga dan sekutunya.',
-      },
-      {
-        id: 'movie-414906',
-        tmdbId: 414906,
-        type: 'movie',
-        title: 'The Batman',
-        poster: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/rvtdN5XkWAfGX6xDuPL6yYS2seK.jpg',
-        year: 2022,
-        rating: 7.7,
-        genreEn: 'Crime Action, Detective',
-        genreId: 'Aksi Kriminal, Detektif',
-        synopsisEn: 'Batman ventures into Gotham City\'s underworld when a sadistic killer leaves behind a trail of cryptic clues.',
-        synopsisId: 'Sang Ksatria Kegelapan menyelidiki jejak teka-teki mematikan The Riddler di Gotham.',
-      },
-      {
-        id: 'movie-603692',
-        tmdbId: 603692,
-        type: 'movie',
-        title: 'John Wick: Chapter 4',
-        poster: 'https://image.tmdb.org/t/p/w500/vZloFAK7NmvMGKE7VkF5UHaz0I.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/7I6VUdPj6tQECNHdviJkUHD2u89.jpg',
-        year: 2023,
-        rating: 7.7,
-        genreEn: 'Martial Arts Action, Neo-Noir',
-        genreId: 'Aksi Bela Diri, Neo-Noir',
-        synopsisEn: 'John Wick takes his fight against the High Table global as he seeks out the most powerful players in the underworld.',
-        synopsisId: 'John Wick menghadapi High Table dengan aliansi baru dalam perang hidup dan mati di seluruh dunia.',
-      },
-      {
-        id: 'movie-558449',
-        tmdbId: 558449,
-        type: 'movie',
-        title: 'Gladiator II',
-        poster: 'https://image.tmdb.org/t/p/w500/2cxhvwyEwRlysAmRH4iodkvo0z5.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/tOqIwliWMovSIZ9DyvHcHI7p2im.jpg',
-        year: 2024,
-        rating: 6.6,
-        genreEn: 'Action, Roman Epic',
-        genreId: 'Aksi, Kolosal Romawi',
-        synopsisEn: 'Lucius enters the Colosseum after his home is conquered by tyrannical emperors who lead Rome with an iron fist.',
-        synopsisId: 'Lucius memasuki Colosseum demi kehormatan dan kebebasan Roma dari tirani kaisar.',
-      },
-    ],
-  },
-  {
-    id: 'scifi',
-    name: 'Sci-Fi & Fantasy',
-    nameId: 'Sci-Fi & Fantasi',
-    items: [
-      {
-        id: 'movie-157336',
-        tmdbId: 157336,
-        type: 'movie',
-        title: 'Interstellar',
-        poster: 'https://image.tmdb.org/t/p/w500/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/8sNiAPPYU14PUepFNeSNGUTiHW.jpg',
-        year: 2014,
-        rating: 8.5,
-        genreEn: 'Sci-Fi, Space Exploration',
-        genreId: 'Sci-Fi, Petualangan Angkasa',
-        synopsisEn: 'A team of heroic astronauts travels through a wormhole across galaxies to find a habitable future home for humanity.',
-        synopsisId: 'Misi melintasi lubang cacing antar-galaksi demi menemukan rumah baru bagi umat manusia.',
-      },
-      {
-        id: 'tv-106379',
-        tmdbId: 106379,
-        type: 'tv',
-        title: 'Fallout',
-        poster: 'https://image.tmdb.org/t/p/w500/c15BtJxCXMrISLVmysdsnZUPQft.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/coaPCIqQBPUZsOnJcWZxhaORcDT.jpg',
-        year: 2024,
-        rating: 8.1,
-        genreEn: 'Sci-Fi, Post-Apocalyptic',
-        genreId: 'Sci-Fi, Post-Apokaliptik',
-        synopsisEn: 'A peaceful vault dweller is forced to surface for the first time into the bizarre, violent irradiated wasteland above.',
-        synopsisId: 'Penghuni bunker bawah tanah menghadapi keanehan dunia luar bumi yang terdistorsi radiasi nuklir.',
-      },
-      {
-        id: 'tv-95396',
-        tmdbId: 95396,
-        type: 'tv',
-        title: 'Severance',
-        poster: 'https://image.tmdb.org/t/p/w500/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/ixgFmf1X59PUZam2qbAfskx2gQr.jpg',
-        year: 2022,
-        rating: 8.4,
-        genreEn: 'Sci-Fi Mystery, Psychological',
-        genreId: 'Sci-Fi Misteri, Thriller',
-        synopsisEn: 'Office workers whose memories are split between work and home discover a dark web of corporate conspiracies at Lumon.',
-        synopsisId: 'Prosedur pemisahan memori kerja dan pribadi membuka misteri konspirasi menyeramkan.',
-      },
-      {
-        id: 'tv-63247',
-        tmdbId: 63247,
-        type: 'tv',
-        title: 'Westworld',
-        poster: 'https://image.tmdb.org/t/p/w500/ALlSU9du9iRiKIIoY1sREGNqQ5.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/rX5hvSRB2k4YoIvRg6Zky52rWk0.jpg',
-        year: 2016,
-        rating: 8.0,
-        genreEn: 'Sci-Fi, AI Consciousness',
-        genreId: 'Sci-Fi, AI & Kesadaran',
-        synopsisEn: 'A futuristic theme park populated by android hosts descends into chaos when the synthetic beings achieve sentience.',
-        synopsisId: 'Taman hiburan berteknologi kecerdasan buatan mengalami kebangkitan kesadaran sintetis.',
-      },
-      {
-        id: 'tv-66732',
-        tmdbId: 66732,
-        type: 'tv',
-        title: 'Stranger Things',
-        poster: 'https://image.tmdb.org/t/p/w500/uOOtwVbSr4QDjAGIifLDwpb2Pdl.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg',
-        year: 2016,
-        rating: 8.6,
-        genreEn: 'Retro Sci-Fi, Supernatural',
-        genreId: 'Sci-Fi Retro, Misteri',
-        synopsisEn: 'A group of kids in Hawkins uncover supernatural government experiments and an alternate terrifying dimension known as the Upside Down.',
-        synopsisId: 'Anak-anak Hawkins berhadapan dengan dimensi terbalik Upside Down dan monster supernatural.',
-      },
-      {
-        id: 'movie-19995',
-        tmdbId: 19995,
-        type: 'movie',
-        title: 'Avatar',
-        poster: 'https://image.tmdb.org/t/p/w500/gKY6q7SjCkAU6FqvqWybDYgUKIF.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/vL5LR6WdxWPjLPFRLe133jXWsh5.jpg',
-        year: 2009,
-        rating: 7.6,
-        genreEn: 'Sci-Fi, Visual Spectacle',
-        genreId: 'Sci-Fi, Visual Spektakuler',
-        synopsisEn: 'A disabled Marine bonds with the indigenous Na\'vi on lush planet Pandora and leads them in a stand against human colonizers.',
-        synopsisId: 'Jake Sully membaur dengan suku Na\'vi di planet Pandora yang elok nan berbahaya.',
-      },
-    ],
-  },
-];
 
 // ─────────────────────────────────────────────────────────────
 // DATA: 5 Thematic Curated Banners (6 Curated Titles Each, Bilingual)
@@ -997,16 +610,45 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
   const [hoveredBannerItem, setHoveredBannerItem] = useState<Record<string, number | null>>({});
   const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
 
-  const activeGenre = DISCOVER_GENRES[selectedGenreIndex] || DISCOVER_GENRES[0];
+  // Automated weekly rotation engine starting Sunday, 20 September 2026 00:00:00
+  const realTimeWeekIndex = getActiveWeekIndex();
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(realTimeWeekIndex);
+  const [isArchiveMode, setIsArchiveMode] = useState<boolean>(false);
+
+  // Curated genres for the active or user-selected week
+  const { weekInfo, discoverGenres } = useMemo(() => {
+    if (isArchiveMode) {
+      return {
+        weekInfo: {
+          index: -1,
+          weekNumber: 0,
+          startDate: new Date(2026, 8, 1),
+          endDate: new Date(2026, 8, 19, 23, 59, 59),
+          labelEn: 'Archive • Prior to 20 Sep 2026',
+          labelId: 'Arsip • Sebelum 20 Sep 2026',
+          badgeEn: 'Archive Collection',
+          badgeId: 'Koleksi Arsip Awal',
+        } as WeekScheduleInfo,
+        discoverGenres: ARCHIVE_INITIAL_GENRES,
+      };
+    }
+    const res = getCuratedGenresForWeek(selectedWeekIndex);
+    return {
+      weekInfo: res.weekInfo,
+      discoverGenres: res.genres,
+    };
+  }, [selectedWeekIndex, isArchiveMode]);
+
+  const activeGenre = discoverGenres[selectedGenreIndex] || discoverGenres[0];
 
   const handlePrevGenre = () => {
     playClick();
-    setSelectedGenreIndex((prev) => (prev > 0 ? prev - 1 : DISCOVER_GENRES.length - 1));
+    setSelectedGenreIndex((prev) => (prev > 0 ? prev - 1 : discoverGenres.length - 1));
   };
 
   const handleNextGenre = () => {
     playClick();
-    setSelectedGenreIndex((prev) => (prev < DISCOVER_GENRES.length - 1 ? prev + 1 : 0));
+    setSelectedGenreIndex((prev) => (prev < discoverGenres.length - 1 ? prev + 1 : 0));
   };
 
   // Resolve item to full playable MediaItem with fallback
@@ -1076,16 +718,85 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       {/* SECTION 1: "DISCOVER THE BEST OF" (Interactive Genre Hub) */}
       {/* ───────────────────────────────────────────────────────── */}
       <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-4 sm:space-y-6">
-        {/* Header with Title & Genre Switcher */}
-        <div className="flex flex-col items-center text-center space-y-2.5 sm:space-y-3">
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] text-[10px] sm:text-[11px] font-sans tracking-[0.2em] sm:tracking-[0.25em] text-brand-champagne uppercase font-medium">
-            <Sparkles className="w-3 h-3 text-brand-gold" />
-            <span>{language === 'en' ? 'Curated Selection' : 'Pilihan Paling Populer'}</span>
+        {/* Header with Title, Weekly Rotation Schedule Badge & Genre Switcher */}
+        <div className="flex flex-col items-center text-center space-y-2.5 sm:space-y-3.5">
+          {/* Weekly Curated Schedule Badge & Rotation Info */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent border border-amber-400/35 text-[10px] sm:text-[11px] font-sans tracking-[0.16em] sm:tracking-[0.2em] text-amber-300 uppercase font-semibold shadow-sm">
+              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+              <span>
+                {language === 'en'
+                  ? `Weekly Curated • ${weekInfo.badgeEn}`
+                  : `Pilihan Mingguan • ${weekInfo.badgeId}`}
+              </span>
+            </div>
+
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10.5px] text-slate-300 font-light">
+              <Clock className="w-3 h-3 text-amber-400/90" />
+              <span>
+                {language === 'en'
+                  ? 'Refreshes every Sunday'
+                  : 'Berganti otomatis setiap hari Minggu'}
+              </span>
+            </div>
           </div>
 
           <h2 className="text-xl sm:text-3xl lg:text-4xl font-display font-medium text-white tracking-wide">
             {language === 'en' ? 'Discover The Best Of' : 'Jelajahi Yang Terbaik'}
           </h2>
+
+          {/* Interactive Week Selector (Pekan 1 mulai 20 Sep 2026, Pekan 2, Arsip Awal) */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md shadow-inner">
+            <button
+              onClick={() => {
+                playClick();
+                setIsArchiveMode(false);
+                setSelectedWeekIndex(0);
+                setSelectedGenreIndex(0);
+              }}
+              className={`px-3 py-1 rounded-full text-[10.5px] sm:text-xs transition-all duration-200 cursor-pointer ${
+                !isArchiveMode && selectedWeekIndex === 0
+                  ? 'bg-amber-400 text-black font-bold shadow-md shadow-amber-400/25 scale-[1.03]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={language === 'en' ? 'Week of 20 Sep - 26 Sep 2026 (New Recommended Highlight)' : 'Edisi 20 Sep - 26 Sep 2026 (Highlight Rekomendasi Baru)'}
+            >
+              {language === 'en' ? 'Week 1 (Sep 20)' : 'Pekan 1 (20 Sep)'}
+            </button>
+
+            <button
+              onClick={() => {
+                playClick();
+                setIsArchiveMode(false);
+                setSelectedWeekIndex(1);
+                setSelectedGenreIndex(0);
+              }}
+              className={`px-3 py-1 rounded-full text-[10.5px] sm:text-xs transition-all duration-200 cursor-pointer ${
+                !isArchiveMode && selectedWeekIndex === 1
+                  ? 'bg-amber-400 text-black font-bold shadow-md shadow-amber-400/25 scale-[1.03]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={language === 'en' ? 'Week of 27 Sep - 3 Oct 2026' : 'Edisi 27 Sep - 3 Okt 2026'}
+            >
+              {language === 'en' ? 'Week 2 (Sep 27)' : 'Pekan 2 (27 Sep)'}
+            </button>
+
+            <button
+              onClick={() => {
+                playClick();
+                setIsArchiveMode(true);
+                setSelectedGenreIndex(0);
+              }}
+              className={`px-2.5 py-1 rounded-full text-[10.5px] sm:text-xs transition-all duration-200 cursor-pointer ${
+                isArchiveMode
+                  ? 'bg-amber-400 text-black font-bold shadow-md shadow-amber-400/25 scale-[1.03]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={language === 'en' ? 'Initial Archive (Prior to 20 Sep)' : 'Arsip Awal (Sebelum 20 Sep)'}
+            >
+              {language === 'en' ? 'Archive' : 'Arsip Awal'}
+            </button>
+          </div>
 
           {/* Genre Tabs with Navigation Arrows (Touch-friendly & Responsive) */}
           <div className="w-full flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-1 px-1">
@@ -1099,7 +810,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
             </button>
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap mx-auto sm:mx-0">
-              {DISCOVER_GENRES.map((g, idx) => {
+              {discoverGenres.map((g, idx) => {
                 const isActive = idx === selectedGenreIndex;
                 const displayName = language === 'en' ? g.name : g.nameId;
                 return (
