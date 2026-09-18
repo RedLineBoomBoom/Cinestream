@@ -58,6 +58,18 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   const { synopsis: autoSynopsis } = useAutoTranslateSynopsis(media, language);
   const displaySynopsis = autoSynopsis || getMediaSynopsis(media, language);
 
+  // Duration localization: translate Indonesian terms when language is English
+  const formatDuration = (dur?: string) => {
+    if (!dur) return '';
+    if (language === 'en') {
+      return dur
+        .replace(/j\b/g, 'h')
+        .replace(/Musim/g, 'Season')
+        .replace(/\bEpisode\b/g, 'Episodes');
+    }
+    return dur;
+  };
+
   const [activeTab, setActiveTab] = useState<'info' | 'episodes' | 'reviews'>('info');
   const [activeServer, setActiveServer] = useState<Server>(() => getDefaultServer(media.servers, undefined, media));
   const [currentEpisode, setCurrentEpisode] = useState<Episode | undefined>(
@@ -374,7 +386,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   </span>
                 )}
                 <span className="text-xs text-slate-400 font-light tracking-wide">
-                  {media.year} • {media.duration} • {language === 'en' ? `Rated ${media.ageRating}` : `Bimbingan ${media.ageRating}`}
+                  {media.year} • {formatDuration(media.duration)} • {language === 'en' ? `Rated ${media.ageRating}` : `Bimbingan ${media.ageRating}`}
                 </span>
               </div>
 

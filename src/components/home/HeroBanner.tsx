@@ -293,7 +293,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const formatDuration = (dur?: string) => {
     if (!dur) return '';
     if (language === 'en') {
-      return dur.replace(/j\b/g, 'h').replace(/m\b/g, 'm');
+      return dur
+        .replace(/j\b/g, 'h')
+        .replace(/m\b/g, 'm')
+        .replace(/Musim/g, 'Season')
+        .replace(/\bEpisode\b/g, 'Episodes');
     }
     return dur;
   };
