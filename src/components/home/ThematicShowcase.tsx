@@ -15,7 +15,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import { fetchFullMediaItem } from '../../services/tmdb';
 import { createMovieServers, createTvServers } from '../../data/mockCatalog';
-import { PrimeHoverCard } from './PrimeHoverCard';
+import { PrimeShowcaseGrid } from './PrimeHoverCard';
 
 interface ThematicShowcaseProps {
   onPlayMedia: (media: MediaItem) => void;
@@ -1127,19 +1127,13 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           </div>
         </div>
 
-        {/* 6 Landscape / Backdrop Grid Cards with Prime Video-style Hover Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
-          {activeGenre.items.map((item, index) => (
-            <PrimeHoverCard
-              key={item.id}
-              item={item}
-              index={index}
-              genreName={language === 'en' ? activeGenre.name : activeGenre.nameId}
-              isLoading={loadingMediaId === item.id}
-              onAction={handleItemAction}
-            />
-          ))}
-        </div>
+        {/* 6 Landscape / Backdrop Grid Cards with Centered Prime Video-style Hover Popover */}
+        <PrimeShowcaseGrid
+          items={activeGenre.items}
+          genreName={language === 'en' ? activeGenre.name : activeGenre.nameId}
+          loadingMediaId={loadingMediaId}
+          onAction={handleItemAction}
+        />
       </div>
 
       {/* ───────────────────────────────────────────────────────── */}
