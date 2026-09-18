@@ -240,6 +240,8 @@ export class WatchPartyService {
     if (this.isHost) {
       this._broadcast(payload);
       // Publish system message into chat transcript for all members
+      const isPause = signal.type === 'pause';
+      const isPlay = signal.type === 'play';
       const sysMsg: PartyMessage = {
         id: msgId(),
         memberId: 'system',
@@ -247,6 +249,8 @@ export class WatchPartyService {
         text: alertText,
         timestamp: Date.now(),
         type: 'system',
+        systemKey: isPause ? 'pause_alert' : isPlay ? 'play_alert' : 'seek_alert',
+        systemParams: { name: this.myName },
       };
       this.room.messages.push(sysMsg);
       this._broadcast({ event: 'chat', message: sysMsg });
@@ -281,13 +285,16 @@ export class WatchPartyService {
     const epSuffix = mediaInfo.episodeTitle
       ? ` - ${mediaInfo.seasonNumber ? `S${mediaInfo.seasonNumber}E${mediaInfo.episodeNumber || 1} ` : ''}${mediaInfo.episodeTitle}`
       : '';
+    const fullTitle = `${mediaInfo.mediaTitle}${epSuffix}`;
     const sysMsg: PartyMessage = {
       id: msgId(),
       memberId: 'system',
       memberName: 'System',
-      text: `🎬 Host mengalihkan tayangan ke: ${mediaInfo.mediaTitle}${epSuffix}`,
+      text: `🎬 Host mengalihkan tayangan ke: ${fullTitle}`,
       timestamp: Date.now(),
       type: 'system',
+      systemKey: 'media_changed',
+      systemParams: { title: fullTitle },
     };
     this.room.messages.push(sysMsg);
     this._broadcast({ event: 'chat', message: sysMsg });
@@ -301,8 +308,9 @@ export class WatchPartyService {
     this.room.controlMode = mode;
     this._broadcast({ event: 'control_mode', mode });
 
+    const isHostOnly = mode === 'host_only';
     const modeText =
-      mode === 'host_only'
+      isHostOnly
         ? '👑 Mode Kontrol: Hanya Host yang dapat mengontrol pemutaran video'
         : '👥 Mode Kontrol: Semua anggota bebas mengontrol pemutaran video';
 
@@ -313,6 +321,7 @@ export class WatchPartyService {
       text: modeText,
       timestamp: Date.now(),
       type: 'system',
+      systemKey: isHostOnly ? 'control_mode_host_only' : 'control_mode_all',
     };
     this.room.messages.push(sysMsg);
     this._broadcast({ event: 'chat', message: sysMsg });
@@ -368,6 +377,8 @@ export class WatchPartyService {
       text: `🚫 ${memberName} telah dikeluarkan dari room oleh Host`,
       timestamp: Date.now(),
       type: 'system',
+      systemKey: 'user_kicked',
+      systemParams: { name: memberName },
     };
     this.room.messages.push(sysMsg);
     this._broadcast({ event: 'chat', message: sysMsg });
@@ -433,6 +444,8 @@ export class WatchPartyService {
         text: `${member.name} meninggalkan room`,
         timestamp: Date.now(),
         type: 'system',
+        systemKey: 'user_left',
+        systemParams: { name: member.name },
       };
       this.room!.messages.push(sysMsg);
       this._broadcast({ event: 'chat', message: sysMsg });
@@ -511,6 +524,8 @@ export class WatchPartyService {
           text: noticeText,
           timestamp: Date.now(),
           type: 'system',
+          systemKey: isReconnection ? 'user_reconnected' : 'user_joined',
+          systemParams: { name: newMember.name },
         };
         this.room!.messages.push(sysMsg);
         this._broadcast({ event: 'chat', message: sysMsg });
@@ -545,6 +560,8 @@ export class WatchPartyService {
             ? `▶️ ${msg.senderName} meminta MEMUTAR film/series yang sedang ditonton bersama`
             : `⏩ ${msg.senderName} mengubah posisi tayangan`);
 
+        const isGuestPause = msg.signal.type === 'pause';
+        const isGuestPlay = msg.signal.type === 'play';
         const sysMsg: PartyMessage = {
           id: msgId(),
           memberId: 'system',
@@ -552,6 +569,8 @@ export class WatchPartyService {
           text: alertText,
           timestamp: Date.now(),
           type: 'system',
+          systemKey: isGuestPause ? 'pause_alert' : isGuestPlay ? 'play_alert' : 'seek_alert',
+          systemParams: { name: msg.senderName },
         };
         this.room!.messages.push(sysMsg);
         this._broadcast({ event: 'chat', message: sysMsg });

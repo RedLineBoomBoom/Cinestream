@@ -2,6 +2,7 @@ import React from 'react';
 import { Users } from 'lucide-react';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { useSound } from '../../context/SoundContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface WatchPartyButtonProps {
   onClick: () => void;
@@ -10,6 +11,7 @@ interface WatchPartyButtonProps {
 
 export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, variant = 'pill' }) => {
   const { status, members } = useWatchParty();
+  const { t } = useLanguage();
   const { playClick, playHover } = useSound();
   const isConnected = status === 'connected';
   const activeCount = members.filter((m) => m.isActive).length;
@@ -26,10 +28,10 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
             ? 'bg-violet-500/90 text-white border-violet-400/50 shadow-violet-500/25'
             : 'bg-cinema-950/85 hover:bg-violet-500/20 hover:text-violet-300 text-slate-300 border-white/10 hover:border-violet-500/30'
         }`}
-        title="Watch Party"
+        title={t('partyTitle')}
       >
         <Users className="w-3 h-3" />
-        <span className="hidden sm:inline">Party</span>
+        <span className="hidden sm:inline">{t('partyTitle')}</span>
         {isConnected && activeCount > 0 && (
           <span className="w-4 h-4 rounded-full bg-white/20 text-white text-[9px] font-bold flex items-center justify-center">
             {activeCount}
@@ -50,7 +52,7 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
       }`}
     >
       <Users className="w-4 h-4" />
-      {isConnected ? `Party (${activeCount})` : 'Watch Party'}
+      {isConnected ? `${t('partyTitle')} (${activeCount})` : t('partyTitle')}
     </button>
   );
 };

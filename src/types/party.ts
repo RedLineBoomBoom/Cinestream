@@ -21,6 +21,18 @@ export interface PlaybackSignal {
 
 export type MessageType = 'chat' | 'system' | 'signal';
 
+export type SystemMessageType =
+  | 'control_mode_host_only'
+  | 'control_mode_all'
+  | 'pause_alert'
+  | 'play_alert'
+  | 'seek_alert'
+  | 'user_joined'
+  | 'user_reconnected'
+  | 'user_left'
+  | 'user_kicked'
+  | 'media_changed';
+
 export interface PartyMessage {
   id: string;
   memberId: string;
@@ -28,6 +40,8 @@ export interface PartyMessage {
   text: string;
   timestamp: number;
   type: MessageType;
+  systemKey?: SystemMessageType;
+  systemParams?: Record<string, string | number>;
 }
 
 export interface PartyMediaInfo {

@@ -11,12 +11,239 @@ import { useWatchParty } from '../../context/WatchPartyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
-import type { PartyMediaInfo } from '../../types/party';
+import type { PartyMediaInfo, PartyMessage } from '../../types/party';
 
 interface WatchPartyModalProps {
   onClose: () => void;
   mediaInfo?: PartyMediaInfo;
   autoJoinCode?: string;
+}
+
+// ── Localized System Message Helper ────────────────────────
+export function getLocalizedSystemMessage(
+  msg: PartyMessage,
+  lang: 'id' | 'en'
+): { text: string; type: 'pause' | 'play' | 'info' } {
+  // 1. Primary: Structured systemKey check
+  if (msg.systemKey === 'control_mode_host_only') {
+    return {
+      text: lang === 'en'
+        ? '👑 Control Mode: Only Host can control video playback'
+        : '👑 Mode Kontrol: Hanya Host yang dapat mengontrol pemutaran video',
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'control_mode_all') {
+    return {
+      text: lang === 'en'
+        ? '👥 Control Mode: All members are free to control video playback'
+        : '👥 Mode Kontrol: Semua anggota bebas mengontrol pemutaran video',
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'pause_alert') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} requested to PAUSE the movie/series being watched together`
+        : `${name} meminta MENJEDA film/series yang sedang ditonton bersama`,
+      type: 'pause',
+    };
+  }
+  if (msg.systemKey === 'play_alert') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} requested to PLAY the movie/series being watched together`
+        : `${name} meminta MEMUTAR film/series yang sedang ditonton bersama`,
+      type: 'play',
+    };
+  }
+  if (msg.systemKey === 'seek_alert') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} changed playback position`
+        : `${name} mengubah posisi tayangan`,
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'user_joined') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'User';
+    return {
+      text: lang === 'en'
+        ? `${name} joined the room 🎬`
+        : `${name} bergabung ke room 🎬`,
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'user_reconnected') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'User';
+    return {
+      text: lang === 'en'
+        ? `${name} reconnected to the room 🔄`
+        : `${name} terhubung kembali ke room 🔄`,
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'user_left') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'User';
+    return {
+      text: lang === 'en'
+        ? `${name} left the room`
+        : `${name} meninggalkan room`,
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'user_kicked') {
+    const name = (msg.systemParams?.name as string) || msg.memberName || 'User';
+    return {
+      text: lang === 'en'
+        ? `🚫 ${name} was removed from the room by the Host`
+        : `🚫 ${name} telah dikeluarkan dari room oleh Host`,
+      type: 'info',
+    };
+  }
+  if (msg.systemKey === 'media_changed') {
+    const title = (msg.systemParams?.title as string) || '';
+    return {
+      text: lang === 'en'
+        ? `🎬 Host switched playback to: ${title}`
+        : `🎬 Host mengalihkan tayangan ke: ${title}`,
+      type: 'info',
+    };
+  }
+
+  // 2. Secondary: Fallback pattern matching for historical/unstructured messages
+  const raw = (msg.text || '').trim();
+
+  // Control mode: Host Only
+  if (
+    raw.includes('Hanya Host yang dapat mengontrol') ||
+    raw.includes('Only Host can control') ||
+    raw.includes('Mode Kontrol: Hanya Host') ||
+    raw.includes('Control Mode: Only Host')
+  ) {
+    return {
+      text: lang === 'en'
+        ? '👑 Control Mode: Only Host can control video playback'
+        : '👑 Mode Kontrol: Hanya Host yang dapat mengontrol pemutaran video',
+      type: 'info',
+    };
+  }
+
+  // Control mode: All
+  if (
+    raw.includes('Semua anggota bebas mengontrol') ||
+    raw.includes('All members are free to control') ||
+    raw.includes('Mode Kontrol: Semua anggota') ||
+    raw.includes('Control Mode: All members')
+  ) {
+    return {
+      text: lang === 'en'
+        ? '👥 Control Mode: All members are free to control video playback'
+        : '👥 Mode Kontrol: Semua anggota bebas mengontrol pemutaran video',
+      type: 'info',
+    };
+  }
+
+  // Pause Alert
+  if (
+    raw.includes('meminta MENJEDA') ||
+    raw.includes('requested to PAUSE') ||
+    (raw.includes('⚠️') && (raw.toLowerCase().includes('jeda') || raw.toLowerCase().includes('pause')))
+  ) {
+    const match = raw.match(/(?:⚠️\s*)?([^\s]+(?:\s+[^\s]+)?)\s+(?:meminta MENJEDA|requested to PAUSE)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} requested to PAUSE the movie/series being watched together`
+        : `${name} meminta MENJEDA film/series yang sedang ditonton bersama`,
+      type: 'pause',
+    };
+  }
+
+  // Play Alert
+  if (
+    raw.includes('meminta MEMUTAR') ||
+    raw.includes('requested to PLAY') ||
+    (raw.includes('▶️') && (raw.toLowerCase().includes('putar') || raw.toLowerCase().includes('play')))
+  ) {
+    const match = raw.match(/(?:▶️\s*)?([^\s]+(?:\s+[^\s]+)?)\s+(?:meminta MEMUTAR|requested to PLAY)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} requested to PLAY the movie/series being watched together`
+        : `${name} meminta MEMUTAR film/series yang sedang ditonton bersama`,
+      type: 'play',
+    };
+  }
+
+  // Seek Alert
+  if (raw.includes('mengubah posisi tayangan') || raw.includes('changed playback position')) {
+    const match = raw.match(/(?:⏩\s*)?([^\s]+(?:\s+[^\s]+)?)\s+(?:mengubah posisi tayangan|changed playback position)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'Someone';
+    return {
+      text: lang === 'en'
+        ? `${name} changed playback position`
+        : `${name} mengubah posisi tayangan`,
+      type: 'info',
+    };
+  }
+
+  // Reconnected
+  if (raw.includes('terhubung kembali ke room') || raw.includes('reconnected to the room')) {
+    const match = raw.match(/([^\s]+(?:\s+[^\s]+)?)\s+(?:terhubung kembali ke room|reconnected to the room)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'User';
+    return {
+      text: lang === 'en' ? `${name} reconnected to the room 🔄` : `${name} terhubung kembali ke room 🔄`,
+      type: 'info',
+    };
+  }
+
+  // Joined
+  if (raw.includes('bergabung ke room') || raw.includes('joined the room')) {
+    const match = raw.match(/([^\s]+(?:\s+[^\s]+)?)\s+(?:bergabung ke room|joined the room)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'User';
+    return {
+      text: lang === 'en' ? `${name} joined the room 🎬` : `${name} bergabung ke room 🎬`,
+      type: 'info',
+    };
+  }
+
+  // Left
+  if (raw.includes('meninggalkan room') || raw.includes('left the room')) {
+    const match = raw.match(/([^\s]+(?:\s+[^\s]+)?)\s+(?:meninggalkan room|left the room)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'User';
+    return {
+      text: lang === 'en' ? `${name} left the room` : `${name} meninggalkan room`,
+      type: 'info',
+    };
+  }
+
+  // Kicked
+  if (raw.includes('telah dikeluarkan dari room oleh Host') || raw.includes('was removed from the room by the Host')) {
+    const match = raw.match(/(?:🚫\s*)?([^\s]+(?:\s+[^\s]+)?)\s+(?:telah dikeluarkan dari room oleh Host|was removed from the room by the Host)/i);
+    const name = match ? match[1].trim() : msg.memberName || 'User';
+    return {
+      text: lang === 'en' ? `🚫 ${name} was removed from the room by the Host` : `🚫 ${name} telah dikeluarkan dari room oleh Host`,
+      type: 'info',
+    };
+  }
+
+  // Media Changed
+  if (raw.includes('Host mengalihkan tayangan ke:') || raw.includes('Host switched playback to:')) {
+    const title = raw.replace(/^(?:🎬\s*)?Host (?:mengalihkan tayangan ke|switched playback to):\s*/i, '');
+    return {
+      text: lang === 'en' ? `🎬 Host switched playback to: ${title}` : `🎬 Host mengalihkan tayangan ke: ${title}`,
+      type: 'info',
+    };
+  }
+
+  return {
+    text: raw,
+    type: 'info',
+  };
 }
 
 // ── Avatar initial ─────────────────────────────────────────
@@ -220,7 +447,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     // Rate limiting / Anti-spam check
     const now = Date.now();
     if (now - lastSendTimeRef.current < 500) {
-      setChatWarning(language === 'en' ? 'Slow down, sending too fast!' : 'Kirim pesan terlalu cepat, mohon tunggu sebentar.');
+      setChatWarning(t('partyFastChatWarning'));
       setTimeout(() => setChatWarning(null), 2000);
       return;
     }
@@ -359,7 +586,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
       setSignalFeedback(t('partySyncSuccess'));
       setTimeout(() => setSignalFeedback(null), 3000);
     } else {
-      setSignalFeedback(language === 'en' ? 'Already aligned with host ⏱️' : 'Sudah selaras dengan Host ⏱️');
+      setSignalFeedback(t('partyAlreadySynced'));
       setTimeout(() => setSignalFeedback(null), 2500);
     }
 
@@ -739,7 +966,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                       ? <Film className="w-2.5 h-2.5 text-slate-500" />
                       : <Tv className="w-2.5 h-2.5 text-slate-500" />}
                     <span className="text-[9px] text-slate-500 uppercase tracking-wider">
-                      {mediaInfo.mediaType === 'movie' ? (language === 'en' ? 'Movie' : 'Film') : 'Series'}
+                      {mediaInfo.mediaType === 'movie' ? t('partyMovie') : t('partySeries')}
                     </span>
                   </div>
                   <p className="text-xs font-semibold text-white truncate leading-tight">{mediaInfo.mediaTitle}</p>
@@ -818,7 +1045,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             <div className="flex items-center gap-1.5">
               {/* Room code chip */}
               <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] min-w-0">
-                <span className="text-[8px] text-slate-500 font-bold uppercase shrink-0">{language === 'en' ? 'CODE' : 'KODE'}</span>
+                <span className="text-[8px] text-slate-500 font-bold uppercase shrink-0">{t('partyCodeLabel')}</span>
                 <span className="font-mono font-bold text-brand-gold tracking-[0.2em] text-xs flex-1 truncate">{roomCode}</span>
                 <button
                   onClick={() => handleCopy('code')}
@@ -845,7 +1072,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                   className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
                     showShareMenu ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'bg-white/[0.04] border-white/[0.06] text-slate-400 hover:text-white'
                   }`}
-                  title="Bagikan Ruangan"
+                  title={t('partyShareRoom')}
                 >
                   <Share2 className="w-3.5 h-3.5" />
                 </button>
@@ -872,7 +1099,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                         className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-slate-200 hover:bg-white/[0.08] text-left transition-colors cursor-pointer border-t border-white/[0.06] mt-0.5 pt-1.5"
                       >
                         <ExternalLink className="w-3 h-3 text-violet-400" />
-                        <span>{language === 'en' ? 'More Options...' : 'Opsi Lainnya...'}</span>
+                        <span>{t('partyMoreOptions')}</span>
                       </button>
                     )}
                   </div>
@@ -883,7 +1110,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
               <button
                 onClick={() => { playClick(); setShowQr((p) => !p); }}
                 className={`p-1.5 rounded-xl border transition-all cursor-pointer ${showQr ? 'bg-violet-500/20 border-violet-500/40 text-violet-300' : 'bg-white/[0.04] border-white/[0.06] text-slate-400 hover:text-white'}`}
-                title="QR Code"
+                title={t('partyQrCode')}
               >
                 <QrCode className="w-3.5 h-3.5" />
               </button>
@@ -1010,7 +1237,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                   title={t('partyPlaySignal')}
                 >
                   <Play className="w-2.5 h-2.5 fill-current" />
-                  <span>Play</span>
+                  <span>{t('partyPlay')}</span>
                   {isPlayingLocally && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 </button>
 
@@ -1024,7 +1251,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                   title={t('partyPauseSignal')}
                 >
                   <Pause className="w-2.5 h-2.5 fill-current" />
-                  <span>Pause</span>
+                  <span>{t('partyPause')}</span>
                   {!isPlayingLocally && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
                 </button>
 
@@ -1063,26 +1290,25 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
               const isSystem = msg.type === 'system';
 
               if (isSystem) {
-                const isPauseAlert = msg.text.includes('⚠️') || msg.text.toLowerCase().includes('menjeda') || msg.text.toLowerCase().includes('pause');
-                const isPlayAlert = msg.text.includes('▶️') || msg.text.toLowerCase().includes('memutar') || msg.text.toLowerCase().includes('play');
+                const sys = getLocalizedSystemMessage(msg, language as 'id' | 'en');
 
-                if (isPauseAlert) {
+                if (sys.type === 'pause') {
                   return (
                     <div key={msg.id} className="flex justify-center my-1">
                       <span className="text-[9.5px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/35 px-2.5 py-1 rounded-full shadow-sm text-center max-w-[95%] leading-relaxed flex items-center gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span>{msg.text}</span>
+                        <span>{sys.text}</span>
                       </span>
                     </div>
                   );
                 }
 
-                if (isPlayAlert) {
+                if (sys.type === 'play') {
                   return (
                     <div key={msg.id} className="flex justify-center my-1">
                       <span className="text-[9.5px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/35 px-2.5 py-1 rounded-full shadow-sm text-center max-w-[95%] leading-relaxed flex items-center gap-1.5">
                         <Play className="w-3 h-3 fill-emerald-400 text-emerald-400 shrink-0" />
-                        <span>{msg.text}</span>
+                        <span>{sys.text}</span>
                       </span>
                     </div>
                   );
@@ -1090,7 +1316,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
                 return (
                   <div key={msg.id} className="flex justify-center my-0.5">
-                    <span className="text-[9px] text-slate-400 bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.05]">{msg.text}</span>
+                    <span className="text-[9px] text-slate-400 bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.05]">{sys.text}</span>
                   </div>
                 );
               }
@@ -1209,7 +1435,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             </p>
             <p className="text-[10px] text-slate-500">
               {errorMsg === 'kicked_by_host'
-                ? (language === 'en' ? 'You have been removed from the room by the host.' : 'Anda telah dikeluarkan dari ruang nonton bersama oleh host.')
+                ? t('partyKickedByHostDesc')
                 : errorMsg === 'host_left'
                   ? t('partyHostLeft')
                   : t('partyDisconnectedDesc')}
