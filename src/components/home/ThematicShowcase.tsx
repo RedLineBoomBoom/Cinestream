@@ -1209,23 +1209,38 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 />
               </div>
 
-              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3 sm:space-y-4 z-20">
-                {/* Banner Header: Badge, Show Title Logo, & Tagline / Synopsis */}
-                <div className="space-y-1.5 sm:space-y-2 max-w-[75%] sm:max-w-xl min-h-[105px] sm:min-h-[130px] lg:min-h-[155px] flex flex-col justify-end">
-                  {/* Category Pill / Badge with dynamic genre hint when hovered */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-amber-300 w-fit transition-all duration-300">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>{displayTitle}</span>
+              <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
+                {/* Banner Header: Prestigious Category Title, Spotlight Show Logo, & Tagline / Synopsis */}
+                <div className="space-y-2 sm:space-y-2.5 max-w-[85%] sm:max-w-xl lg:max-w-2xl min-h-[125px] sm:min-h-[150px] lg:min-h-[175px] flex flex-col justify-end">
+                  {/* Category Eyebrow & Glowing Badge */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border border-amber-400/35 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/20 w-fit">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-amber-300">
+                        {language === 'en' ? 'Curated Collection' : 'Koleksi Pilihan'}
+                      </span>
+                    </div>
+
                     {isItemHovered && (
-                      <>
-                        <span className="text-white/30">•</span>
-                        <span className="text-white/80 font-normal normal-case">{activeGenre}</span>
-                      </>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] text-white/90 font-medium animate-banner-fade">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        <span>{activeGenre}</span>
+                      </span>
                     )}
                   </div>
 
+                  {/* Grand Category Title: Bold, Majestic & Premium */}
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black font-display tracking-wide uppercase drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+                      <span className="bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(245,158,11,0.4)]">
+                        {displayTitle}
+                      </span>
+                    </h3>
+                    <div className="hidden sm:block flex-1 max-w-[120px] h-[2px] bg-gradient-to-r from-amber-400/70 to-transparent rounded-full" />
+                  </div>
+
                   {/* Official Show Logo PNG or Typographic Fallback */}
-                  <div className="h-9 sm:h-12 lg:h-14 flex items-center">
+                  <div className="h-8 sm:h-11 lg:h-13 flex items-center pt-0.5">
                     {activeLogo && !failedLogos[String(activeItem.id)] ? (
                       <img
                         key={String(activeItem.id)}
@@ -1235,29 +1250,29 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         onError={() => {
                           setFailedLogos((prev) => ({ ...prev, [String(activeItem.id)]: true }));
                         }}
-                        className="max-h-full max-w-[190px] sm:max-w-[270px] lg:max-w-[340px] object-contain object-left filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] brightness-110 animate-banner-fade"
+                        className="max-h-full max-w-[170px] sm:max-w-[240px] lg:max-w-[300px] object-contain object-left filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] brightness-110 animate-banner-fade"
                       />
                     ) : (
-                      <h3
+                      <span
                         key={String(activeItem.id)}
-                        className="text-lg sm:text-2xl lg:text-3xl font-black font-display text-white tracking-wider uppercase drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] line-clamp-1 animate-banner-fade"
+                        className="text-base sm:text-xl lg:text-2xl font-black font-display text-white tracking-wider uppercase drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] line-clamp-1 animate-banner-fade"
                       >
                         {activeItem.title}
-                      </h3>
+                      </span>
                     )}
                   </div>
 
                   {/* Tagline / Synopsis with smooth fade animation */}
                   <p
                     key={String(activeItem.id) + (isItemHovered ? '-h' : '-d')}
-                    className="text-xs sm:text-sm text-slate-300/85 font-light leading-relaxed line-clamp-2 drop-shadow animate-banner-fade min-h-[32px] sm:min-h-[38px]"
+                    className="text-xs sm:text-[13px] lg:text-sm text-slate-300/90 font-light leading-relaxed line-clamp-2 drop-shadow animate-banner-fade min-h-[32px] sm:min-h-[36px]"
                   >
                     {activeDescription}
                   </p>
                 </div>
 
-                {/* 6 Poster Cards: Compact sizing so character cutout behind is prominently visible */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-6 sm:gap-2.5 lg:gap-3 sm:mx-0 sm:px-0 sm:pb-0 max-w-5xl lg:max-w-6xl xl:max-w-[1360px] 2xl:max-w-[1440px] relative z-20">
+                {/* 6 Poster Cards: Moderately sized for rich presence without obscuring cutout */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 sm:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-6 sm:mx-0 sm:px-0 sm:pb-0 max-w-5xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1580px] relative z-20">
                   {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
@@ -1274,11 +1289,11 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           playHover();
                           setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
                         }}
-                        className={`group relative w-[115px] xs:w-[126px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[165px] xl:max-w-[180px] rounded-lg sm:rounded-xl overflow-hidden bg-cinema-950 border ${
+                        className={`group relative w-[135px] xs:w-[148px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[185px] sm:max-w-[195px] md:max-w-[205px] lg:max-w-[220px] xl:max-w-[235px] 2xl:max-w-[245px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
                           isCardActive
-                            ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-1.5 shadow-2xl shadow-amber-500/15'
+                            ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-2 shadow-2xl shadow-amber-500/20'
                             : 'border-white/[0.1] hover:border-white/40'
-                        } shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer`}
+                        } shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl cursor-pointer`}
                       >
                         {/* Poster Image with onError fallback */}
                         <img
@@ -1296,17 +1311,17 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
 
                         {/* Top Rating Badge */}
-                        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-[8.5px] sm:text-[9.5px] font-bold text-amber-400">
-                          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-[9.5px] sm:text-[10.5px] font-bold text-amber-400 shadow-md">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                           <span>{item.rating.toFixed(1)}</span>
                         </div>
 
                         {/* Bottom Information with Title & Metadata */}
-                        <div className="absolute bottom-0 inset-x-0 p-2 sm:p-2.5 z-10 space-y-0.5 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-6 sm:pt-8 pr-6 sm:pr-2">
-                          <h4 className="text-[11px] sm:text-xs font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow leading-tight">
+                        <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3 z-10 space-y-0.5 sm:space-y-1 bg-gradient-to-t from-black/95 via-black/85 to-transparent pt-7 sm:pt-10 pr-7 sm:pr-3">
+                          <h4 className="text-xs sm:text-[13px] lg:text-sm font-bold text-white line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow leading-snug">
                             {item.title}
                           </h4>
-                          <div className="flex items-center gap-1 text-[8.5px] sm:text-[9.5px] text-amber-300/90 font-medium">
+                          <div className="flex items-center gap-1 text-[9.5px] sm:text-[10.5px] lg:text-[11px] text-amber-300/90 font-medium">
                             <span>{item.year}</span>
                             <span>•</span>
                             <span className="line-clamp-1 text-slate-300 font-normal">{displayGenre}</span>
@@ -1320,13 +1335,13 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                             e.stopPropagation();
                             handleItemAction(item, 'play');
                           }}
-                          className="md:hidden absolute bottom-2 right-2 z-20 w-6 h-6 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
+                          className="md:hidden absolute bottom-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
                           aria-label="Play Now"
                         >
                           {isLoading ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
-                            <Play className="w-3 h-3 fill-white ml-0.5" />
+                            <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
                           )}
                         </button>
 
@@ -1338,7 +1353,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                               e.stopPropagation();
                               handleItemAction(item, 'play');
                             }}
-                            className="w-10 h-10 rounded-full bg-[#E50914] hover:bg-[#f40612] text-white flex items-center justify-center shadow-glow-red hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                            className="w-11 h-11 rounded-full bg-[#E50914] hover:bg-[#f40612] text-white flex items-center justify-center shadow-glow-red hover:scale-110 active:scale-95 transition-transform cursor-pointer"
                             title={language === 'en' ? 'Play Now' : 'Putar Sekarang'}
                           >
                             {isLoading ? (
