@@ -778,7 +778,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     borderAccent: 'border-teal-900/30 hover:border-teal-500/40',
     radialGlow: 'radial-gradient(circle at 72% 38%, rgba(20,184,166,0.42) 0%, rgba(13,148,136,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/naked-and-afraid-cutout.png',
-    cutoutAlt: 'Naked and Afraid Survivalists',
+    cutoutAlt: 'Wilderness Survival & Documentary Explorer',
     cutoutPosition: 'right-5 sm:right-10 md:right-16 lg:right-24 xl:right-32 2xl:right-40',
     logoArt: 'https://image.tmdb.org/t/p/w500/8czXfVg26ohZB41TijcXkMcbedc.png',
     logoAlt: 'Naked and Afraid',
