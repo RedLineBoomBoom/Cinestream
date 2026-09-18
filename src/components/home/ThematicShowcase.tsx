@@ -1196,8 +1196,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 }}
               />
 
-              {/* High-Impact Character Cutout PNG (Feathered mask and anchored to the right edge) */}
-              <div className="absolute right-0 sm:right-0 md:right-1 lg:right-2 xl:right-3 2xl:right-4 top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_78%,transparent_100%)]">
+              {/* High-Impact Character Cutout PNG (Feathered mask and framed gracefully on the right) */}
+              <div className="absolute right-0 sm:right-1 md:right-3 lg:right-5 xl:right-8 2xl:right-12 top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]">
                 <img
                   src={banner.cutoutArt}
                   alt={banner.cutoutAlt}
@@ -1208,9 +1208,6 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-100 contrast-[1.02]"
                 />
               </div>
-
-              {/* Bottom Dissolve Overlay: seamlessly dissolves character's waist/legs into the dark floor */}
-              <div className="absolute bottom-0 right-0 w-72 sm:w-[450px] lg:w-[600px] h-20 sm:h-28 bg-gradient-to-t from-[#141414] via-[#141414]/60 to-transparent pointer-events-none z-[13]" />
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
                 {/* Banner Header: Prestigious Category Title, Spotlight Show Logo, & Tagline / Synopsis */}
@@ -1274,8 +1271,8 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   </p>
                 </div>
 
-                {/* 6 Poster Cards: Moderately sized for rich presence without obscuring cutout */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 sm:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4 -mx-3.5 px-3.5 pb-2 sm:grid sm:grid-cols-3 md:grid-cols-6 sm:mx-0 sm:px-0 sm:pb-0 max-w-5xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1580px] relative z-20">
+                {/* 6 Poster Cards: Widescreen-safe, unclipped on hover with sm:overflow-visible and breathing room */}
+                <div className="flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar gap-2.5 sm:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4 -mx-3.5 px-3.5 -my-2.5 py-2.5 sm:mx-0 sm:px-0 sm:-my-3.5 sm:py-3.5 max-w-5xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1580px] relative z-20">
                   {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
