@@ -7,8 +7,6 @@ import {
   ExternalLink,
   Star,
   Sparkles,
-  Film,
-  Tv,
   Loader2,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
@@ -17,6 +15,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import { fetchFullMediaItem } from '../../services/tmdb';
 import { createMovieServers, createTvServers } from '../../data/mockCatalog';
+import { PrimeHoverCard } from './PrimeHoverCard';
 
 interface ThematicShowcaseProps {
   onPlayMedia: (media: MediaItem) => void;
@@ -66,8 +65,6 @@ interface ThematicBannerDef {
 }
 
 // Fallback image constants ensuring no card is ever a blank void
-const FALLBACK_BACKDROP =
-  'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1280&q=80';
 const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80';
 
@@ -1130,127 +1127,18 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
           </div>
         </div>
 
-        {/* 6 Landscape / Backdrop Grid Cards (2 cols mobile, 2 cols tablet, 3 cols desktop) */}
+        {/* 6 Landscape / Backdrop Grid Cards with Prime Video-style Hover Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4 lg:gap-5">
-          {activeGenre.items.map((item) => {
-            const isLoading = loadingMediaId === item.id;
-            const displayGenre = language === 'en' ? item.genreEn : item.genreId;
-            const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
-
-            return (
-              <div
-                key={item.id}
-                onClick={() => handleItemAction(item, 'details')}
-                onMouseEnter={playHover}
-                className="group relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-900 border border-white/[0.08] hover:border-white/30 shadow-lg sm:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
-              >
-                {/* Backdrop Image with onError fallback */}
-                <img
-                  src={item.backdrop}
-                  alt={item.title}
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = item.poster || FALLBACK_BACKDROP;
-                  }}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 filter brightness-90 group-hover:brightness-100"
-                />
-
-                {/* Dark Vignette & Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 group-hover:opacity-80 transition-opacity" />
-
-                {/* Top Badge: Type & Rating */}
-                <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 flex items-center justify-between pointer-events-none z-10">
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                    {item.type === 'movie' ? <Film className="w-2.5 h-2.5" /> : <Tv className="w-2.5 h-2.5" />}
-                    <span>{item.type === 'movie' ? 'Movie' : 'Series'}</span>
-                  </span>
-
-                  <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[9px] sm:text-[11px] font-bold text-amber-400">
-                    <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
-                    <span>{item.rating.toFixed(1)}</span>
-                  </div>
-                </div>
-
-                {/* Bottom Content / Title + Synopsis (Auto-Switches with Language) */}
-                <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 z-10 space-y-0.5 sm:space-y-1 pr-7 sm:pr-0">
-                  <h3 className="text-xs sm:text-sm lg:text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-1 drop-shadow-md">
-                    {item.title}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-[9px] sm:text-[11px] text-amber-300/90 font-medium">
-                    <span>{item.year}</span>
-                    <span>•</span>
-                    <span className="line-clamp-1 text-slate-300 font-normal">{displayGenre}</span>
-                  </div>
-                  <p className="hidden xs:line-clamp-2 text-[10px] sm:text-[11px] text-slate-300/90 font-light leading-relaxed">
-                    {displaySynopsis}
-                  </p>
-                </div>
-
-                {/* Mobile / Tablet Quick-Play Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleItemAction(item, 'play');
-                  }}
-                  className="md:hidden absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
-                  aria-label="Play Now"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                  )}
-                </button>
-
-                {/* Desktop Hover Quick-Action Controls */}
-                <div className="hidden md:flex absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 items-center justify-center gap-3 z-20">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleItemAction(item, 'play');
-                    }}
-                    className="w-11 h-11 rounded-full bg-[#E50914] hover:bg-[#f40612] text-white flex items-center justify-center shadow-glow-red hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                    title={language === 'en' ? 'Play Now' : 'Putar Sekarang'}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Play className="w-5 h-5 fill-white ml-0.5" />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleItemAction(item, 'details');
-                    }}
-                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-                    title={language === 'en' ? 'View Details' : 'Lihat Detail'}
-                  >
-                    <Info className="w-4 h-4" />
-                  </button>
-
-                  <a
-                    href={getAbsoluteWatchUrl(String(item.id || item.tmdbId))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playClick();
-                    }}
-                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform cursor-pointer no-underline"
-                    title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
+          {activeGenre.items.map((item, index) => (
+            <PrimeHoverCard
+              key={item.id}
+              item={item}
+              index={index}
+              genreName={language === 'en' ? activeGenre.name : activeGenre.nameId}
+              isLoading={loadingMediaId === item.id}
+              onAction={handleItemAction}
+            />
+          ))}
         </div>
       </div>
 
