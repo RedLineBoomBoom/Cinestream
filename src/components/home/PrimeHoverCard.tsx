@@ -101,15 +101,15 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
       setTrailerKey(trailerCache.get(item.tmdbId) || null);
     }
 
-    // Delay popover expansion slightly (240ms) to avoid jitter when skimming across cards
+    // Smooth hover trigger with short delay (200ms) to ignore fast skimming
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovered(true);
 
-      // Delay video trailer playback by ~750ms of stable hovering
+      // Delayed trailer autoplay: start after 700ms of stable hovering
       videoTimeoutRef.current = setTimeout(() => {
         setShowVideo(true);
-      }, 750);
-    }, 240);
+      }, 700);
+    }, 200);
   };
 
   const handleMouseLeave = () => {
@@ -196,7 +196,11 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
       {/* ── BASE STATIC CARD (Grid Item) ── */}
       <div
         onClick={() => onAction(item, 'details')}
-        className="group relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-900 border border-white/[0.08] hover:border-white/30 shadow-lg sm:shadow-xl transition-all duration-300 cursor-pointer"
+        className={`group relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-900 border transition-all duration-300 cursor-pointer shadow-lg sm:shadow-xl ${
+          isHovered
+            ? 'border-white/40 ring-1 ring-white/20'
+            : 'border-white/[0.08] hover:border-white/30'
+        }`}
       >
         {/* Backdrop Image */}
         <img
@@ -259,193 +263,211 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
         </button>
       </div>
 
-      {/* ── ELEVATED HOVER CARD: FIXED IN THE CENTER OF THE HIGHLIGHT CARD ── */}
-      {isHovered && (
+      {/* ── SMOOTH FLOATING WIDESCREEN LANDSCAPE HOVER CARD ── */}
+      {/* Kept in DOM with hardware-accelerated cubic-bezier transitions for silky smooth enter & exit */}
+      <div
+        className={`hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[124%] sm:w-[130%] lg:w-[134%] aspect-[16/10.5] rounded-2xl overflow-hidden bg-[#0c0f17] border border-white/25 shadow-[0_25px_65px_rgba(0,0,0,0.96)] ring-1 ring-white/15 origin-center select-none transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isHovered
+            ? 'opacity-100 scale-100 pointer-events-auto'
+            : 'opacity-0 scale-95 pointer-events-none'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Full-Bleed 16:9 Media Area */}
         <div
-          className="hidden sm:block absolute -top-5 sm:-top-8 left-1/2 -translate-x-1/2 z-50 w-[134%] sm:w-[140%] lg:w-[146%] min-w-[340px] sm:min-w-[420px] lg:min-w-[480px] max-w-[540px] rounded-2xl overflow-hidden bg-[#0c0f17] border border-white/25 shadow-[0_25px_60px_rgba(0,0,0,0.95)] ring-1 ring-white/15 animate-in fade-in zoom-in-95 duration-200 select-none origin-center"
-          onClick={(e) => e.stopPropagation()}
+          className="relative w-full h-full overflow-hidden bg-black cursor-pointer"
+          onClick={() => onAction(item, 'play')}
         >
-          {/* Top 16:9 Media Preview Area */}
-          <div
-            className="relative aspect-video w-full overflow-hidden bg-black cursor-pointer"
-            onClick={() => onAction(item, 'play')}
-          >
-            {/* Backdrop Image */}
-            <img
-              src={item.backdrop}
-              alt={item.title}
-              className={`w-full h-full object-cover object-center filter brightness-95 transition-opacity duration-700 ${
-                showVideo && trailerKey ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-            />
+          {/* Backdrop Image */}
+          <img
+            src={item.backdrop}
+            alt={item.title}
+            className={`w-full h-full object-cover object-center filter brightness-95 transition-opacity duration-700 ${
+              showVideo && trailerKey ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+          />
 
-            {/* Auto-playing Trailer (YouTube IFrame Embed with Zero UI Overlay) */}
-            {showVideo && trailerKey && (
-              <div className="absolute inset-0 bg-black pointer-events-none overflow-hidden animate-in fade-in duration-500">
-                <iframe
-                  ref={iframeRef}
-                  src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${trailerKey}${
-                    typeof window !== 'undefined' && window.location.origin
-                      ? `&origin=${encodeURIComponent(window.location.origin)}`
-                      : ''
-                  }`}
-                  title={`${item.title} Trailer`}
-                  allow="autoplay; encrypted-media"
-                  onLoad={() => {
-                    try {
-                      iframeRef.current?.contentWindow?.postMessage(
-                        JSON.stringify({ event: 'listening' }),
-                        '*'
-                      );
-                    } catch {}
-                  }}
-                  className="absolute -top-[14%] -bottom-[14%] -left-[10%] -right-[10%] w-[120%] h-[128%] pointer-events-none filter brightness-95"
-                />
-              </div>
-            )}
-
-            {/* Top-Left Badge: Type & Rating */}
-            <div className="absolute top-2.5 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
-              <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1 shadow-md">
-                {item.type === 'movie' ? <Film className="w-2.5 h-2.5" /> : <Tv className="w-2.5 h-2.5" />}
-                <span>{item.type === 'movie' ? 'Movie' : 'Series'}</span>
-              </span>
-
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 text-[11px] font-bold text-amber-400 shadow-md">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                <span>{item.rating.toFixed(1)}</span>
-              </div>
+          {/* Auto-playing Trailer (YouTube IFrame Embed with Zero UI Overlay) */}
+          {showVideo && trailerKey && (
+            <div className="absolute inset-0 bg-black pointer-events-none overflow-hidden animate-in fade-in duration-500">
+              <iframe
+                ref={iframeRef}
+                src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${trailerKey}${
+                  typeof window !== 'undefined' && window.location.origin
+                    ? `&origin=${encodeURIComponent(window.location.origin)}`
+                    : ''
+                }`}
+                title={`${item.title} Trailer`}
+                allow="autoplay; encrypted-media"
+                onLoad={() => {
+                  try {
+                    iframeRef.current?.contentWindow?.postMessage(
+                      JSON.stringify({ event: 'listening' }),
+                      '*'
+                    );
+                  } catch {}
+                }}
+                className="absolute -top-[14%] -bottom-[14%] -left-[10%] -right-[10%] w-[120%] h-[128%] pointer-events-none filter brightness-95"
+              />
             </div>
+          )}
 
-            {/* Bottom-Right Audio Mute/Unmute Toggle Button */}
-            {showVideo && trailerKey && (
-              <button
-                type="button"
-                onClick={toggleMute}
-                className="absolute bottom-3 right-3 z-30 w-8 h-8 rounded-full bg-black/80 hover:bg-black text-white border border-white/25 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto"
-                title={isMuted ? (language === 'en' ? 'Unmute' : 'Aktifkan Suara') : (language === 'en' ? 'Mute' : 'Bisukan')}
-              >
-                {isMuted ? (
-                  <VolumeX className="w-4 h-4 text-slate-300" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-emerald-400" />
-                )}
-              </button>
-            )}
+          {/* Top Badges: Type & Rating */}
+          <div className="absolute top-2.5 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
+            <span className="px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1 shadow-md">
+              {item.type === 'movie' ? (
+                <Film className="w-2.5 h-2.5 text-amber-400" />
+              ) : (
+                <Tv className="w-2.5 h-2.5 text-sky-400" />
+              )}
+              <span>{item.type === 'movie' ? 'Movie' : 'Series'}</span>
+            </span>
 
-            {/* Bottom Gradient Fade */}
-            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0c0f17] to-transparent pointer-events-none" />
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 text-[11px] font-bold text-amber-400 shadow-md">
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <span>{item.rating.toFixed(1)}</span>
+            </div>
           </div>
 
-          {/* Bottom Card Content (Prime Video Styling - Spacious & Crisp) */}
-          <div className="p-4 sm:p-4.5 space-y-2.5">
-            {/* Title */}
-            <h4
-              onClick={() => onAction(item, 'details')}
-              className="text-base sm:text-lg font-bold text-white hover:text-amber-300 transition-colors cursor-pointer line-clamp-1 drop-shadow-sm"
+          {/* Audio Mute/Unmute Toggle Button */}
+          {showVideo && trailerKey && (
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="absolute top-2.5 right-12 z-30 w-7 h-7 rounded-full bg-black/80 hover:bg-black text-white border border-white/25 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer pointer-events-auto"
+              title={isMuted ? (language === 'en' ? 'Unmute' : 'Aktifkan Suara') : (language === 'en' ? 'Mute' : 'Bisukan')}
             >
-              {item.title}
-            </h4>
+              {isMuted ? (
+                <VolumeX className="w-3.5 h-3.5 text-slate-300" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+            </button>
+          )}
 
-            {/* Action Buttons Row */}
-            <div className="flex items-center gap-2.5 pt-0.5">
-              {/* Play Button */}
-              <button
-                type="button"
-                onClick={() => onAction(item, 'play')}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white hover:bg-slate-200 text-black flex items-center justify-center font-bold shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-                title={language === 'en' ? 'Play Now' : 'Putar Sekarang'}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-black" />
-                ) : (
-                  <Play className="w-4 h-4 fill-black text-black ml-0.5" />
-                )}
-              </button>
+          {/* Deep Cinematic Vignette Gradient across the lower half */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f17] from-15% via-[#0c0f17]/90 via-45% to-transparent pointer-events-none" />
 
-              {/* Watchlist Toggle Button */}
-              <button
-                type="button"
-                onClick={handleWatchlistToggle}
-                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full border flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 ${
-                  isBookmarked
-                    ? 'bg-[#E50914] border-[#E50914] text-white shadow-glow-red'
-                    : 'bg-white/10 hover:bg-white/20 border-white/25 text-white'
-                }`}
-                title={
-                  isBookmarked
-                    ? language === 'en'
-                      ? 'Remove from Watchlist'
-                      : 'Hapus dari Daftar Pantau'
-                    : language === 'en'
-                    ? 'Add to Watchlist'
-                    : 'Tambah ke Daftar Pantau'
-                }
-              >
-                {isBookmarked ? (
-                  <Check className="w-4 h-4 stroke-[3] text-white" />
-                ) : (
-                  <Plus className="w-4 h-4 stroke-[3] text-white" />
-                )}
-              </button>
-
-              {/* Info / Details Button */}
-              <button
-                type="button"
-                onClick={() => onAction(item, 'details')}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-                title={language === 'en' ? 'Details' : 'Detail'}
-              >
-                <Info className="w-4 h-4" />
-              </button>
-
-              {/* External Link */}
-              <a
-                href={getAbsoluteWatchUrl(String(item.id || item.tmdbId))}
-                target="_blank"
-                rel="noopener noreferrer"
+          {/* Bottom Content Area: Cleanly Arranged in Widescreen Landscape */}
+          <div className="absolute bottom-0 inset-x-0 p-3 sm:p-3.5 z-20 space-y-1.5 sm:space-y-2">
+            {/* Row 1: Title & Trending Green Badge */}
+            <div className="flex items-center justify-between gap-2">
+              <h4
                 onClick={(e) => {
                   e.stopPropagation();
-                  playClick();
+                  onAction(item, 'details');
                 }}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer no-underline ml-auto shrink-0"
-                title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
+                className="text-sm sm:text-base font-bold text-white hover:text-amber-300 transition-colors cursor-pointer line-clamp-1 drop-shadow-md"
               >
-                <ExternalLink className="w-4 h-4" />
-              </a>
+                {item.title}
+              </h4>
+
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 shrink-0">
+                <TrendingUp className="w-3 h-3 text-emerald-400" />
+                <span className="line-clamp-1">
+                  #{index + 1} {genreName}
+                </span>
+              </div>
             </div>
 
-            {/* Trending Category Line (Prime Video Signature Green) */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="line-clamp-1">
-                #{index + 1} {language === 'en' ? `in ${genreName}` : `dalam ${genreName}`}
-              </span>
+            {/* Row 2: Action Buttons & Metadata Pills */}
+            <div className="flex items-center justify-between gap-2">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Play Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction(item, 'play');
+                  }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-slate-200 text-black flex items-center justify-center font-bold shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                  title={language === 'en' ? 'Play Now' : 'Putar Sekarang'}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 fill-black text-black ml-0.5" />
+                  )}
+                </button>
+
+                {/* Watchlist Toggle Button */}
+                <button
+                  type="button"
+                  onClick={handleWatchlistToggle}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0 ${
+                    isBookmarked
+                      ? 'bg-[#E50914] border-[#E50914] text-white shadow-glow-red'
+                      : 'bg-white/10 hover:bg-white/20 border-white/25 text-white'
+                  }`}
+                  title={
+                    isBookmarked
+                      ? language === 'en'
+                        ? 'Remove from Watchlist'
+                        : 'Hapus dari Daftar Pantau'
+                      : language === 'en'
+                      ? 'Add to Watchlist'
+                      : 'Tambah ke Daftar Pantau'
+                  }
+                >
+                  {isBookmarked ? (
+                    <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5 stroke-[3] text-white" />
+                  )}
+                </button>
+
+                {/* Details Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction(item, 'details');
+                  }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                  title={language === 'en' ? 'Details' : 'Detail'}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+
+                {/* External Link */}
+                <a
+                  href={getAbsoluteWatchUrl(String(item.id || item.tmdbId))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playClick();
+                  }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer no-underline shrink-0"
+                  title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              {/* Metadata Pills */}
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-300">
+                <span className="px-1.5 py-0.5 rounded border border-white/40 text-[8.5px] font-bold text-white tracking-wider uppercase">
+                  MOST LIKED
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-[8.5px] font-bold text-slate-300">
+                  16+
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-[8.5px] font-mono font-bold text-slate-300">
+                  FHD
+                </span>
+                <span>{item.year}</span>
+              </div>
             </div>
 
-            {/* Metadata Pills Row (MOST LIKED, Age, Quality, Year, Rating) */}
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-300">
-              <span className="px-1.5 py-0.5 rounded border border-white/40 text-[9px] sm:text-[10px] font-bold text-white tracking-wider uppercase">
-                MOST LIKED
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-[9px] sm:text-[10px] font-bold text-slate-300">
-                16+
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/20 text-[9px] sm:text-[10px] font-mono font-bold text-slate-300">
-                1080p FHD
-              </span>
-              <span>{item.year}</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-300">{displayGenre}</span>
-            </div>
-
-            {/* 2-3 Line Synopsis */}
-            <p className="text-xs text-slate-300/90 line-clamp-2 sm:line-clamp-3 leading-relaxed font-light">
+            {/* Row 3: 1-2 Line Readable Synopsis */}
+            <p className="text-[11px] sm:text-xs text-slate-300/90 line-clamp-1 sm:line-clamp-2 leading-relaxed font-light">
               {displaySynopsis}
             </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
