@@ -106,7 +106,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className={`z-[9990] rounded-2xl bg-[#181818]/98 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/80 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto no-scrollbar ${
+      className={`z-[9990] rounded-2xl bg-[#111111] backdrop-blur-xl border border-white/12 shadow-2xl shadow-black/90 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto no-scrollbar ${
         isMobile
           // Mobile: fixed to viewport — never goes off-screen
           ? 'fixed left-2 right-2 top-[4.25rem] max-h-[calc(100dvh-5rem)]'
