@@ -2725,7 +2725,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                 </div>
 
                 {/* Server 5 PC Browser Quick Tip */}
-                {(activeServer.id.includes('smashy') || activeServer.name.includes('Server 5') || activeServer.name.includes('SmashyStream')) && (
+                {(activeServer.id.includes('smashy') || activeServer.name.includes('Server 5') || activeServer.name.includes('SmashyStream') || activeServer.name.includes('AnyEmbed')) && (
                   <div
                     className="hidden xl:flex items-center gap-1.5 bg-cyan-950/80 border border-cyan-500/40 text-cyan-200 text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md shadow-md cursor-help flex-shrink-0"
                     title={
