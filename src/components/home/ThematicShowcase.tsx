@@ -451,7 +451,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#3a0815]/90 via-[#1e050c]/95 to-[#0b0306]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(225,29,72,0.35)]',
     borderAccent: 'border-rose-900/30 hover:border-rose-500/40',
-    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(225,29,72,0.32) 0%, rgba(159,18,57,0.15) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(225,29,72,0.42) 0%, rgba(159,18,57,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/hotd-cutout.png',
     cutoutAlt: 'House of the Dragon - Daemon Targaryen',
     logoArt: 'https://image.tmdb.org/t/p/w500/sWW8VURTOT0yVLS6Jlxw6BQQUSZ.png',
@@ -558,7 +558,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#6b3306]/85 via-[#381602]/95 to-[#0d0501]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(245,158,11,0.35)]',
     borderAccent: 'border-amber-900/30 hover:border-amber-500/40',
-    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(245,158,11,0.32) 0%, rgba(180,83,9,0.15) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(245,158,11,0.42) 0%, rgba(180,83,9,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/dune-cutout.png',
     cutoutAlt: 'Dune: Part Two - Paul Atreides & Chani',
     logoArt: 'https://image.tmdb.org/t/p/w500/eYvF1LhPKuoBxOAmWjFTAK7EPWl.png',
@@ -665,7 +665,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#0f223d]/90 via-[#0a1527]/95 to-[#020712]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(56,189,248,0.3)]',
     borderAccent: 'border-sky-900/30 hover:border-sky-500/40',
-    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(56,189,248,0.3) 0%, rgba(14,116,144,0.15) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(56,189,248,0.38) 0%, rgba(14,116,144,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/got-cutout.png',
     cutoutAlt: 'Game of Thrones - Daenerys Targaryen & Jon Snow',
     logoArt: 'https://image.tmdb.org/t/p/w500/6pObznbCoxVpY1lPQwJxETd7Phe.png',
@@ -772,7 +772,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#044336]/85 via-[#022720]/95 to-[#010e0b]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(20,184,166,0.35)]',
     borderAccent: 'border-teal-900/30 hover:border-teal-500/40',
-    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(20,184,166,0.32) 0%, rgba(13,148,136,0.15) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(20,184,166,0.42) 0%, rgba(13,148,136,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/naked-and-afraid-cutout.png',
     cutoutAlt: 'Naked and Afraid Survivalists',
     logoArt: 'https://image.tmdb.org/t/p/w500/8czXfVg26ohZB41TijcXkMcbedc.png',
@@ -879,7 +879,7 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#713f12]/85 via-[#452207]/95 to-[#120701]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(234,179,8,0.35)]',
     borderAccent: 'border-yellow-900/30 hover:border-yellow-500/40',
-    radialGlow: 'radial-gradient(circle at 65% 40%, rgba(234,179,8,0.32) 0%, rgba(161,98,7,0.15) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(234,179,8,0.42) 0%, rgba(161,98,7,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/family-cutout.png',
     cutoutAlt: 'Adventure Time - Finn & Jake',
     logoArt: 'https://image.tmdb.org/t/p/w500/rIi0lY2UftYuKDJ4OlIefDdijve.png',
@@ -1190,14 +1190,14 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
               {/* Dynamic Atmospheric Radial Glow behind character cutout */}
               <div
-                className="absolute right-0 sm:right-6 lg:right-20 top-0 bottom-0 w-72 sm:w-[500px] lg:w-[680px] pointer-events-none select-none opacity-80 z-[3]"
+                className="absolute right-0 top-0 bottom-0 w-80 sm:w-[540px] lg:w-[720px] pointer-events-none select-none opacity-90 z-[3]"
                 style={{
                   background: banner.radialGlow,
                 }}
               />
 
-              {/* High-Impact Character Cutout PNG (Feathered top & bottom mask, prominently revealed above compact cards) */}
-              <div className="absolute right-1 xs:right-2 sm:right-6 md:right-10 lg:right-16 xl:right-24 2xl:right-28 top-2 sm:top-3 md:top-4 lg:top-5 h-[300px] sm:h-[400px] md:h-[470px] lg:h-[540px] xl:h-[610px] 2xl:h-[660px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_75%,transparent_100%)]">
+              {/* High-Impact Character Cutout PNG (Feathered mask and anchored to the right edge) */}
+              <div className="absolute right-0 sm:right-0 md:right-1 lg:right-2 xl:right-3 2xl:right-4 top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_78%,transparent_100%)]">
                 <img
                   src={banner.cutoutArt}
                   alt={banner.cutoutAlt}
@@ -1205,9 +1205,12 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="h-full w-auto object-contain object-top filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.85)] brightness-105"
+                  className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-100 contrast-[1.02]"
                 />
               </div>
+
+              {/* Bottom Dissolve Overlay: seamlessly dissolves character's waist/legs into the dark floor */}
+              <div className="absolute bottom-0 right-0 w-72 sm:w-[450px] lg:w-[600px] h-20 sm:h-28 bg-gradient-to-t from-[#141414] via-[#141414]/60 to-transparent pointer-events-none z-[13]" />
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
                 {/* Banner Header: Prestigious Category Title, Spotlight Show Logo, & Tagline / Synopsis */}
