@@ -59,6 +59,7 @@ interface ThematicBannerDef {
   radialGlow: string;
   cutoutArt: string;
   cutoutAlt: string;
+  cutoutPosition?: string;
   logoArt: string;
   logoAlt: string;
   items: ShowcaseMediaDef[];
@@ -451,9 +452,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#3a0815]/90 via-[#1e050c]/95 to-[#0b0306]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(225,29,72,0.35)]',
     borderAccent: 'border-rose-900/30 hover:border-rose-500/40',
-    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(225,29,72,0.42) 0%, rgba(159,18,57,0.18) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 75% 38%, rgba(225,29,72,0.42) 0%, rgba(159,18,57,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/hotd-cutout.png',
     cutoutAlt: 'House of the Dragon - Daemon Targaryen',
+    cutoutPosition: 'right-2 sm:right-6 md:right-10 lg:right-16 xl:right-22 2xl:right-28',
     logoArt: 'https://image.tmdb.org/t/p/w500/sWW8VURTOT0yVLS6Jlxw6BQQUSZ.png',
     logoAlt: 'House of the Dragon',
     items: [
@@ -498,9 +500,9 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         rating: 7.6,
         genreEn: 'Drama, Satire',
         genreId: 'Drama, Satir',
-        synopsisEn: 'A sharp social satire chronicling the vacation antics and dark hidden truths of affluent resort guests.',
-        synopsisId: 'Kemelut intrik para tamu berduit dan rahasia gelap para pegawai di resor tropis mewah.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/2SwIOcXZ4you4EjPCAw7IucCsgX.png',
+        synopsisEn: 'A sharp social satire following the exploits of employees and guests at an exclusive luxury resort over a turbulent week.',
+        synopsisId: 'Skandal dan intrik para tamu kaya di resor tropis mewah nan penuh rahasia gelap.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/krsdhZRZlwx8D31LzXTs893jvYl.png',
       },
       {
         id: 'tv-250307',
@@ -514,38 +516,38 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         genreEn: 'Drama, Medical',
         genreId: 'Drama, Medis',
         synopsisEn: 'A gritty, unflinching front-line look at emergency room workers battling to save lives in Pittsburgh.',
-        synopsisId: 'Perjuangan para tenaga medis di unit gawat darurat tersibuk menyelamatkan nyawa di garis depan.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/zqsePGDhPnk5KpSjlZFpmZyy8h6.png',
+        synopsisId: 'Potret garis depan tenaga medis unit gawat darurat Pittsburgh berjuang menyelamatkan nyawa.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/7gQc9y2EORn9pZhGtAEdlEbpcpz.png',
       },
       {
         id: 'tv-76331',
         tmdbId: 76331,
         type: 'tv',
         title: 'Succession',
-        poster: 'https://image.tmdb.org/t/p/w500/z0XiwdrCQ9yVIr4O0pxzaAYRxdW.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/d87JXX3DLkRJMfm5StCmmnmhHuX.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/7TBy9bM9N2F11wY25KxR4j78QO8.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/7k2vQnLh1F3rF2h3d4f5g6h7j8.jpg',
         year: 2018,
         rating: 8.3,
         genreEn: 'Drama, Business & Politics',
         genreId: 'Drama, Bisnis & Politik',
-        synopsisEn: 'The ruthless Roy family fights for ultimate control of Waystar RoyCo when their aging patriarch steps back.',
-        synopsisId: 'Intrik perebutan tahta kekuasaan dinasti media raksasa keluarga Roy yang kejam dan tak terduga.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/5MAURYSb9Q98fRWuSTOGFlztKIZ.png',
+        synopsisEn: 'The Roy family is known for controlling the biggest media and entertainment company in the world.',
+        synopsisId: 'Keluarga Roy bersaing memperebutkan kendali atas konglomerat media global Waystar RoyCo.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/krsdhZRZlwx8D31LzXTs893jvYl.png',
       },
       {
         id: 'tv-46648',
         tmdbId: 46648,
         type: 'tv',
         title: 'True Detective',
-        poster: 'https://image.tmdb.org/t/p/w500/cuV2O5ZyDLHSOWzg3nLVljp1ubw.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/v8YFr8BbU9qsO8PYIulzTeM6Qk.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/cuV2O529pqHSURiqOCGXye204w8.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/u64huzTnF3jEYUXJ4BDlpHy2L3K.jpg',
         year: 2014,
         rating: 8.3,
         genreEn: 'Crime Drama, Neo-Noir',
-        genreId: 'Drama Kriminal, Neo-Noir',
-        synopsisEn: 'Uncompromising detectives confront harrowing psychological cases and macabre murders across the American south.',
-        synopsisId: 'Penyelidikan kasus pembunuhan misterius penuh teka-teki gelap di pelosok wilayah Amerika.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/6q4KzOcM2eEE1IbhFTadUsQkphl.png',
+        genreId: 'Drama Kriminal, Misteri',
+        synopsisEn: 'An anthology series in which police investigations unearth the personal and professional secrets of those involved.',
+        synopsisId: 'Serial antologi detektif yang mengungkap rahasia kelam di balik investigasi kasus kriminal rumit.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/7yXEfWFDGpqIfq9wdpMOHcHbi8g.png',
       },
     ],
   },
@@ -558,9 +560,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#6b3306]/85 via-[#381602]/95 to-[#0d0501]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(245,158,11,0.35)]',
     borderAccent: 'border-amber-900/30 hover:border-amber-500/40',
-    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(245,158,11,0.42) 0%, rgba(180,83,9,0.18) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 72% 38%, rgba(245,158,11,0.42) 0%, rgba(180,83,9,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/dune-cutout.png',
     cutoutAlt: 'Dune: Part Two - Paul Atreides & Chani',
+    cutoutPosition: 'right-5 sm:right-10 md:right-16 lg:right-24 xl:right-32 2xl:right-40',
     logoArt: 'https://image.tmdb.org/t/p/w500/eYvF1LhPKuoBxOAmWjFTAK7EPWl.png',
     logoAlt: 'Dune: Part Two',
     items: [
@@ -665,9 +668,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#0f223d]/90 via-[#0a1527]/95 to-[#020712]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(56,189,248,0.3)]',
     borderAccent: 'border-sky-900/30 hover:border-sky-500/40',
-    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(56,189,248,0.38) 0%, rgba(14,116,144,0.18) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 80% 38%, rgba(56,189,248,0.38) 0%, rgba(14,116,144,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/got-cutout.png',
     cutoutAlt: 'Game of Thrones - Daenerys Targaryen & Jon Snow',
+    cutoutPosition: 'right-0 sm:right-0 md:right-1 lg:right-2 xl:right-4 2xl:right-8',
     logoArt: 'https://image.tmdb.org/t/p/w500/6pObznbCoxVpY1lPQwJxETd7Phe.png',
     logoAlt: 'Game of Thrones',
     items: [
@@ -772,9 +776,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#044336]/85 via-[#022720]/95 to-[#010e0b]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(20,184,166,0.35)]',
     borderAccent: 'border-teal-900/30 hover:border-teal-500/40',
-    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(20,184,166,0.42) 0%, rgba(13,148,136,0.18) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 72% 38%, rgba(20,184,166,0.42) 0%, rgba(13,148,136,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/naked-and-afraid-cutout.png',
     cutoutAlt: 'Naked and Afraid Survivalists',
+    cutoutPosition: 'right-5 sm:right-10 md:right-16 lg:right-24 xl:right-32 2xl:right-40',
     logoArt: 'https://image.tmdb.org/t/p/w500/8czXfVg26ohZB41TijcXkMcbedc.png',
     logoAlt: 'Naked and Afraid',
     items: [
@@ -879,9 +884,10 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
     bgGradient: 'from-[#713f12]/85 via-[#452207]/95 to-[#120701]',
     accentGlow: 'shadow-[0_0_80px_-20px_rgba(234,179,8,0.35)]',
     borderAccent: 'border-yellow-900/30 hover:border-yellow-500/40',
-    radialGlow: 'radial-gradient(circle at 82% 38%, rgba(234,179,8,0.42) 0%, rgba(161,98,7,0.18) 45%, transparent 75%)',
+    radialGlow: 'radial-gradient(circle at 76% 38%, rgba(234,179,8,0.42) 0%, rgba(161,98,7,0.18) 45%, transparent 75%)',
     cutoutArt: '/assets/cutouts/family-cutout.png',
     cutoutAlt: 'Adventure Time - Finn & Jake',
+    cutoutPosition: 'right-2 sm:right-6 md:right-10 lg:right-14 xl:right-20 2xl:right-26',
     logoArt: 'https://image.tmdb.org/t/p/w500/rIi0lY2UftYuKDJ4OlIefDdijve.png',
     logoAlt: 'Adventure Time',
     items: [
@@ -1189,24 +1195,28 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
               <div className="absolute inset-0 bg-black/25 pointer-events-none z-[2]" />
 
               {/* Dynamic Atmospheric Radial Glow behind character cutout */}
-              <div
-                className="absolute right-0 top-0 bottom-0 w-80 sm:w-[540px] lg:w-[720px] pointer-events-none select-none opacity-90 z-[3]"
-                style={{
-                  background: banner.radialGlow,
-                }}
-              />
-
-              {/* High-Impact Character Cutout PNG (Feathered mask and framed gracefully on the right) */}
-              <div className="absolute right-0 sm:right-1 md:right-3 lg:right-5 xl:right-8 2xl:right-12 top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none z-[12] flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]">
-                <img
-                  src={banner.cutoutArt}
-                  alt={banner.cutoutAlt}
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+              <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto pointer-events-none overflow-hidden z-[3]">
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-full sm:w-[680px] lg:w-[840px] pointer-events-none select-none opacity-90"
+                  style={{
+                    background: banner.radialGlow,
                   }}
-                  className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-100 contrast-[1.02]"
                 />
+              </div>
+
+              {/* High-Impact Character Cutout PNG (Proportionally framed within the content container) */}
+              <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 pointer-events-none overflow-visible z-[12]">
+                <div className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]`}>
+                  <img
+                    src={banner.cutoutArt}
+                    alt={banner.cutoutAlt}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-100 contrast-[1.02]"
+                  />
+                </div>
               </div>
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
