@@ -162,6 +162,21 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         synopsisId: 'Serial antologi detektif yang mengungkap rahasia kelam di balik investigasi kasus kriminal rumit.',
         logoArt: 'https://image.tmdb.org/t/p/w500/6q4KzOcM2eEE1IbhFTadUsQkphl.png',
       },
+      {
+        id: 'tv-95396',
+        tmdbId: 95396,
+        type: 'tv',
+        title: 'Severance',
+        poster: 'https://image.tmdb.org/t/p/w500/sWTfSUKoOTkGS5KV5FxMbcY6R9m.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/vDwsGFvJarAmtxVMRCGVuAIH7pi.jpg',
+        year: 2022,
+        rating: 8.7,
+        genreEn: 'Sci-Fi Thriller, Mystery',
+        genreId: 'Thriller Sci-Fi, Misteri',
+        synopsisEn: 'Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives — until one of them tries to reconnect.',
+        synopsisId: 'Karyawan dengan memori terbelah antara kehidupan kerja dan pribadi. Ketika salah satu mulai bertanya, segalanya berubah.',
+        logoArt: 'https://image.tmdb.org/t/p/w500/4FeO8U7HOhO6yoVrW8Wq7BSrHEI.png',
+      },
     ],
   },
   {
@@ -890,7 +905,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   return next;
                 });
               }}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-8 pb-6 sm:pt-12 sm:pb-8 lg:pt-16 lg:pb-10 overflow-hidden transition-colors duration-500`}
+              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-10 pb-8 sm:pt-16 sm:pb-10 lg:pt-20 lg:pb-12 overflow-hidden transition-colors duration-500`}
             >
               {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
               <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-transparent to-[#141414] pointer-events-none z-[4]" />
@@ -917,7 +932,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
 
               {/* High-Impact Character Cutout PNG (Proportionally framed within the content container) */}
               <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 pointer-events-none overflow-visible z-[12]">
-                <div className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[320px] sm:h-[420px] md:h-[490px] lg:h-[560px] xl:h-[630px] 2xl:h-[680px] pointer-events-none select-none flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]`}>
+                <div className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[370px] sm:h-[490px] md:h-[570px] lg:h-[650px] xl:h-[730px] 2xl:h-[800px] pointer-events-none select-none flex items-start [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_80%,transparent_100%)]`}>
                   <img
                     src={banner.cutoutArt}
                     alt={banner.cutoutAlt}
@@ -993,7 +1008,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 </div>
 
                 {/* 6 Poster Cards: Widescreen-safe, unclipped on hover with sm:overflow-visible and breathing room */}
-                <div className="flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar gap-2.5 sm:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4 -mx-3.5 px-3.5 -my-2.5 py-2.5 sm:mx-0 sm:px-0 sm:-my-3.5 sm:py-3.5 max-w-5xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1580px] relative z-20">
+                <div className="flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar gap-3 sm:gap-3.5 md:gap-4 lg:gap-4.5 xl:gap-5 -mx-3.5 px-3.5 -my-2.5 py-2.5 sm:mx-0 sm:px-0 sm:-my-3.5 sm:py-3.5 max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] 2xl:max-w-[1680px] relative z-20">
                   {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
@@ -1010,7 +1025,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           playHover();
                           setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
                         }}
-                        className={`group relative w-[135px] xs:w-[148px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[185px] sm:max-w-[195px] md:max-w-[205px] lg:max-w-[220px] xl:max-w-[235px] 2xl:max-w-[245px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
+                        className={`group relative w-[155px] xs:w-[170px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[215px] sm:max-w-[230px] md:max-w-[248px] lg:max-w-[265px] xl:max-w-[282px] 2xl:max-w-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
                           isCardActive
                             ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-2 shadow-2xl shadow-amber-500/20'
                             : 'border-white/[0.1] hover:border-white/40'
