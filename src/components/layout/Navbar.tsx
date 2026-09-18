@@ -6,6 +6,7 @@ import {
   X,
   Globe,
   SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -13,11 +14,12 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ProfileDropdown } from '../profile/ProfileDropdown';
 import { getTabUrl } from '../../utils/navigation';
+import type { ModalSearchSource } from '../search/SearchModal';
 
 interface NavbarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
-  onOpenSearch: () => void;
+  onOpenSearch: (source?: ModalSearchSource) => void;
   isTheaterMode?: boolean;
   watchlistCount?: number;
   isHidden?: boolean;
@@ -139,11 +141,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* AI Search Quick Button */}
+          <button
+            onClick={() => {
+              playClick();
+              onOpenSearch('ai');
+            }}
+            onMouseEnter={playHover}
+            aria-label={t('aiSearchTab')}
+            title={t('aiSearchTab')}
+            className="flex items-center justify-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span className="hidden sm:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold">
+              {t('aiSearchTab')}
+            </span>
+          </button>
+
           {/* Quick Search */}
           <button
             onClick={() => {
               playClick();
-              onOpenSearch();
+              onOpenSearch('all');
             }}
             onMouseEnter={playHover}
             aria-label={t('searchQuick')}

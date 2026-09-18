@@ -8,7 +8,7 @@ import { FilterBar } from './components/home/FilterBar';
 import { HomeLiveSearch } from './components/home/HomeLiveSearch';
 import { CinematicAtmosphere } from './components/layout/CinematicAtmosphere';
 import { WatchSection } from './components/details/WatchSection';
-import { SearchModal } from './components/search/SearchModal';
+import { SearchModal, type ModalSearchSource } from './components/search/SearchModal';
 import { CustomStreamModal } from './components/custom/CustomStreamModal';
 import { ContinueWatchingRow } from './components/home/ContinueWatchingRow';
 import { ThematicShowcase } from './components/home/ThematicShowcase';
@@ -74,6 +74,7 @@ const MainContent: React.FC = () => {
   // Navigation & Modals State (Persistent on refresh)
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchInitialSource, setSearchInitialSource] = useState<ModalSearchSource>('all');
   const [isCustomStreamOpen, setIsCustomStreamOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [resumeTime, setResumeTime] = useState<number | undefined>(undefined);
@@ -803,8 +804,9 @@ const MainContent: React.FC = () => {
     };
   }, [watchlist, fullCatalog, historyItems, watchlistMediaMap]);
 
-  const handleOpenSearch = () => {
-    if (activeTab === 'home' && (!selectedMedia || isMiniPlayer)) {
+  const handleOpenSearch = (source: ModalSearchSource = 'all') => {
+    setSearchInitialSource(source);
+    if (source === 'all' && activeTab === 'home' && (!selectedMedia || isMiniPlayer)) {
       const input = document.getElementById('home-live-search-input') as HTMLInputElement | null;
       if (input) {
         input.focus();
@@ -1100,6 +1102,7 @@ const MainContent: React.FC = () => {
       {/* Search Modal */}
       <SearchModal
         isOpen={isSearchOpen}
+        initialSource={searchInitialSource}
         onClose={() => setIsSearchOpen(false)}
         catalog={fullCatalog}
         onSelectMedia={(item) => {

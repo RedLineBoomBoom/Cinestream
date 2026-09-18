@@ -17,11 +17,13 @@ import { searchAnime, type AnimeItem } from './anime';
 import { searchTvMaze, type TvMazeShow } from './tvmaze';
 import { searchOmdb, type OmdbItem } from './omdbSearch';
 
-export type SearchDatabaseSource = 'tmdb' | 'anime' | 'tvmaze' | 'omdb';
+export type SearchDatabaseSource = 'tmdb' | 'anime' | 'tvmaze' | 'omdb' | 'ai';
 
 export interface UnifiedSearchResult {
   id: string;
   source: SearchDatabaseSource;
+  aiMatchReason?: string;
+  aiConfidence?: number;
   title: string;
   titleId?: string;
   titleEn?: string;

@@ -13,7 +13,9 @@ import {
   Flame,
   Layers,
   Database,
-  ExternalLink
+  ExternalLink,
+  Bot,
+  Key,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
@@ -25,6 +27,7 @@ import {
   type UnifiedSearchResult,
   type SearchDatabaseSource,
 } from '../../services/hybridSearch';
+import { searchWithAI, getStoredGeminiApiKey, setStoredGeminiApiKey } from '../../services/aiSearch';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop, formatMediaDuration } from '../../utils/formatters';
 
 interface SearchModalProps {
@@ -32,18 +35,23 @@ interface SearchModalProps {
   onClose: () => void;
   catalog: MediaItem[];
   onSelectMedia: (media: MediaItem) => void;
+  initialSource?: ModalSearchSource;
 }
 
-type ModalSearchSource = 'all' | 'tmdb' | 'anime' | 'tvmaze' | 'omdb' | 'local';
+export type ModalSearchSource = 'ai' | 'all' | 'tmdb' | 'anime' | 'tvmaze' | 'omdb' | 'local';
 
 export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   catalog,
   onSelectMedia,
+  initialSource = 'all',
 }) => {
   const [query, setQuery] = useState('');
-  const [searchSource, setSearchSource] = useState<ModalSearchSource>('all');
+  const [searchSource, setSearchSource] = useState<ModalSearchSource>(initialSource);
+  const [showAiKeySettings, setShowAiKeySettings] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(() => getStoredGeminiApiKey());
+  const [keySavedBadge, setKeySavedBadge] = useState(false);
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loadingMediaId, setLoadingMediaId] = useState<string | null>(null);
@@ -53,17 +61,21 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
 
-  // Focus on open
+  // Focus and sync source on open
   useEffect(() => {
     if (isOpen) {
+      if (initialSource) {
+        setSearchSource(initialSource);
+      }
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setQuery('');
       setResults([]);
       setIsSearching(false);
       setLoadingMediaId(null);
+      setShowAiKeySettings(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialSource]);
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -96,14 +108,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
       setIsSearching(true);
       try {
-        const hybridResults = await searchHybrid(
-          trimmed,
-          source as 'all' | 'tmdb' | 'anime' | 'tvmaze' | 'omdb',
-          language
-        );
-        setResults(hybridResults);
+        if (source === 'ai') {
+          const aiResults = await searchWithAI(trimmed, language);
+          setResults(aiResults);
+        } else {
+          const hybridResults = await searchHybrid(
+            trimmed,
+            source as 'all' | 'tmdb' | 'anime' | 'tvmaze' | 'omdb',
+            language
+          );
+          setResults(hybridResults);
+        }
       } catch (err) {
-        console.error('Error during multi-database search:', err);
+        console.error('Error during search:', err);
       } finally {
         setIsSearching(false);
       }
@@ -125,9 +142,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     }
 
     setIsSearching(true);
+    const delay = searchSource === 'ai' ? 650 : 350;
     debounceTimerRef.current = setTimeout(() => {
       performSearch(query, searchSource);
-    }, 350);
+    }, delay);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -174,6 +192,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   const getSourceBadge = (source: SearchDatabaseSource, extraBadge?: string) => {
     switch (source) {
+      case 'ai':
+        return {
+          label: 'AI CineFinder',
+          className: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border-pink-500/40',
+        };
       case 'anime':
         return {
           label: extraBadge || 'Anime (MAL)',
@@ -208,7 +231,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-5 sm:px-6 py-4 border-b border-white/10 bg-[#141414]">
           {isSearching ? (
-            <Loader2 className="w-4 h-4 text-[#E50914] animate-spin flex-shrink-0" />
+            <Loader2 className={`w-4 h-4 ${searchSource === 'ai' ? 'text-purple-400' : 'text-[#E50914]'} animate-spin flex-shrink-0`} />
+          ) : searchSource === 'ai' ? (
+            <Sparkles className="w-4 h-4 text-purple-400 animate-pulse flex-shrink-0" />
           ) : (
             <Search className="w-4 h-4 text-[#E50914] flex-shrink-0" />
           )}
@@ -217,8 +242,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && query.trim()) {
+                e.preventDefault();
+                performSearch(query, searchSource);
+              }
+            }}
             placeholder={
-              searchSource === 'anime'
+              searchSource === 'ai'
+                ? t('aiSearchPlaceholder')
+                : searchSource === 'anime'
                 ? language === 'en'
                   ? 'Search Anime (Romaji/English)...'
                   : 'Cari Anime (Romaji/Jepang)...'
@@ -242,11 +275,29 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 inputRef.current?.focus();
               }}
               aria-label={language === 'en' ? 'Clear search' : 'Hapus pencarian'}
-              className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors shrink-0"
+              className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors shrink-0 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
+
+          {/* AI Settings Toggle Button */}
+          <button
+            onClick={() => {
+              playClick();
+              setShowAiKeySettings(!showAiKeySettings);
+            }}
+            aria-label={t('aiKeyConfig')}
+            title={t('aiKeyConfig')}
+            className={`p-1.5 rounded-lg border transition-all shrink-0 cursor-pointer ${
+              showAiKeySettings
+                ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
+                : 'bg-white/[0.05] border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Key className="w-3.5 h-3.5" />
+          </button>
+
           <button
             onClick={onClose}
             aria-label={language === 'en' ? 'Close search' : 'Tutup pencarian'}
@@ -258,9 +309,68 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           </button>
         </div>
 
+        {/* Optional Gemini API Key Settings Panel */}
+        {showAiKeySettings && (
+          <div className="p-3.5 bg-purple-950/40 border-b border-purple-500/25 text-xs text-slate-300 animate-in fade-in space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-purple-200 flex items-center gap-1.5 text-xs">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                {t('aiKeyConfig')}
+              </span>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10.5px] text-purple-400 hover:text-purple-300 underline inline-flex items-center gap-1"
+              >
+                Get free Gemini Key <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder={t('aiKeyPlaceholder')}
+                className="flex-1 bg-black/60 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-400 font-mono"
+              />
+              <button
+                onClick={() => {
+                  playSuccess();
+                  setStoredGeminiApiKey(apiKeyInput);
+                  setKeySavedBadge(true);
+                  setTimeout(() => setKeySavedBadge(false), 2500);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-colors shrink-0 cursor-pointer shadow-sm active:scale-95"
+              >
+                {keySavedBadge ? t('aiKeySaved') : t('aiKeySave')}
+              </button>
+            </div>
+            <p className="text-[10.5px] text-slate-400 font-light leading-relaxed">
+              {t('aiKeyHint')}
+            </p>
+          </div>
+        )}
+
         {/* Multi-Database Source Tabs */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 bg-[#141414] border-b border-white/10 text-xs overflow-x-auto no-scrollbar gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+            {/* AI CineFinder Tab */}
+            <button
+              onClick={() => {
+                playClick();
+                setSearchSource('ai');
+                if (query.trim()) performSearch(query, 'ai');
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition-all whitespace-nowrap text-[11px] sm:text-xs cursor-pointer ${
+                searchSource === 'ai'
+                  ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-[#E50914] text-white shadow-lg shadow-purple-600/30'
+                  : 'text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <span>{t('aiSearchTab')}</span>
+            </button>
             {/* All / Hybrid */}
             <button
               onClick={() => {
@@ -372,97 +482,167 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Results Container */}
         <div className="overflow-y-auto p-3 sm:p-4 space-y-2 flex-1">
           {query.trim() === '' ? (
-            <div className="py-12 text-center text-slate-400 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center mx-auto text-brand-champagne shadow-glow-gold">
-                <Globe2 className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">{t('globalSearchTitle')}</p>
-                <p className="text-xs font-light text-slate-400 mt-1 max-w-md mx-auto">
-                  {searchSource === 'anime'
-                    ? 'Cari ratusan ribu serial anime, film bioskop Jepang, dan donghua dengan judul Romaji maupun Inggris.'
-                    : searchSource === 'tvmaze'
-                    ? 'Jelajahi ribuan serial televisi global dari HBO, Netflix, BBC, dan AMC lengkap dengan jadwal tayang.'
-                    : searchSource === 'omdb'
-                    ? 'Cari langsung menggunakan kode IMDb resmi (contoh: tt0816692) atau judul film klasik dunia.'
-                    : t('globalSearchDesc')}
-                </p>
-              </div>
+            searchSource === 'ai' ? (
+              <div className="py-8 sm:py-12 text-center text-slate-300 space-y-4 max-w-xl mx-auto px-2 sm:px-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600/20 via-pink-600/20 to-red-600/20 border border-purple-500/40 flex items-center justify-center mx-auto text-purple-300 shadow-lg shadow-purple-600/20">
+                  <Sparkles className="w-7 h-7 text-amber-300 animate-pulse" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-mono font-semibold uppercase tracking-wider mb-2">
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>{t('aiSearchBadge')}</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-display font-black text-white tracking-wide">
+                    {t('aiSearchTab')}
+                  </h3>
+                  <p className="text-xs font-light text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+                    {language === 'en'
+                      ? 'Remember a scene, plot twist, or character trait but forgot the title? Describe it freely in your own words.'
+                      : 'Ingat cuplikan adegan, plot cerita, karakter, atau kesan tapi lupa judul filmnya? Ceritakan apa saja yang kamu ingat, AI akan menganalisisnya.'}
+                  </p>
+                </div>
 
-              {/* Trending Quick Suggestions */}
-              <div className="pt-2">
-                <div className="text-[10px] uppercase font-sans tracking-widest text-slate-500 mb-2.5">
-                  {t('quickSearchSuggestions')}
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
-                  {(searchSource === 'anime'
-                    ? [
-                        'Sousou no Frieren',
-                        'Kimetsu no Yaiba',
-                        'Solo Leveling',
-                        'Jujutsu Kaisen',
-                        'Shingeki no Kyojin',
-                        'One Piece',
-                        'Naruto',
-                        'Boku no Hero Academia',
-                      ]
-                    : searchSource === 'tvmaze'
-                    ? [
-                        'Breaking Bad',
-                        'Game of Thrones',
-                        'Stranger Things',
-                        'The Last of Us',
-                        'Shogun',
-                        'Wednesday',
-                        'Severance',
-                        'The Boys',
-                      ]
-                    : searchSource === 'omdb'
-                    ? [
-                        'tt0816692', // Interstellar
-                        'tt15239678', // Dune 2
-                        'The Godfather',
-                        'Pulp Fiction',
-                        'Spirited Away',
-                        'Inception',
-                      ]
-                    : [
-                        'Siksa Kubur',
-                        'Deadpool & Wolverine',
-                        'Dune: Part Two',
-                        'Sousou no Frieren',
-                        'Breaking Bad',
-                        'Wednesday',
-                        'Queen of Tears',
-                        'Solo Leveling',
-                      ]
-                  ).map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        playClick();
-                        setQuery(tag);
-                        if (searchSource !== 'local') {
-                          performSearch(tag, searchSource);
-                        }
-                      }}
-                      onMouseEnter={playHover}
-                      className="px-3 py-1 rounded-full bg-white/[0.03] hover:bg-brand-gold/20 hover:border-brand-gold/40 text-xs text-slate-300 border border-white/[0.08] transition-all font-light cursor-pointer"
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                {/* Interactive Quick Prompts */}
+                <div className="pt-2 text-left w-full">
+                  <div className="text-[10px] uppercase font-sans tracking-widest text-slate-500 mb-2.5 text-center">
+                    {t('aiQuickPromptTitle')}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      t('aiPromptAstronaut'),
+                      t('aiPromptMemory'),
+                      t('aiPromptDeathNote'),
+                      t('aiPromptMansion'),
+                      t('aiPromptDreamSwap'),
+                    ].map((promptText) => (
+                      <button
+                        key={promptText}
+                        onClick={() => {
+                          playClick();
+                          setQuery(promptText);
+                          performSearch(promptText, 'ai');
+                        }}
+                        onMouseEnter={playHover}
+                        className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-purple-950/40 border border-white/[0.08] hover:border-purple-500/40 text-xs text-slate-300 hover:text-white transition-all text-left flex items-center justify-between group cursor-pointer"
+                      >
+                        <span className="truncate">{promptText}</span>
+                        <span className="text-[10px] font-mono text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                          {language === 'en' ? 'Search ➔' : 'Cari ➔'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="py-12 text-center text-slate-400 space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center mx-auto text-brand-champagne shadow-glow-gold">
+                  <Globe2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{t('globalSearchTitle')}</p>
+                  <p className="text-xs font-light text-slate-400 mt-1 max-w-md mx-auto">
+                    {searchSource === 'anime'
+                      ? 'Cari ratusan ribu serial anime, film bioskop Jepang, dan donghua dengan judul Romaji maupun Inggris.'
+                      : searchSource === 'tvmaze'
+                      ? 'Jelajahi ribuan serial televisi global dari HBO, Netflix, BBC, dan AMC lengkap dengan jadwal tayang.'
+                      : searchSource === 'omdb'
+                      ? 'Cari langsung menggunakan kode IMDb resmi (contoh: tt0816692) atau judul film klasik dunia.'
+                      : t('globalSearchDesc')}
+                  </p>
+                </div>
+
+                {/* Trending Quick Suggestions */}
+                <div className="pt-2">
+                  <div className="text-[10px] uppercase font-sans tracking-widest text-slate-500 mb-2.5">
+                    {t('quickSearchSuggestions')}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
+                    {(searchSource === 'anime'
+                      ? [
+                          'Sousou no Frieren',
+                          'Kimetsu no Yaiba',
+                          'Solo Leveling',
+                          'Jujutsu Kaisen',
+                          'Shingeki no Kyojin',
+                          'One Piece',
+                          'Naruto',
+                          'Boku no Hero Academia',
+                        ]
+                      : searchSource === 'tvmaze'
+                      ? [
+                          'Breaking Bad',
+                          'Game of Thrones',
+                          'Stranger Things',
+                          'The Last of Us',
+                          'Shogun',
+                          'Wednesday',
+                          'Severance',
+                          'The Boys',
+                        ]
+                      : searchSource === 'omdb'
+                      ? [
+                          'tt0816692', // Interstellar
+                          'tt15239678', // Dune 2
+                          'The Godfather',
+                          'Pulp Fiction',
+                          'Spirited Away',
+                          'Inception',
+                        ]
+                      : [
+                          'Siksa Kubur',
+                          'Deadpool & Wolverine',
+                          'Dune: Part Two',
+                          'Sousou no Frieren',
+                          'Breaking Bad',
+                          'Wednesday',
+                          'Queen of Tears',
+                          'Solo Leveling',
+                        ]
+                    ).map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => {
+                          playClick();
+                          setQuery(tag);
+                          if (searchSource !== 'local') {
+                            performSearch(tag, searchSource);
+                          }
+                        }}
+                        onMouseEnter={playHover}
+                        className="px-3 py-1 rounded-full bg-white/[0.03] hover:bg-brand-gold/20 hover:border-brand-gold/40 text-xs text-slate-300 border border-white/[0.08] transition-all font-light cursor-pointer"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
           ) : searchSource !== 'local' ? (
             /* Multi-Database Results */
             isSearching ? (
-              <div className="py-16 text-center space-y-3">
-                <Loader2 className="w-8 h-8 mx-auto text-brand-champagne animate-spin" />
-                <p className="text-xs text-slate-400 font-light">
-                  {t('scanningDatabases')}
-                </p>
+              <div className="py-16 text-center space-y-4">
+                {searchSource === 'ai' ? (
+                  <>
+                    <div className="relative w-12 h-12 mx-auto flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full bg-purple-600/30 animate-ping" />
+                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-600/50">
+                        <Sparkles className="w-6 h-6 text-white animate-spin" />
+                      </div>
+                    </div>
+                    <p className="text-xs sm:text-sm text-purple-200 font-medium animate-pulse max-w-sm mx-auto">
+                      {t('aiSearchSearching')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="w-8 h-8 mx-auto text-brand-champagne animate-spin" />
+                    <p className="text-xs text-slate-400 font-light">
+                      {t('scanningDatabases')}
+                    </p>
+                  </>
+                )}
               </div>
             ) : results.length === 0 ? (
               <div className="py-12 text-center text-slate-400 space-y-2">
@@ -570,6 +750,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                           )
                         )}
 
+                        {/* AI Confidence Badge */}
+                        {item.aiConfidence && (
+                          <span className="text-[9px] uppercase font-sans tracking-wider px-2 py-0.5 rounded-full font-bold border flex items-center gap-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border-pink-500/40 shadow-sm">
+                            <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                            <span>{item.aiConfidence}% {t('aiMatchLabel')}</span>
+                          </span>
+                        )}
+
                         {/* Rating */}
                         {item.rating > 0 && (
                           <div className="flex items-center gap-1 text-[11px] font-medium text-brand-champagne">
@@ -601,11 +789,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                           </p>
                         )}
 
-                      {item.synopsis && (
+                      {item.aiMatchReason ? (
+                        <div className="mt-1.5 p-2 rounded-xl bg-purple-950/40 border border-purple-500/30 text-[11px] text-purple-200/90 leading-snug">
+                          <span className="font-bold text-amber-300 mr-1.5 inline-flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            {t('aiReasonLabel')}:
+                          </span>
+                          {item.aiMatchReason}
+                        </div>
+                      ) : item.synopsis ? (
                         <p className="text-[11px] text-slate-400 font-light line-clamp-1 mt-0.5">
                           {item.synopsis}
                         </p>
-                      )}
+                      ) : null}
                     </div>
 
                     {/* Actions: Open in New Tab + Play Trigger */}
