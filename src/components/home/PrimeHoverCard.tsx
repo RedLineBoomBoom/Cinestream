@@ -76,6 +76,32 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
   const displaySynopsis = language === 'en' ? item.synopsisEn : item.synopsisId;
   const isBookmarked = isInWatchlist(String(item.id || item.tmdbId));
 
+  // Desktop 3-column layout (lg):
+  // colIndex3 === 0 (left edge): shift inward toward center (left-0, origin-left)
+  // colIndex3 === 1 (center): perfectly centered (left-1/2, origin-center)
+  // colIndex3 === 2 (right edge): shift inward toward center (right-0, origin-right)
+  const colIndex3 = index % 3;
+  // Tablet 2-column layout (sm):
+  const colIndex2 = index % 2;
+
+  const getEdgePositionClasses = () => {
+    const smPos =
+      colIndex2 === 0
+        ? 'sm:left-0 sm:right-auto sm:translate-x-0 sm:origin-left'
+        : 'sm:left-auto sm:right-0 sm:translate-x-0 sm:origin-right';
+
+    let lgPos = '';
+    if (colIndex3 === 0) {
+      lgPos = 'lg:left-0 lg:right-auto lg:translate-x-0 lg:origin-left';
+    } else if (colIndex3 === 2) {
+      lgPos = 'lg:left-auto lg:right-0 lg:translate-x-0 lg:origin-right';
+    } else {
+      lgPos = 'lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:origin-center';
+    }
+
+    return `left-1/2 -translate-x-1/2 origin-center ${smPos} ${lgPos}`;
+  };
+
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -266,7 +292,7 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
       {/* ── SMOOTH FLOATING WIDESCREEN LANDSCAPE HOVER CARD ── */}
       {/* Kept in DOM with hardware-accelerated cubic-bezier transitions for silky smooth enter & exit */}
       <div
-        className={`hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[124%] sm:w-[130%] lg:w-[134%] aspect-[16/10.5] rounded-2xl overflow-hidden bg-[#0c0f17] border border-white/25 shadow-[0_25px_65px_rgba(0,0,0,0.96)] ring-1 ring-white/15 origin-center select-none transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`hidden sm:block absolute top-1/2 -translate-y-1/2 z-50 w-[124%] sm:w-[130%] lg:w-[134%] aspect-[16/10.5] rounded-2xl overflow-hidden bg-[#0c0f17] border border-white/25 shadow-[0_25px_65px_rgba(0,0,0,0.96)] ring-1 ring-white/15 select-none transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${getEdgePositionClasses()} ${
           isHovered
             ? 'opacity-100 scale-100 pointer-events-auto'
             : 'opacity-0 scale-95 pointer-events-none'
@@ -349,8 +375,8 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
             </div>
           </div>
 
-          {/* Deep Cinematic Vignette Gradient across the lower half */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c0f17] from-15% via-[#0c0f17]/90 via-45% to-transparent pointer-events-none" />
+          {/* Compact bottom gradient - covers only lower ~38% so trailer stays bright, clear & unobstructed */}
+          <div className="absolute inset-x-0 bottom-0 h-[38%] sm:h-[40%] bg-gradient-to-t from-[#0c0f17] from-10% via-[#0c0f17]/85 to-transparent pointer-events-none" />
 
           {/* Bottom Content Area: Cleanly Arranged in Widescreen Landscape */}
           <div className="absolute bottom-0 inset-x-0 p-3 sm:p-3.5 z-20 space-y-1.5 sm:space-y-2">
