@@ -245,7 +245,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 p-3 sm:p-4 bg-black/40 backdrop-blur-md animate-fade-in">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-3xl bg-[#181818] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[88vh]">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl bg-[#181818] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[88vh]">
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-5 sm:px-6 py-4 border-b border-white/10 bg-[#141414]">
           {isSearching ? (
@@ -439,8 +439,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         )}
 
         {/* Multi-Database Source Tabs */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 bg-[#141414] border-b border-white/10 text-xs overflow-x-auto no-scrollbar gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+        <div className="relative bg-[#141414] border-b border-white/10 px-3 sm:px-6 py-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap min-w-0 py-0.5">
             {/* AI CineFinder Tab */}
             <button
               onClick={() => {
@@ -448,7 +448,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('ai');
                 if (query.trim()) performSearch(query, 'ai');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold transition-all whitespace-nowrap text-[11px] sm:text-xs cursor-pointer ${
+              title={language === 'en' ? 'AI CineFinder (Semantic Plot Search)' : 'AI CineFinder (Pencarian Alur Cerita)'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'ai'
                   ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-[#E50914] text-white shadow-lg shadow-purple-600/30'
                   : 'text-purple-300 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30'
@@ -457,6 +458,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
               <span>{t('aiSearchTab')}</span>
             </button>
+
             {/* All / Hybrid */}
             <button
               onClick={() => {
@@ -464,7 +466,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('all');
                 if (query.trim()) performSearch(query, 'all');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title={language === 'en' ? 'Multi-Source Hybrid Search' : 'Pencarian Gabungan Multi-Database'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'all'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
@@ -481,7 +484,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('tmdb');
                 if (query.trim()) performSearch(query, 'tmdb');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title="The Movie Database (Global Cinema & Series)"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'tmdb'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
@@ -498,7 +502,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('anime');
                 if (query.trim()) performSearch(query, 'anime');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title={language === 'en' ? 'Anime Database (Kitsu & MyAnimeList)' : 'Database Anime (Kitsu & MyAnimeList)'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'anime'
                   ? 'bg-fuchsia-600 text-white font-bold shadow-lg shadow-fuchsia-600/30'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
@@ -515,7 +520,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('tvmaze');
                 if (query.trim()) performSearch(query, 'tvmaze');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title={language === 'en' ? 'TV Shows & Networks (TVMaze)' : 'Serial Televisi & Jaringan Global (TVMaze)'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'tvmaze'
                   ? 'bg-sky-500 text-white font-bold shadow-lg shadow-sky-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
@@ -532,7 +538,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 setSearchSource('omdb');
                 if (query.trim()) performSearch(query, 'omdb');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title={language === 'en' ? 'Internet Movie Database & Classic Archives' : 'Database Film Dunia & Arsip Klasik (IMDb)'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'omdb'
                   ? 'bg-amber-500 text-black font-bold shadow-lg shadow-amber-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
@@ -548,20 +555,16 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 playClick();
                 setSearchSource('local');
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs ${
+              title={t('catalogCurated')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap text-[11px] sm:text-xs shrink-0 cursor-pointer ${
                 searchSource === 'local'
                   ? 'bg-[#E50914] text-white shadow-glow-red'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.08]'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{t('catalogCurated')} ({catalog.length})</span>
+              <span>{language === 'en' ? 'Curated' : 'Katalog'} ({catalog.length})</span>
             </button>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-1.5 text-[10px] text-slate-400 font-mono whitespace-nowrap flex-shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{t('multiDatabaseConnected')}</span>
           </div>
         </div>
 
@@ -1061,6 +1064,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               })
             )
           )}
+        </div>
+
+        {/* Modal Footer: Live Multi-Database Status & Keyboard Shortcuts */}
+        <div className="px-4 sm:px-6 py-2.5 bg-[#121212] border-t border-white/10 flex items-center justify-between text-[10.5px] sm:text-[11px] text-slate-400 font-mono flex-shrink-0">
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="truncate">{t('multiDatabaseConnected')}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-slate-500 text-[10px] shrink-0">
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300 font-mono">ESC</kbd> {language === 'en' ? 'Close' : 'Tutup'}</span>
+            <span>•</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300 font-mono">↵</kbd> {language === 'en' ? 'Search' : 'Cari'}</span>
+          </div>
         </div>
       </div>
     </div>

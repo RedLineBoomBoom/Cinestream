@@ -316,7 +316,7 @@ export const translations = {
     // AI Search (AI CineFinder)
     aiSearchTab: 'AI CineFinder',
     aiSearchBadge: 'Pencarian Alur Cerita',
-    aiSearchPlaceholder: 'Ceritakan alur cerita, adegan, atau karakter yang kamu ingat... (cth: astronot terjebak di black hole demi anaknya)',
+    aiSearchPlaceholder: 'Deskripsikan alur cerita, adegan, atau karakter yang kamu ingat...',
     aiSearchSearching: 'AI sedang menganalisis alur cerita & mencocokkan jutaan judul film...',
     aiMatchLabel: 'Kecocokan AI',
     aiReasonLabel: 'Analisis Kecocokan AI',
@@ -379,10 +379,10 @@ export const translations = {
     directorBy: 'Sutradara',
 
     // Multi-Database Search
-    hybridAll: 'Semua (Hybrid)',
-    animeDatabase: 'Anime (Kitsu/MAL)',
-    tvmazeDatabase: 'Serial TV (TVMaze)',
-    omdbDatabase: 'IMDb / Klasik',
+    hybridAll: 'Hybrid',
+    animeDatabase: 'Anime',
+    tvmazeDatabase: 'Serial TV',
+    omdbDatabase: 'IMDb',
     scanningDatabases: 'Memindai jutaan arsip film, anime & series di multi-database...',
     noDatabasesFound: 'Tidak ditemukan karya untuk',
     multiDatabaseConnected: 'Multi-Database Aktif (TMDB, Kitsu, TVMaze, IMDb)',
@@ -735,7 +735,7 @@ export const translations = {
     // AI Search (AI CineFinder)
     aiSearchTab: 'AI CineFinder',
     aiSearchBadge: 'Storyline Search',
-    aiSearchPlaceholder: 'Describe a plot, scene, or character you remember... (e.g. astronaut trapped in a black hole for his daughter)',
+    aiSearchPlaceholder: 'Describe a plot, scene, or character you remember...',
     aiSearchSearching: 'AI is analyzing storylines & scanning millions of titles...',
     aiMatchLabel: 'AI Match',
     aiReasonLabel: 'AI Match Analysis',
@@ -798,10 +798,10 @@ export const translations = {
     directorBy: 'Director',
 
     // Multi-Database Search
-    hybridAll: 'All (Hybrid)',
-    animeDatabase: 'Anime (Kitsu/MAL)',
-    tvmazeDatabase: 'TV Shows (TVMaze)',
-    omdbDatabase: 'IMDb / Classic',
+    hybridAll: 'Hybrid',
+    animeDatabase: 'Anime',
+    tvmazeDatabase: 'TV Shows',
+    omdbDatabase: 'IMDb',
     scanningDatabases: 'Scanning millions of movies, anime & series across databases...',
     noDatabasesFound: 'No titles found for',
     multiDatabaseConnected: 'Multi-Database Live (TMDB, Kitsu, TVMaze, IMDb)',
