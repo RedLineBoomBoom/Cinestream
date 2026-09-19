@@ -122,11 +122,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setIsSearching(true);
       try {
         if (source === 'ai') {
+          const activeKey = apiKeyInput.trim() || getStoredGeminiApiKey();
           // If user typed key in input but didn't click save button yet, auto-save now
-          if (apiKeyInput && apiKeyInput.trim() && apiKeyInput.trim() !== getStoredGeminiApiKey()) {
-            setStoredGeminiApiKey(apiKeyInput.trim());
+          if (activeKey && activeKey !== getStoredGeminiApiKey()) {
+            setStoredGeminiApiKey(activeKey);
           }
-          const aiResults = await searchWithAI(trimmed, language);
+          const aiResults = await searchWithAI(trimmed, language, activeKey);
           setResults(aiResults);
         } else {
           const hybridResults = await searchHybrid(
@@ -142,7 +143,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         setIsSearching(false);
       }
     },
-    [language]
+    [language, apiKeyInput]
   );
 
   useEffect(() => {

@@ -81,7 +81,7 @@ export async function testGeminiApiKey(
     return { ok: false, message: 'Kunci API kosong / API key is empty' };
   }
 
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   for (const model of models) {
     try {
       const controller = new AbortController();
@@ -164,7 +164,7 @@ Note for matchReason: ${
   }.
 type must be "movie", "series", or "anime". confidence must be integer between 60 and 99.`;
 
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   for (const model of models) {
     try {
       const controller = new AbortController();
@@ -1175,8 +1175,354 @@ const CINEMA_ARCHETYPES: ArchetypeRule[] = [
     ],
     reasonId: 'Sangat cocok dengan anime epik legendaris tentang sisa peradaban manusia yang bertahan di balik tiga lapis dinding tinggi dari serangan para raksasa pemakan manusia (Titan).',
     reasonEn: 'Matches the iconic dark-fantasy anime about humanity living within massive walled cities defending against giant man-eating Titans.'
+  },
+  // 61. The Truman Show
+  {
+    target: 'The Truman Show',
+    year: 1998,
+    type: 'movie',
+    keywords: [
+      'seluruh hidupnya acara tv siaran langsung',
+      'seluruh hidupnya adalah acara tv',
+      'hidupnya ternyata reality show',
+      'pria hidup di acara televisi 24 jam',
+      'kubah raksasa siaran langsung',
+      'truman burbank jim carrey'
+    ],
+    reasonId: 'Sangat cocok dengan film komedi-drama psikologis tentang Truman Burbank yang tanpa sadar seluruh hidupnya sejak bayi disiarkan langsung selama 24 jam ke seluruh dunia dalam set kubah raksasa.',
+    reasonEn: 'Matches the acclaimed satire where Truman Burbank discovers his entire life is an orchestrated 24/7 reality television broadcast.'
+  },
+  // 62. The Martian
+  {
+    target: 'The Martian',
+    year: 2015,
+    type: 'movie',
+    keywords: [
+      'astronot terdampar di mars menanam kentang',
+      'astronot menanam kentang di planet mars',
+      'terdampar sendirian di planet mars',
+      'mark watney matt damon mars',
+      'menanam kentang di mars'
+    ],
+    reasonId: 'Sangat cocok dengan film sci-fi bertahan hidup tentang astronot Mark Watney yang ditinggalkan sendirian di planet Mars dan harus bercocok tanam kentang demi bertahan hidup sampai tim penyelamat tiba.',
+    reasonEn: 'Matches Ridley Scott\'s sci-fi thriller about astronaut Mark Watney stranded alone on Mars using botanical ingenuity to survive.'
+  },
+  // 63. 5 cm
+  {
+    target: '5 cm',
+    year: 2012,
+    type: 'movie',
+    keywords: [
+      'lima sahabat mendaki puncak semeru mahameru',
+      'lima sahabat mendaki gunung semeru',
+      'mendaki puncak mahameru mengibarkan bendera',
+      'sahabat mendaki mahameru 17 agustus',
+      'zafran genta arial rani ian semeru'
+    ],
+    reasonId: 'Sangat cocok dengan film drama petualangan Indonesia tentang lima orang sahabat yang melakukan perjalanan mendaki puncak tertinggi Jawa, Gunung Semeru (Mahameru), untuk merayakan persahabatan dan mengibarkan Sang Saka Merah Putih.',
+    reasonEn: 'Matches the iconic Indonesian adventure drama about five close friends journeying to summit Mount Semeru (Mahameru) on Independence Day.'
+  },
+  // 64. Taken
+  {
+    target: 'Taken',
+    year: 2008,
+    type: 'movie',
+    keywords: [
+      'mantan agen cia anak diculik telepon',
+      'anak perempuan diculik di paris telepon',
+      'liam neeson memburu penculik anak telepon',
+      'bryan mills i will find you and i will kill you',
+      'perdagangan manusia paris mantan agen'
+    ],
+    reasonId: 'Sangat cocok dengan film aksi thriller tentang mantan agen rahasia CIA Bryan Mills yang menggunakan keterampilan khususnya untuk melacak dan menyelamatkan putrinya yang diculik sindikat perdagangan manusia di Paris.',
+    reasonEn: 'Matches the high-octane thriller of a retired CIA operative traveling across Europe to rescue his kidnapped daughter from human traffickers.'
+  },
+  // 65. The Raid
+  {
+    target: 'The Raid',
+    year: 2011,
+    type: 'movie',
+    keywords: [
+      'polisi serbu gedung apartemen sarang penjahat',
+      'polisi menyerbu gedung apartemen sarang penjahat',
+      'polisi serbu gedung sarang gembong narkoba',
+      'pasukan khusus polisi gedung bertingkat narkoba',
+      'serbuan maut tama riyadi iko uwais',
+      'gareth evans silat apartemen'
+    ],
+    reasonId: 'Sangat cocok dengan mahakarya aksi laga Indonesia tentang pasukan elit kepolisian yang terjebak di dalam gedung apartemen 30 lantai milik gembong narkoba kejam dan harus bertarung demi keluar hidup-hidup.',
+    reasonEn: 'Matches the relentless Indonesian martial arts action masterpiece where an elite police squad is trapped in a derelict high-rise run by a ruthless drug lord.'
+  },
+  // 66. Fight Club
+  {
+    target: 'Fight Club',
+    year: 1999,
+    type: 'movie',
+    keywords: [
+      'klub bertarung bawah tanah pria insomnia',
+      'penjual sabun tyler durden kepribadian ganda',
+      'aturan pertama fight club',
+      'narator insomnia alter ego sabun',
+      'brad pitt edward norton sabun'
+    ],
+    reasonId: 'Sangat cocok dengan film thriller psikologis kultus tentang pekerja kantoran penderita insomnia yang mendirikan klub pertarungan bawah tanah bersama penjual sabun karismatik yang ternyata adalah alter egonya.',
+    reasonEn: 'Matches David Fincher\'s psychological masterpiece about a depressed insomniac forming an underground fight club with soap maker Tyler Durden.'
+  },
+  // 67. The Matrix
+  {
+    target: 'The Matrix',
+    year: 1999,
+    type: 'movie',
+    keywords: [
+      'pil merah pil biru dunia simulasi komputer',
+      'neo morpheus trinity agen smith',
+      'dunia nyata ternyata simulasi mesin',
+      'manusia dijadikan baterai mesin matrix',
+      'bullet time keanu reeves jubah hitam'
+    ],
+    reasonId: 'Sangat cocok dengan mahakarya fiksi ilmiah aksi cyberpunk tentang hacker Neo yang memilih pil merah dan mengetahui bahwa dunia kenyataan hanyalah simulasi ilusi (Matrix) ciptaan mesin kecerdasan buatan.',
+    reasonEn: 'Matches the revolutionary sci-fi action classic about computer programmer Neo discovering the world is a simulated reality controlled by sentient machines.'
+  },
+  // 68. A Quiet Place
+  {
+    target: 'A Quiet Place',
+    year: 2018,
+    type: 'movie',
+    keywords: [
+      'monster buta pendengaran tajam jangan bersuara',
+      'keluarga bertahan hidup tanpa suara monster',
+      'berbisik monster peka suara',
+      'john krasinski emily blunt monster suara'
+    ],
+    reasonId: 'Sangat cocok dengan film horor menegangkan tentang sebuah keluarga yang harus hidup dalam keheningan total menggunakan bahasa isyarat agar tidak diburu oleh monster buta pemangsa dengan pendengaran ultra-sensitif.',
+    reasonEn: 'Matches the post-apocalyptic horror thriller where a family must navigate their lives in silence to evade blind creatures with acute hearing.'
+  },
+  // 69. Bird Box
+  {
+    target: 'Bird Box',
+    year: 2018,
+    type: 'movie',
+    keywords: [
+      'menutup mata kain penutup makhluk tak kasat mata',
+      'jangan membuka mata membuat bunuh diri',
+      'sandra bullock membawa dua anak perahu tutup mata',
+      'monster tak kasat mata kain penutup mata'
+    ],
+    reasonId: 'Sangat cocok dengan film thriller misteri apokaliptik tentang seorang ibu yang membawa dua anak mengarungi sungai dengan mata tertutup kain untuk menghindari entitas gaib yang memaksa siapa pun yang melihatnya melakukan bunuh diri.',
+    reasonEn: 'Matches the post-apocalyptic thriller where survivors must wear blindfolds to avoid seeing mysterious entities that drive people to suicide.'
+  },
+  // 70. Get Out
+  {
+    target: 'Get Out',
+    year: 2017,
+    type: 'movie',
+    keywords: [
+      'pria kulit hitam ke rumah orang tua pacar cangkir teh',
+      'hipnotis cangkir teh sunken place',
+      'jordan peele misteri keluarga pacar cuci otak',
+      'tamu pesta kulit putih rahasia tubuh'
+    ],
+    reasonId: 'Sangat cocok dengan film horor psikologis satire karya Jordan Peele tentang pria berkulit hitam yang mengunjungi kediaman terpencil keluarga pacar kulit putihnya dan mengungkap rahasia kelam transplantasi kesadaran.',
+    reasonEn: 'Matches Jordan Peele\'s Oscar-winning horror masterpiece about a Black man uncovering a disturbing conspiracy while visiting his white girlfriend\'s parents.'
+  },
+  // 71. Whiplash
+  {
+    target: 'Whiplash',
+    year: 2014,
+    type: 'movie',
+    keywords: [
+      'pemain drum jazz konduktor kejam',
+      'andrew neiman fletcher tampar drum darah',
+      'not quite my tempo konduktor lempar kursi',
+      'latihan drum sampai tangan berdarah'
+    ],
+    reasonId: 'Sangat cocok dengan film drama psikologis tentang perjuangan drummer jazz muda di konservatori musik bergengsi yang ditekan hingga batas kewarasan dan fisik oleh instruktur musiknya yang kejam dan perfeksionis.',
+    reasonEn: 'Matches Damien Chazelle\'s electrifying drama about an ambitious jazz drummer pushed beyond his breaking point by an abusive conductor.'
+  },
+  // 72. Cast Away
+  {
+    target: 'Cast Away',
+    year: 2000,
+    type: 'movie',
+    keywords: [
+      'terdampar di pulau terpencil bola voli wilson',
+      'pesawat jatuh pulau terpencil tom hanks wilson',
+      'karyawan fedex selamat di pulau tak berpenghuni'
+    ],
+    reasonId: 'Sangat cocok dengan film drama petualangan tentang eksekutif sistem FedEx yang terdampar sendirian di pulau terpencil Samudra Pasifik selama empat tahun dan berteman dengan bola voli bernama Wilson.',
+    reasonEn: 'Matches Robert Zemeckis\'s survival classic starring Tom Hanks as a FedEx analyst stranded on an uninhabited island with a volleyball named Wilson.'
+  },
+  // 73. The Shawshank Redemption
+  {
+    target: 'The Shawshank Redemption',
+    year: 1994,
+    type: 'movie',
+    keywords: [
+      'penjara shawshank menggali dinding palu kecil',
+      'bankir dituduh bunuh istri kabur lewat pipa kotoran',
+      'andy dufresne red morgan freeman penjara',
+      'poster rita hayworth lubang pelarian penjara'
+    ],
+    reasonId: 'Sangat cocok dengan film legendaris nomor satu IMDb tentang bankir Andy Dufresne yang dijatuhi hukuman seumur hidup di penjara Shawshank atas kejahatan yang tidak dilakukannya dan merencanakan pelarian tersembunyi selama puluhan tahun.',
+    reasonEn: 'Matches the all-time cinematic classic about banker Andy Dufresne finding hope and redemption while serving consecutive life sentences at Shawshank State Penitentiary.'
+  },
+  // 74. Coco
+  {
+    target: 'Coco',
+    year: 2017,
+    type: 'movie',
+    keywords: [
+      'anak laki-laki masuk negeri orang mati gitar',
+      'miguel dia de los muertos land of the dead',
+      'gitar ernesto de la cruz hector coco lagu remember me',
+      'keluarga pembuat sepatu larang musik'
+    ],
+    reasonId: 'Sangat cocok dengan film animasi memukau Disney Pixar tentang bocah laki-laki Miguel yang bermimpi menjadi musisi dan tak sengaja terbawa ke Negeri Orang Mati saat festival Día de Muertos untuk mengungkap misteri keluarganya.',
+    reasonEn: 'Matches Pixar\'s vibrant animated masterpiece about young Miguel accidentally crossing over to the vibrant Land of the Dead to unlock his family\'s musical heritage.'
+  },
+  // 75. The Queen's Gambit
+  {
+    target: 'The Queen\'s Gambit',
+    year: 2020,
+    type: 'series',
+    keywords: [
+      'gadis yatim piatu jenius catur pil penenang',
+      'beth harmon juara catur dunia narkoba alkohol',
+      'langit-langit papan catur bayangan pil hijau',
+      'grandmaster catur uni soviet wanita'
+    ],
+    reasonId: 'Sangat cocok dengan serial terbatas peraih penghargaan tentang gadis yatim piatu Beth Harmon yang memiliki bakat catur luar biasa jenius sambil berjuang melawan ketergantungan pil penenang dalam dominasi catur dunia era Perang Dingin.',
+    reasonEn: 'Matches the acclaimed Netflix mini-series about chess prodigy Beth Harmon navigating addiction and trauma on her quest to become the world\'s greatest chess grandmaster.'
+  },
+  // 76. Severance
+  {
+    target: 'Severance',
+    year: 2022,
+    type: 'series',
+    keywords: [
+      'ingatan kerja dan rumah dipisahkan operasi otak',
+      'lumon industries innie outie lift kantor',
+      'karyawan kantor memori terbelah dua',
+      'mark scout adam scott severance'
+    ],
+    reasonId: 'Sangat cocok dengan serial thriller sci-fi misteri tentang karyawan korporat Lumon Industries yang ingatannya dipisahkan secara bedah antara memori kehidupan kerja (Innie) dan memori kehidupan pribadi (Outie).',
+    reasonEn: 'Matches the mind-bending workplace sci-fi thriller where employees undergo a medical procedure to surgically divide their work and personal memories.'
+  },
+  // 77. The Last of Us
+  {
+    target: 'The Last of Us',
+    year: 2023,
+    type: 'series',
+    keywords: [
+      'wabah jamur cordyceps pria mengawal gadis kebal',
+      'joel ellie clicker jamur zombie pasca apokaliptik',
+      'pedro pascal ellie jamur kepala clicker',
+      'vaksin imun jamur melintasi amerika'
+    ],
+    reasonId: 'Sangat cocok dengan serial adaptasi game legendaris tentang penyintas tangguh Joel yang ditugaskan menyelundupkan gadis remaja 14 tahun bernama Ellie, yang kebal terhadap infeksi jamur Cordyceps mutan, melintasi sisa-sisa Amerika Serikat.',
+    reasonEn: 'Matches HBO\'s acclaimed adaptation following hardened survivor Joel escorting immune teenager Ellie across a post-apocalyptic United States ravished by fungal infection.'
+  },
+  // 78. Dark
+  {
+    target: 'Dark',
+    year: 2017,
+    type: 'series',
+    keywords: [
+      'anak hilang goa perjalanan waktu 33 tahun',
+      'kota winden jerman siklus waktu empat keluarga',
+      'jonas kahnwald jerman lorong waktu nuklir',
+      'awal adalah akhir akhir adalah awal waktu'
+    ],
+    reasonId: 'Sangat cocok dengan serial fiksi ilmiah misteri Jerman yang rumit dan mendalam tentang hilangnya dua anak kecil di kota Winden yang membuka keterkaitan perjalanan waktu siklus 33 tahun di antara empat keluarga.',
+    reasonEn: 'Matches the acclaimed German sci-fi mystery series about a missing child in a small town unravelling a web of time-travel conspiracies spanning four generations.'
+  },
+  // 79. Stranger Things
+  {
+    target: 'Stranger Things',
+    year: 2016,
+    type: 'series',
+    keywords: [
+      'anak hilang gadis berkepala botak telekinesis eleven',
+      'dunia upside down monster demogorgon hawkins',
+      'lampu natal kode communicates will byers',
+      'mike dustin lucas eleven waffle eggo'
+    ],
+    reasonId: 'Sangat cocok dengan serial fenomena Netflix bernuansa era 80-an di mana sekelompok bocah di kota Hawkins menyelidiki hilangnya sahabat mereka dan bertemu gadis misterius dengan kekuatan telekinesis luar biasa.',
+    reasonEn: 'Matches the global 80s nostalgia hit series where young friends uncover government experiments, supernatural forces, and a strange girl with telekinetic powers.'
+  },
+  // 80. Breaking Bad
+  {
+    target: 'Breaking Bad',
+    year: 2008,
+    type: 'series',
+    keywords: [
+      'guru kimia sma kanker paru masak sabu',
+      'walter white jesse pinkman sabu kristal biru',
+      'heisenberg say my name kartel narkoba',
+      'guru kimia bikin metamfetamin rontgen'
+    ],
+    reasonId: 'Sangat cocok dengan mahakarya serial kriminal tentang Walter White, seorang guru kimia SMA penderita kanker paru-paru stadium akhir yang bertransformasi menjadi gembong narkotika metamfetamin kristal biru demi masa depan keluarganya.',
+    reasonEn: 'Matches the legendary crime drama following high school chemistry teacher Walter White as he turns to manufacturing blue methamphetamine with a former student.'
+  },
+  // 81. Chernobyl
+  {
+    target: 'Chernobyl',
+    year: 2019,
+    type: 'series',
+    keywords: [
+      'ledakan reaktor nuklir uni soviet 1986',
+      'valery legasov radiasi atom chernobyl',
+      'reaktor 4 pembangkit listrik tenaga nuklir meledak',
+      'petugas pemadam kebakaran korban radiasi nuklir'
+    ],
+    reasonId: 'Sangat cocok dengan miniseri drama sejarah epik HBO tentang bencana ledakan nuklir reaktor 4 Chernobyl di Uni Soviet tahun 1986 serta pengorbanan heroik para pekerja dan ilmuwan untuk membatasi dampak radioaktif ke seluruh Eropa.',
+    reasonEn: 'Matches HBO\'s haunting dramatization of the 1986 nuclear power plant catastrophe in Soviet Ukraine and the courageous efforts to save Europe from disaster.'
+  },
+  // 82. Sweet Home
+  {
+    target: 'Sweet Home',
+    year: 2020,
+    type: 'series',
+    keywords: [
+      'apartemen green home manusia berubah jadi monster hasrat',
+      'cha hyun-su monster sayap pedang apartemen korea',
+      'manusia berdarah hidung berubah monster apartemen',
+      'sweet home song kang monsterisasi'
+    ],
+    reasonId: 'Sangat cocok dengan serial horor fantasi Korea tentang para penghuni gedung apartemen kumuh Green Home yang terkepung oleh fenomena mengerikan di mana manusia mendadak bermutasi menjadi monster mengerikan berdasarkan hasrat tergelap mereka.',
+    reasonEn: 'Matches the hit South Korean apocalyptic horror series where residents of an apartment building fight to survive against monsters created from human desires.'
   }
 ];
+
+const ARCHETYPE_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'of', 'for', 'with', 'in', 'on', 'at', 'to', 'from',
+  'tentang', 'yang', 'dan', 'di', 'ke', 'dari', 'seorang', 'orang', 'sebuah', 'suatu',
+  'cerita', 'kisah', 'menceritakan', 'ada', 'itu', 'ini', 'seperti', 'mirip', 'judul',
+  'film', 'movie', 'series', 'serial', 'anime', 'bisa', 'akan', 'demi', 'dia', 'mereka'
+]);
+
+function isKeywordMatched(userPromptLower: string, kwLower: string): boolean {
+  // 1. Direct substring match
+  if (userPromptLower.includes(kwLower)) return true;
+
+  // 2. Flexible multi-token match: all salient tokens in keyword must exist in user prompt
+  const tokens = kwLower
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !ARCHETYPE_STOPWORDS.has(w));
+  if (tokens.length >= 2) {
+    const allFound = tokens.every((t) => {
+      if (userPromptLower.includes(t)) return true;
+      // Morphological stem matching (e.g. menyerbu -> serbu, penyerbuan -> serbu, mendaki -> daki)
+      if (t.length > 4) {
+        const root = t.replace(/^(me|pe|di|ter|ber)(ny|ng|m|n)?/i, '');
+        if (root.length >= 3 && userPromptLower.includes(root)) return true;
+      }
+      return false;
+    });
+    if (allFound) return true;
+  }
+  return false;
+}
 
 /**
  * Match user natural language prompt against the curated archetypes database
@@ -1189,7 +1535,7 @@ function matchArchetypes(userPrompt: string, language: 'id' | 'en'): AiRecommend
   for (const arc of CINEMA_ARCHETYPES) {
     let score = 0;
     for (const kw of arc.keywords) {
-      if (lower.includes(kw.toLowerCase())) {
+      if (isKeywordMatched(lower, kw.toLowerCase())) {
         // Multi-word exact matches get heavier weight
         score += kw.includes(' ') ? 3 : 2;
       }
@@ -1674,13 +2020,158 @@ function smartPickAiMatch(
   return scored[0]?.match || null;
 }
 
+function cleanWikiTitle(raw: string): string {
+  return raw
+    .replace(/\s*\([^)]*(film|series|movie|novel|franchise|season|seri|televisi|anime|drama)[^)]*\)/gi, '')
+    .replace(/\s*\(.*?\)/g, '')
+    .trim();
+}
+
+function isDisallowedWikiTitle(title: string): boolean {
+  const lower = title.toLowerCase();
+  return (
+    lower.startsWith('list of') ||
+    lower.startsWith('daftar ') ||
+    lower.startsWith('category:') ||
+    lower.startsWith('kategori:') ||
+    lower.includes('discography') ||
+    lower.includes('filmography') ||
+    lower.includes('awards') ||
+    lower.includes('characters') ||
+    lower.includes('reception') ||
+    lower.includes('in television') ||
+    lower.includes('in animation')
+  );
+}
+
+/**
+ * Global Wikipedia Cinema Plot Search Engine
+ * Discovers real-world movie and series titles by searching full-text plot synopses across Wikipedia.
+ */
+async function queryWikipediaCinemaSearch(
+  userQuery: string,
+  language: 'id' | 'en' = 'id'
+): Promise<AiRecommendationItem[]> {
+  try {
+    const translatedEn =
+      language === 'id' ? await translateText(userQuery, 'en') : userQuery;
+
+    const recommendations: AiRecommendationItem[] = [];
+    const seen = new Set<string>();
+
+    const enTokens = translatedEn
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !THEMATIC_STOPWORDS.has(w));
+    const idTokens = userQuery
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !THEMATIC_STOPWORDS.has(w));
+
+    const searchJobs: { endpoint: string; q: string }[] = [];
+
+    // Search English Wikipedia for global cinema plot archives
+    if (enTokens.length >= 2) {
+      searchJobs.push({
+        endpoint: 'https://en.wikipedia.org/w/api.php',
+        q: `${enTokens.slice(0, 5).join(' ')} film OR series`,
+      });
+      searchJobs.push({
+        endpoint: 'https://en.wikipedia.org/w/api.php',
+        q: `${translatedEn.slice(0, 100)} plot`,
+      });
+    }
+
+    // Search Indonesian Wikipedia for local Indonesian/Asian coverage
+    if (idTokens.length >= 2) {
+      searchJobs.push({
+        endpoint: 'https://id.wikipedia.org/w/api.php',
+        q: `${idTokens.slice(0, 4).join(' ')} film`,
+      });
+      searchJobs.push({
+        endpoint: 'https://id.wikipedia.org/w/api.php',
+        q: userQuery.slice(0, 100),
+      });
+    }
+
+    const results = await Promise.allSettled(
+      searchJobs.map(async (job) => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const url = `${job.endpoint}?action=query&list=search&srsearch=${encodeURIComponent(
+          job.q
+        )}&format=json&origin=*&srlimit=4`;
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'CineStreamFinder/2.0 (contact@cinestream.app)' },
+        });
+        clearTimeout(timeout);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.query?.search || [];
+      })
+    );
+
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue;
+      for (const item of r.value) {
+        if (!item?.title || isDisallowedWikiTitle(item.title)) continue;
+
+        const isMedia =
+          item.title.toLowerCase().includes('(film') ||
+          item.title.toLowerCase().includes('(tv') ||
+          item.title.toLowerCase().includes('(series') ||
+          item.title.toLowerCase().includes('(seri') ||
+          item.snippet.toLowerCase().includes('film') ||
+          item.snippet.toLowerCase().includes('directed by') ||
+          item.snippet.toLowerCase().includes('television series') ||
+          item.snippet.toLowerCase().includes('starring') ||
+          item.snippet.toLowerCase().includes('sutradara') ||
+          item.snippet.toLowerCase().includes('sinopsis');
+
+        if (!isMedia) continue;
+
+        const cleaned = cleanWikiTitle(item.title);
+        if (cleaned.length > 1 && !seen.has(cleaned.toLowerCase())) {
+          seen.add(cleaned.toLowerCase());
+
+          const isTv =
+            item.title.toLowerCase().includes('series') ||
+            item.title.toLowerCase().includes('seri') ||
+            item.snippet.toLowerCase().includes('television') ||
+            item.snippet.toLowerCase().includes('serial');
+
+          const snippetText = item.snippet.replace(/<[^>]+>/g, '').trim();
+
+          recommendations.push({
+            title: cleaned,
+            type: isTv ? 'series' : 'movie',
+            confidence: 88,
+            matchReason:
+              language === 'id'
+                ? `Ditemukan dari arsip sinematik alur cerita: "${snippetText.slice(0, 110)}..."`
+                : `Matched via cinematic plot archive: "${snippetText.slice(0, 110)}..."`,
+          });
+        }
+      }
+    }
+
+    return recommendations.slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Main AI Search Entrypoint
  * Identifies movie/show by description and resolves into full UnifiedSearchResult objects with streaming servers
  */
 export async function searchWithAI(
   userDescription: string,
-  language: 'id' | 'en' = 'id'
+  language: 'id' | 'en' = 'id',
+  customApiKey?: string
 ): Promise<UnifiedSearchResult[]> {
   const cleanDesc = userDescription.trim();
   if (!cleanDesc || cleanDesc.length < 3) return [];
@@ -1688,7 +2179,7 @@ export async function searchWithAI(
   let recommendations: AiRecommendationItem[] = [];
 
   // Tier 1: Check if user configured custom Gemini API Key
-  const geminiKey = getStoredGeminiApiKey();
+  const geminiKey = (customApiKey && customApiKey.trim()) || getStoredGeminiApiKey();
   if (geminiKey) {
     recommendations = await queryGeminiApi(cleanDesc, geminiKey, language);
   }
@@ -1698,7 +2189,22 @@ export async function searchWithAI(
     recommendations = matchArchetypes(cleanDesc, language);
   }
 
-  // Tier 3: Dynamic TMDB Thematic Discovery (if archetypes gave few or zero results)
+  // Tier 3: Global Wikipedia Plot & Cinema Corpus Search (searches millions of real movie synopses)
+  if (recommendations.length < 3) {
+    try {
+      const wikiResults = await queryWikipediaCinemaSearch(cleanDesc, language);
+      const existingTitles = new Set(recommendations.map((r) => r.title.toLowerCase()));
+
+      for (const item of wikiResults) {
+        if (!existingTitles.has(item.title.toLowerCase())) {
+          existingTitles.add(item.title.toLowerCase());
+          recommendations.push(item);
+        }
+      }
+    } catch {}
+  }
+
+  // Tier 4: Dynamic TMDB Deep Thematic Discovery (if archetypes & Wikipedia gave few or zero results)
   if (recommendations.length < 3) {
     const dynamicResults = await queryTmdbThematicSearch(cleanDesc, language);
     const existingTitles = new Set(recommendations.map((r) => r.title.toLowerCase()));
@@ -1713,7 +2219,7 @@ export async function searchWithAI(
 
   if (recommendations.length === 0) return [];
 
-  // Step 4: Resolve each recommended title into rich UnifiedSearchResult from live catalogs
+  // Step 5: Resolve each recommended title into rich UnifiedSearchResult from live catalogs
   const resolvedPromises = recommendations.map(async (rec, index) => {
     try {
       const searchSource = rec.type === 'anime' ? 'all' : 'tmdb';
