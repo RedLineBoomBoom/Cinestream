@@ -52,6 +52,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Track active overlay to hide background floating search bars
+  useEffect(() => {
+    if (mobileMenuOpen || isProfileOpen) {
+      document.body.setAttribute('data-nav-overlay-open', 'true');
+    } else {
+      document.body.removeAttribute('data-nav-overlay-open');
+    }
+    return () => {
+      document.body.removeAttribute('data-nav-overlay-open');
+    };
+  }, [mobileMenuOpen, isProfileOpen]);
+
   const navLinks = [
     { id: 'home', label: t('navHome') },
     { id: 'advanced-search', label: t('navAdvancedSearch') },
@@ -62,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-40 transition-all duration-500 ${
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         isScrolled
           ? 'bg-[#141414]/95 backdrop-blur-xl border-b border-white/[0.08] py-3 shadow-2xl'
           : 'bg-gradient-to-b from-black/95 via-black/60 to-transparent py-4 sm:py-5'
@@ -197,6 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => {
                 playClick();
+                setMobileMenuOpen(false);
                 setIsProfileOpen((prev) => !prev);
               }}
               onMouseEnter={playHover}
@@ -226,7 +239,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile Menu Toggle Button */}
           <button
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            onClick={() => {
+              setIsProfileOpen(false);
+              setMobileMenuOpen((prev) => !prev);
+            }}
             aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
             className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors"
           >
@@ -242,6 +258,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div
             onClick={() => {
               playClick();
+              setMobileMenuOpen(false);
               setIsProfileOpen(true);
             }}
             className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] cursor-pointer transition-all mb-3"

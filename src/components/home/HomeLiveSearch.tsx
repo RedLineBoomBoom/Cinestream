@@ -170,6 +170,17 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Hide floating search bar when mobile nav drawer or profile dropdown is open
+  const [navOverlayOpen, setNavOverlayOpen] = useState(false);
+  useEffect(() => {
+    const check = () =>
+      setNavOverlayOpen(document.body.hasAttribute('data-nav-overlay-open'));
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-nav-overlay-open'] });
+    check();
+    return () => observer.disconnect();
+  }, []);
+
   // Keep activeFilter persisted in localStorage on change
   useEffect(() => {
     try {
@@ -470,8 +481,8 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
       {typeof document !== 'undefined' &&
         createPortal(
           <div
-            className={`fixed top-[62px] sm:top-[70px] lg:top-[78px] inset-x-0 z-[45] flex justify-center px-3 sm:px-6 pointer-events-none transition-all duration-300 ease-out ${
-              showFloatingBar
+            className={`fixed top-[62px] sm:top-[70px] lg:top-[78px] inset-x-0 z-30 flex justify-center px-3 sm:px-6 pointer-events-none transition-all duration-300 ease-out ${
+              showFloatingBar && !navOverlayOpen
                 ? 'translate-y-0 opacity-100 scale-100'
                 : '-translate-y-8 opacity-0 scale-95 pointer-events-none'
             }`}
@@ -479,7 +490,7 @@ export const HomeLiveSearch: React.FC<HomeLiveSearchProps> = ({
             <div
               ref={floatingContainerRef}
               className={`relative max-w-xl md:max-w-2xl w-full transition-all ${
-                showFloatingBar ? 'pointer-events-auto' : 'pointer-events-none'
+                showFloatingBar && !navOverlayOpen ? 'pointer-events-auto' : 'pointer-events-none'
               }`}
             >
               <div className="w-full bg-[#161616]/95 backdrop-blur-2xl border border-white/20 hover:border-white/35 rounded-full px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.9),0_0_25px_rgba(229,9,20,0.3)] flex items-center gap-2 sm:gap-3 transition-all">
