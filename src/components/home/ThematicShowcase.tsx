@@ -940,8 +940,12 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   </p>
                 </div>
 
-                {/* 6 Poster Cards: Widescreen-safe, unclipped on hover with sm:overflow-visible and breathing room */}
-                <div className="flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar gap-3 sm:gap-3.5 md:gap-4 lg:gap-4.5 xl:gap-5 -mx-3.5 px-3.5 -my-2.5 py-2.5 sm:mx-0 sm:px-0 sm:-my-3.5 sm:py-3.5 max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] 2xl:max-w-[1680px] relative z-20">
+                {/* Poster Cards: Widescreen-safe, unclipped on hover with sm:overflow-visible and breathing room */}
+                <div
+                  className={`flex sm:grid ${
+                    banner.items.length === 6 ? 'sm:grid-cols-6' : 'sm:grid-cols-5'
+                  } overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar gap-3 sm:gap-3.5 md:gap-4 lg:gap-4.5 xl:gap-5 -mx-3.5 px-3.5 -my-2.5 py-2.5 sm:mx-0 sm:px-0 sm:-my-3.5 sm:py-3.5 max-w-5xl md:max-w-6xl lg:max-w-7xl xl:max-w-[1400px] 2xl:max-w-[1680px] relative z-20`}
+                >
                   {banner.items.map((item, idx) => {
                     const isLoading = loadingMediaId === item.id;
                     const displayGenre = language === 'en' ? item.genreEn : item.genreId;
@@ -958,7 +962,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           playHover();
                           setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
                         }}
-                        className={`group relative w-[155px] xs:w-[170px] sm:w-0 sm:flex-1 shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[215px] sm:max-w-[230px] md:max-w-[248px] lg:max-w-[265px] xl:max-w-[282px] 2xl:max-w-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
+                        className={`group relative w-[155px] xs:w-[170px] sm:w-full min-w-0 shrink-0 snap-start sm:shrink-0 aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
                           isCardActive
                             ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-2 shadow-2xl shadow-amber-500/20'
                             : 'border-white/[0.1] hover:border-white/40'
