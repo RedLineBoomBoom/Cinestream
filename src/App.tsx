@@ -36,6 +36,7 @@ import {
   VALID_TABS,
 } from './utils/navigation';
 import { Bookmark, Users, ShieldAlert } from 'lucide-react';
+import { initCapacitorApp } from './utils/capacitorApp';
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'home';
@@ -372,6 +373,55 @@ const MainContent: React.FC = () => {
       // ignore
     }
   };
+
+  // Capacitor Android Native: Status bar color & hardware back button handling
+  useEffect(() => {
+    const cleanup = initCapacitorApp(() => {
+      // 1. If video player is open, close player
+      if (selectedMedia) {
+        handleClosePlayer();
+        return true;
+      }
+      // 2. If search modal is open, close search
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        return true;
+      }
+      // 3. If watch party modal is open, close party
+      if (isPartyOpen) {
+        setIsPartyOpen(false);
+        return true;
+      }
+      // 4. If custom stream modal is open, close it
+      if (isCustomStreamOpen) {
+        setIsCustomStreamOpen(false);
+        return true;
+      }
+      // 5. If VPN notice modal is open, close it
+      if (isVpnNoticeOpen) {
+        setIsVpnNoticeOpen(false);
+        return true;
+      }
+      // 6. If browsing a non-home tab, go back to home tab
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return true;
+      }
+      // Return false to allow default Android exit behavior
+      return false;
+    });
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [
+    selectedMedia,
+    isSearchOpen,
+    isPartyOpen,
+    isCustomStreamOpen,
+    isVpnNoticeOpen,
+    activeTab,
+  ]);
 
   const heroDisplayItemsRef = useRef(heroDisplayItems);
   heroDisplayItemsRef.current = heroDisplayItems;
