@@ -53,7 +53,7 @@ const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80';
 
 // ─────────────────────────────────────────────────────────────
-// DATA: 5 Thematic Curated Banners (6 Curated Titles Each, Bilingual)
+// DATA: 5 Thematic Curated Banners (5 Curated Titles Each, Bilingual)
 // ─────────────────────────────────────────────────────────────
 const THEMATIC_BANNERS: ThematicBannerDef[] = [
   {
@@ -146,21 +146,6 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         synopsisEn: 'The Roy family is known for controlling the biggest media and entertainment company in the world.',
         synopsisId: 'Keluarga Roy bersaing memperebutkan kendali atas konglomerat media global Waystar RoyCo.',
         logoArt: 'https://image.tmdb.org/t/p/w500/5MAURYSb9Q98fRWuSTOGFlztKIZ.png',
-      },
-      {
-        id: 'tv-46648',
-        tmdbId: 46648,
-        type: 'tv',
-        title: 'True Detective',
-        poster: 'https://image.tmdb.org/t/p/w500/zYqVTiHK5ZajYcNzAW7qWte5NWS.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/v8YFr8BbU9qsO8PYIulzTeM6Qk.jpg',
-        year: 2014,
-        rating: 8.3,
-        genreEn: 'Crime Drama, Neo-Noir',
-        genreId: 'Drama Kriminal, Misteri',
-        synopsisEn: 'An anthology series in which police investigations unearth the personal and professional secrets of those involved.',
-        synopsisId: 'Serial antologi detektif yang mengungkap rahasia kelam di balik investigasi kasus kriminal rumit.',
-        logoArt: 'https://image.tmdb.org/t/p/w500/6q4KzOcM2eEE1IbhFTadUsQkphl.png',
       },
     ],
   },
