@@ -137,8 +137,8 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 76331,
         type: 'tv',
         title: 'Succession',
-        poster: 'https://image.tmdb.org/t/p/w500/7TBy9bM9N2F11wY25KxR4j78QO8.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/7k2vQnLh1F3rF2h3d4f5g6h7j8.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/z0XiwdrCQ9yVIr4O0pxzaAYRxdW.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/d87JXX3DLkRJMfm5StCmmnmhHuX.jpg',
         year: 2018,
         rating: 8.3,
         genreEn: 'Drama, Business & Politics',
@@ -152,8 +152,8 @@ const THEMATIC_BANNERS: ThematicBannerDef[] = [
         tmdbId: 46648,
         type: 'tv',
         title: 'True Detective',
-        poster: 'https://image.tmdb.org/t/p/w500/cuV2O529pqHSURiqOCGXye204w8.jpg',
-        backdrop: 'https://image.tmdb.org/t/p/w1280/u64huzTnF3jEYUXJ4BDlpHy2L3K.jpg',
+        poster: 'https://image.tmdb.org/t/p/w500/zYqVTiHK5ZajYcNzAW7qWte5NWS.jpg',
+        backdrop: 'https://image.tmdb.org/t/p/w1280/v8YFr8BbU9qsO8PYIulzTeM6Qk.jpg',
         year: 2014,
         rating: 8.3,
         genreEn: 'Crime Drama, Neo-Noir',
@@ -958,7 +958,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           playHover();
                           setHoveredBannerItem((prev) => ({ ...prev, [banner.id]: idx }));
                         }}
-                        className={`group relative w-[155px] xs:w-[170px] sm:w-auto shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[215px] sm:max-w-[230px] md:max-w-[248px] lg:max-w-[265px] xl:max-w-[282px] 2xl:max-w-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
+                        className={`group relative w-[155px] xs:w-[170px] sm:w-0 sm:flex-1 shrink-0 snap-start sm:shrink aspect-[2/3] max-w-[215px] sm:max-w-[230px] md:max-w-[248px] lg:max-w-[265px] xl:max-w-[282px] 2xl:max-w-[300px] rounded-xl sm:rounded-2xl overflow-hidden bg-cinema-950 border ${
                           isCardActive
                             ? 'border-amber-400/80 ring-2 ring-amber-400/40 -translate-y-2 shadow-2xl shadow-amber-500/20'
                             : 'border-white/[0.1] hover:border-white/40'
@@ -970,8 +970,11 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                           alt={item.title}
                           loading="lazy"
                           onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = item.backdrop || FALLBACK_POSTER;
+                            if (e.currentTarget.src !== item.backdrop && item.backdrop) {
+                              e.currentTarget.src = item.backdrop;
+                            } else if (e.currentTarget.src !== FALLBACK_POSTER) {
+                              e.currentTarget.src = FALLBACK_POSTER;
+                            }
                           }}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 filter brightness-95 group-hover:brightness-105"
                         />
