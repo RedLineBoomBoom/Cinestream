@@ -16,6 +16,8 @@ import {
   ExternalLink,
   Bot,
   Key,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
@@ -27,7 +29,13 @@ import {
   type UnifiedSearchResult,
   type SearchDatabaseSource,
 } from '../../services/hybridSearch';
-import { searchWithAI, getStoredGeminiApiKey, setStoredGeminiApiKey } from '../../services/aiSearch';
+import {
+  searchWithAI,
+  getStoredGeminiApiKey,
+  setStoredGeminiApiKey,
+  testGeminiApiKey,
+  getLastGeminiStatus,
+} from '../../services/aiSearch';
 import { getSeriesStatus, formatGenre, getMediaTitle, getMediaPoster, getMediaBackdrop, formatMediaDuration } from '../../utils/formatters';
 
 interface SearchModalProps {
@@ -52,6 +60,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [showAiKeySettings, setShowAiKeySettings] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(() => getStoredGeminiApiKey());
   const [keySavedBadge, setKeySavedBadge] = useState(false);
+  const [isTestingKey, setIsTestingKey] = useState(false);
+  const [keyTestFeedback, setKeyTestFeedback] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
   const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loadingMediaId, setLoadingMediaId] = useState<string | null>(null);
@@ -337,7 +350,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               <input
                 type="password"
                 value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
+                onChange={(e) => {
+                  setApiKeyInput(e.target.value);
+                  setKeyTestFeedback(null);
+                }}
                 placeholder={t('aiKeyPlaceholder')}
                 className="flex-1 bg-black/60 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-400 font-mono"
               />
@@ -352,7 +368,69 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               >
                 {keySavedBadge ? t('aiKeySaved') : t('aiKeySave')}
               </button>
+              <button
+                disabled={isTestingKey}
+                onClick={async () => {
+                  playClick();
+                  setIsTestingKey(true);
+                  setKeyTestFeedback(null);
+                  try {
+                    const res = await testGeminiApiKey(apiKeyInput);
+                    setKeyTestFeedback(res);
+                    if (res.ok) {
+                      setStoredGeminiApiKey(apiKeyInput);
+                      playSuccess();
+                    }
+                  } catch (err: any) {
+                    setKeyTestFeedback({
+                      ok: false,
+                      message: err?.message || 'Gagal terhubung',
+                    });
+                  } finally {
+                    setIsTestingKey(false);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white font-semibold text-xs transition-colors shrink-0 cursor-pointer shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isTestingKey ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-300" />
+                    <span>{t('aiKeyTesting')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 text-amber-300" />
+                    <span>{t('aiKeyTest')}</span>
+                  </>
+                )}
+              </button>
             </div>
+            {keyTestFeedback ? (
+              <div
+                className={`p-2 rounded-lg text-xs flex items-center gap-2 border ${
+                  keyTestFeedback.ok
+                    ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                    : 'bg-red-950/40 border-red-500/30 text-red-300'
+                }`}
+              >
+                {keyTestFeedback.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                )}
+                <span className="font-mono text-[11px] leading-tight">
+                  {keyTestFeedback.ok ? t('aiKeySuccess') : t('aiKeyFailed')}
+                  {keyTestFeedback.message ? ` — ${keyTestFeedback.message}` : ''}
+                </span>
+              </div>
+            ) : getLastGeminiStatus().status === 'failed' ? (
+              <div className="p-2 rounded-lg text-xs flex items-center gap-2 border bg-amber-950/40 border-amber-500/30 text-amber-300">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-mono text-[11px] leading-tight">
+                  {getLastGeminiStatus().message}
+                </span>
+              </div>
+            ) : null}
             <p className="text-[10.5px] text-slate-400 font-light leading-relaxed">
               {t('aiKeyHint')}
             </p>
@@ -516,6 +594,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   </div>
                   <div className="flex flex-col gap-2">
                     {[
+                      t('aiPromptKoreanZombie'),
                       t('aiPromptAstronaut'),
                       t('aiPromptMemory'),
                       t('aiPromptDeathNote'),

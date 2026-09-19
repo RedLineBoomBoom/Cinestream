@@ -57,6 +57,85 @@ export function setStoredGeminiApiKey(key: string): void {
   } catch {}
 }
 
+export interface GeminiStatus {
+  status: 'idle' | 'success' | 'failed';
+  message?: string;
+  model?: string;
+  timestamp?: number;
+}
+
+let lastGeminiStatus: GeminiStatus = { status: 'idle' };
+
+export function getLastGeminiStatus(): GeminiStatus {
+  return lastGeminiStatus;
+}
+
+/**
+ * Validate and test connection to Google Gemini API with the given key
+ */
+export async function testGeminiApiKey(
+  apiKey: string
+): Promise<{ ok: boolean; message: string; model?: string }> {
+  const trimmed = (apiKey || '').trim();
+  if (!trimmed) {
+    return { ok: false, message: 'Kunci API kosong / API key is empty' };
+  }
+
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  for (const model of models) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trimmed}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: 'Respond with "OK"' }],
+            },
+          ],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        lastGeminiStatus = {
+          status: 'success',
+          message: `Terhubung ke Google Gemini (${model})`,
+          model,
+          timestamp: Date.now(),
+        };
+        return {
+          ok: true,
+          message: `Berhasil terhubung ke Google Gemini (${model})`,
+          model,
+        };
+      }
+
+      const errData = await res.json().catch(() => null);
+      const errMsg = errData?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+      lastGeminiStatus = {
+        status: 'failed',
+        message: errMsg,
+        model,
+        timestamp: Date.now(),
+      };
+      return { ok: false, message: errMsg };
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return { ok: false, message: 'Koneksi timeout (server tidak merespons dalam 8 detik)' };
+      }
+      return { ok: false, message: err.message || 'Gagal menghubungi server Gemini' };
+    }
+  }
+  return { ok: false, message: 'Tidak dapat terhubung ke model Gemini' };
+}
+
 /**
  * Direct query to Google Gemini Flash API
  */
@@ -112,6 +191,12 @@ type must be "movie", "series", or "anime". confidence must be integer between 6
       clearTimeout(timeout);
 
       if (res.ok) {
+        lastGeminiStatus = {
+          status: 'success',
+          message: `Model ${model} aktif`,
+          model,
+          timestamp: Date.now(),
+        };
         const data = await res.json();
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         let parsed: any = null;
@@ -148,10 +233,23 @@ type must be "movie", "series", or "anime". confidence must be integer between 6
           if (valid.length > 0) return valid;
         }
       } else {
-        const errText = await res.text().catch(() => '');
-        console.warn(`[Gemini AI] Model ${model} returned HTTP ${res.status}:`, errText);
+        const errData = await res.json().catch(() => null);
+        const errMsg = errData?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+        lastGeminiStatus = {
+          status: 'failed',
+          message: errMsg,
+          model,
+          timestamp: Date.now(),
+        };
+        console.warn(`[Gemini AI] Model ${model} returned HTTP ${res.status}:`, errMsg);
       }
-    } catch (err) {
+    } catch (err: any) {
+      lastGeminiStatus = {
+        status: 'failed',
+        message: err?.message || 'Gagal menghubungi server Gemini',
+        model,
+        timestamp: Date.now(),
+      };
       console.warn(`[Gemini AI] Call failed for ${model}:`, err);
     }
   }
@@ -859,6 +957,224 @@ const CINEMA_ARCHETYPES: ArchetypeRule[] = [
     ],
     reasonId: 'Cocok dengan anime fantasi tentang hunter terlemah berperingkat E yang mendapatkan kemampuan khusus sistem video game untuk terus naik level tanpa batas.',
     reasonEn: 'Matches the hit anime of an E-rank hunter awakening a mysterious leveling system granting him boundless growth.'
+  },
+  // 51. Kingdom
+  {
+    target: 'Kingdom',
+    year: 2019,
+    type: 'series',
+    keywords: [
+      'film korea tentang sebuah kerajaan yang di serang zombie',
+      'film korea kerajaan diserang zombie',
+      'kerajaan yang di serang zombie',
+      'kerajaan diserang zombie',
+      'kerajaan diserang mayat hidup',
+      'kerajaan zombie korea',
+      'korean kingdom zombie',
+      'zombie kerajaan korea',
+      'wabah zombie era joseon',
+      'putra mahkota lee chang',
+      'putera mahkota lee chang',
+      'zombie di istana kerajaan',
+      'zombie dinasti joseon',
+      'bunga pembangkit mayat zombie'
+    ],
+    reasonId: 'Sangat cocok dengan alur serial epik Korea tentang Putra Mahkota era Dinasti Joseon yang menyelidiki wabah mayat hidup (zombie) mengerikan yang melanda istana dan seluruh kerajaannya.',
+    reasonEn: 'Matches the acclaimed South Korean historical thriller series where a Joseon crown prince investigates a mysterious zombie plague threatening the royal kingdom.',
+    related: [
+      {
+        title: 'Rampant',
+        year: 2018,
+        type: 'movie',
+        reasonId: 'Film aksi sejarah Korea tentang pangeran yang kembali ke istana Joseon yang dikepung wabah iblis malam zombie.',
+        reasonEn: 'South Korean period action film about a prince defending the royal palace against nocturnal zombie hordes.'
+      },
+      {
+        title: 'All of Us Are Dead',
+        year: 2022,
+        type: 'series',
+        reasonId: 'Serial horor Korea tentang murid-murid SMA yang terjebak di sekolah di tengah wabah virus zombie mematikan.',
+        reasonEn: 'Hit Korean zombie apocalypse series following high school students trapped during a sudden viral outbreak.'
+      }
+    ]
+  },
+  // 52. Squid Game
+  {
+    target: 'Squid Game',
+    year: 2021,
+    type: 'series',
+    keywords: [
+      'permainan bertahan hidup anak-anak dengan hadiah uang',
+      'permainan bertahan hidup hadiah uang',
+      'permainan anak-anak mematikan hadiah miliaran',
+      'permainan anak hadiah uang',
+      'squid game',
+      'boneka lampu merah lampu hijau',
+      'hadiah 45 miliar won',
+      'seragam hijau penjaga pink',
+      'seong gi-hun'
+    ],
+    reasonId: 'Sangat cocok dengan alur serial fenomena global Korea tentang ratusan orang berhutang yang mempertaruhkan nyawa memainkan permainan anak-anak demi hadiah uang tunai 45,6 miliar won.',
+    reasonEn: 'Matches the global smash-hit Korean thriller where hundreds of debt-ridden contestants play deadly children\'s games for a massive cash prize.',
+    related: [
+      {
+        title: 'Alice in Borderland',
+        year: 2020,
+        type: 'series',
+        reasonId: 'Serial thriller Jepang tentang sekelompok pemuda yang terjebak di kota Tokyo kosong dan dipaksa bermain game kartu mematikan.',
+        reasonEn: 'Japanese survival series where players in an abandoned Tokyo are forced to clear lethal card games.'
+      }
+    ]
+  },
+  // 53. Inception
+  {
+    target: 'Inception',
+    year: 2010,
+    type: 'movie',
+    keywords: [
+      'film tentang orang yang terjebak di dalam mimpi berlapis-lapis',
+      'mimpi berlapis-lapis',
+      'mimpi di dalam mimpi',
+      'alat masuk ke mimpi alam bawah sadar',
+      'spinning totem gasing berputar',
+      'mencuri rahasia dalam mimpi',
+      'dom cobb leonardo dicaprio',
+      'kick jatuh dalam mimpi'
+    ],
+    reasonId: 'Sangat cocok dengan alur cerita sci-fi legendaris tentang pencuri ahli yang menyusup ke alam bawah sadar target melalui mimpi berlapis-lapis untuk menanamkan ide.',
+    reasonEn: 'Matches Christopher Nolan\'s acclaimed sci-fi masterpiece about a team of thieves who infiltrate minds through multi-layered dreams to plant an idea.',
+    related: [
+      {
+        title: 'Shutter Island',
+        year: 2010,
+        type: 'movie',
+        reasonId: 'Thriller psikologis misteri investigasi rumah sakit jiwa di pulau terpencil dengan plot twist mengejutkan.',
+        reasonEn: 'Tense psychological thriller following US Marshals investigating a disappearance on a psychiatric island.'
+      }
+    ]
+  },
+  // 54. Parasite
+  {
+    target: 'Parasite',
+    year: 2019,
+    type: 'movie',
+    keywords: [
+      'keluarga miskin menyusup keluarga kaya',
+      'seluruh keluarga miskin bekerja di rumah kaya',
+      'bunker rahasia bawah tanah rumah mewah',
+      'sopir guru les pembantu keluarga kaya',
+      'parasite bong joon ho',
+      'batu scholar pembawa keberuntungan'
+    ],
+    reasonId: 'Sangat cocok dengan mahakarya satire Korea tentang satu keluarga miskin yang secara terencana menyusup dan bekerja sebagai staf di rumah keluarga konglomerat kaya raya.',
+    reasonEn: 'Matches the Oscar-winning South Korean dark comedy thriller of a poor family scheming to become employed by a wealthy household.',
+    related: [
+      {
+        title: 'Knives Out',
+        year: 2019,
+        type: 'movie',
+        reasonId: 'Misteri detektif investigasi pembunuhan novelis kaya dengan keluarga penuh intrik dan rahasia.',
+        reasonEn: 'Whodunnit mystery about a master detective investigating the eccentric family of a deceased wealthy author.'
+      }
+    ]
+  },
+  // 55. All of Us Are Dead
+  {
+    target: 'All of Us Are Dead',
+    year: 2022,
+    type: 'series',
+    keywords: [
+      'zombie di sekolah sma korea',
+      'wabah zombie murid sma terkurung',
+      'sma hyosan zombie virus',
+      'seragam sekolah bertahan hidup zombie korea',
+      'guru sains ciptakan virus zombie'
+    ],
+    reasonId: 'Sangat cocok dengan serial Korea tentang sekelompok siswa SMA yang terjebak di gedung sekolah mereka ketika virus zombie tiba-tiba merebak.',
+    reasonEn: 'Matches the South Korean coming-of-age zombie thriller where trapped high school students struggle to survive an outbreak.',
+    related: [
+      {
+        title: 'Train to Busan',
+        year: 2016,
+        type: 'movie',
+        reasonId: 'Film horor aksi Korea tentang penumpang kereta cepat yang berjuang melawan wabah zombie.',
+        reasonEn: 'Action-packed Korean thriller about survivors trapped on a bullet train during a zombie apocalypse.'
+      }
+    ]
+  },
+  // 56. Oppenheimer
+  {
+    target: 'Oppenheimer',
+    year: 2023,
+    type: 'movie',
+    keywords: [
+      'bapak pembuat bom atom',
+      'proyek manhattan los alamos',
+      'uji coba bom atom trinity',
+      'j robert oppenheimer fisikawan',
+      'cillian murphy bom nuklir nolan'
+    ],
+    reasonId: 'Sangat cocok dengan film biopik epik Christopher Nolan tentang fisikawan J. Robert Oppenheimer yang memimpin Proyek Manhattan dalam penciptaan bom atom pertama di dunia.',
+    reasonEn: 'Matches Christopher Nolan\'s historical epic about J. Robert Oppenheimer leading the Manhattan Project to develop the atomic bomb.'
+  },
+  // 57. Dune
+  {
+    target: 'Dune',
+    year: 2021,
+    type: 'movie',
+    keywords: [
+      'planet gurun pasir arrakis',
+      'cacing raksasa padang pasir',
+      'rempah spice melange',
+      'paul atreides timothee chalamet',
+      'kaum fremen mata biru gurun'
+    ],
+    reasonId: 'Sangat cocok dengan mahakarya fiksi ilmiah epik tentang perjalanan Paul Atreides ke planet gurun paling berbahaya di alam semesta, Arrakis, tempat cacing raksasa dan Spice berharga.',
+    reasonEn: 'Matches Denis Villeneuve\'s sci-fi epic following Paul Atreides on the dangerous desert planet of Arrakis, home to colossal sandworms and the coveted spice.'
+  },
+  // 58. Jujutsu Kaisen
+  {
+    target: 'Jujutsu Kaisen',
+    year: 2020,
+    type: 'anime',
+    keywords: [
+      'makan jari iblis kutukan sukuna',
+      'guru penutup mata gojo satoru',
+      'akademi sihir jujutsu tokyo',
+      'itadori yuji menelan jari',
+      'domain expansion jurus'
+    ],
+    reasonId: 'Sangat cocok dengan anime dark-fantasy populer tentang siswa SMA yang menelan jari iblis terkutuk Raja Sukuna dan bergabung dengan sekolah penyihir Jujutsu.',
+    reasonEn: 'Matches the acclaimed dark-fantasy anime where Yuji Itadori swallows a legendary cursed demon finger and trains at Tokyo Jujutsu High.'
+  },
+  // 59. Alice in Borderland
+  {
+    target: 'Alice in Borderland',
+    year: 2020,
+    type: 'series',
+    keywords: [
+      'kota tokyo kosong permainan kartu mematikan',
+      'arisu terjebak di tokyo sepi game bertahan hidup',
+      'game kartu arena kematian tokyo',
+      'visa bertahan hidup tokyo kosong'
+    ],
+    reasonId: 'Sangat cocok dengan serial survival thriller Jepang di mana seorang gamer dan teman-temannya mendapati kota Tokyo tiba-tiba kosong dan dipaksa bermain game mematikan untuk memperpanjang visa hidup.',
+    reasonEn: 'Matches the thrilling Japanese series of an obsessed gamer transported to an eerily vacant Tokyo forced into deadly games.'
+  },
+  // 60. Attack on Titan
+  {
+    target: 'Attack on Titan',
+    year: 2013,
+    type: 'anime',
+    keywords: [
+      'raksasa pemakan manusia di balik dinding',
+      'titan colossus meruntuhkan tembok',
+      'alat bermanuver 3d odm gear',
+      'eren yeager korps penyelidik',
+      'shingeki no kyojin dinding maria'
+    ],
+    reasonId: 'Sangat cocok dengan anime epik legendaris tentang sisa peradaban manusia yang bertahan di balik tiga lapis dinding tinggi dari serangan para raksasa pemakan manusia (Titan).',
+    reasonEn: 'Matches the iconic dark-fantasy anime about humanity living within massive walled cities defending against giant man-eating Titans.'
   }
 ];
 
@@ -915,9 +1231,148 @@ function matchArchetypes(userPrompt: string, language: 'id' | 'en'): AiRecommend
   return matched.sort((a, b) => b.confidence - a.confidence);
 }
 
+const THEMATIC_CONCEPT_DICTIONARY: Record<string, string[]> = {
+  // Horror / Supernatural / Monsters
+  kerajaan: ['kingdom', 'dynasty', 'joseon', 'royal', 'palace', 'monarchy'],
+  istana: ['palace', 'castle', 'royal', 'joseon', 'emperor'],
+  zombie: ['zombie', 'undead', 'plague', 'infected', 'living dead'],
+  mayat: ['corpse', 'undead', 'zombie', 'dead body'],
+  wabah: ['outbreak', 'plague', 'epidemic', 'virus', 'infection'],
+  virus: ['virus', 'outbreak', 'pandemic', 'epidemic', 'infection'],
+  kutukan: ['curse', 'cursed', 'demon', 'sorcery', 'occult'],
+  iblis: ['demon', 'devil', 'satan', 'exorcism', 'possession'],
+  hantu: ['ghost', 'haunting', 'spirit', 'paranormal'],
+  vampir: ['vampire', 'dracula', 'blood', 'immortal'],
+
+  // Actions & Conflict
+  serang: ['attack', 'invasion', 'war', 'siege', 'plague'],
+  serangan: ['attack', 'invasion', 'assault', 'raid'],
+  invasi: ['invasion', 'alien invasion', 'attack', 'conquest'],
+  perang: ['war', 'battle', 'combat', 'warfare'],
+  bertahan: ['survival', 'survive', 'last survivor'],
+  penjara: ['prison', 'escape', 'jail', 'inmate', 'convict'],
+  perampokan: ['heist', 'robbery', 'bank robbery', 'theft'],
+  balas: ['revenge', 'vengeance', 'retribution', 'payback'],
+  dendam: ['revenge', 'vengeance', 'vendetta'],
+
+  // Game / Contest / Thriller
+  permainan: ['game', 'survival game', 'death game', 'contest'],
+  hadiah: ['prize', 'reward', 'cash prize', 'jackpot'],
+  uang: ['cash', 'money', 'prize', 'wealth', 'debt'],
+  kartu: ['card', 'cards', 'card game', 'poker'],
+  judi: ['gambling', 'casino', 'poker', 'stakes'],
+
+  // Sci-Fi / Mind / Time
+  mimpi: ['dream', 'dreams', 'subconscious', 'inception', 'lucid'],
+  lapis: ['layers', 'layered', 'levels', 'dimensions'],
+  waktu: ['time travel', 'time loop', 'time dilation', 'timeline'],
+  lingkaran: ['loop', 'time loop', 'repeating'],
+  ingatan: ['memory', 'amnesia', 'short term memory', 'subconscious'],
+  amnesia: ['amnesia', 'memory loss', 'identity', 'memento'],
+  angkasa: ['space', 'astronaut', 'interstellar', 'cosmic'],
+  astronot: ['astronaut', 'spacecraft', 'mars', 'black hole'],
+  lubang: ['black hole', 'wormhole', 'portal'],
+  robot: ['robot', 'cyborg', 'android', 'artificial intelligence', 'ai'],
+  alien: ['alien', 'extraterrestrial', 'spaceship', 'ufo'],
+  bumi: ['earth', 'apocalypse', 'extinction', 'post-apocalyptic'],
+
+  // School / Youth / Professions
+  sekolah: ['school', 'high school', 'academy', 'students'],
+  murid: ['student', 'students', 'pupil', 'classmates'],
+  sma: ['high school', 'teenagers', 'school'],
+  detektif: ['detective', 'investigation', 'inspector', 'police'],
+  pembunuh: ['killer', 'serial killer', 'murderer', 'assassin'],
+  koki: ['chef', 'cooking', 'restaurant', 'food'],
+  masak: ['cooking', 'culinary', 'chef', 'kitchen'],
+  catur: ['chess', 'grandmaster', 'prodigy', 'tournament'],
+  atom: ['atomic', 'nuclear', 'bomb', 'manhattan', 'oppenheimer'],
+  nuklir: ['nuclear', 'atomic', 'radiation', 'fallout'],
+  dokter: ['doctor', 'surgeon', 'hospital', 'medical'],
+  pangeran: ['prince', 'crown prince', 'royal', 'joseon']
+};
+
+const THEMATIC_STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'of', 'for', 'with', 'in', 'on', 'at', 'to', 'from', 'into',
+  'by', 'as', 'who', 'where', 'when', 'that', 'which', 'what', 'how', 'why', 'movie', 'film',
+  'show', 'series', 'anime', 'about', 'someone', 'person', 'story', 'tells', 'scene', 'character',
+  'enters', 'goes', 'went', 'save', 'saving', 'see', 'saw', 'past', 'future', 'make', 'called',
+  'named', 'know', 'because', 'tentang', 'yang', 'dan', 'di', 'ke', 'dari', 'seorang', 'orang',
+  'sebuah', 'suatu', 'cerita', 'kisah', 'menceritakan', 'ada', 'itu', 'ini', 'seperti', 'mirip',
+  'judul', 'judulnya', 'bisa', 'akan', 'demi', 'adalah', 'punya', 'milik', 'sama', 'banget',
+  'korea', 'korean', 'drakor', 'jepang', 'japanese', 'japan', 'indonesia', 'indonesian', 'china',
+  'chinese', 'mandarin', 'barat', 'hollywood', 'terbaru', 'bagus', 'terbaik', 'populer'
+]);
+
+function parseThematicConcepts(userQuery: string, translatedEn: string) {
+  const lowerOrig = userQuery.toLowerCase();
+  const lowerEn = translatedEn.toLowerCase();
+
+  let langHint: string | undefined = undefined;
+  if (lowerOrig.includes('korea') || lowerOrig.includes('drakor') || lowerEn.includes('korean')) {
+    langHint = 'ko';
+  } else if (lowerOrig.includes('jepang') || lowerOrig.includes('anime') || lowerEn.includes('japanese')) {
+    langHint = 'ja';
+  } else if (lowerOrig.includes('indonesia') || lowerEn.includes('indonesian')) {
+    langHint = 'id';
+  } else if (lowerOrig.includes('china') || lowerOrig.includes('mandarin') || lowerEn.includes('chinese')) {
+    langHint = 'zh';
+  }
+
+  let formatHint: 'movie' | 'series' | 'all' = 'all';
+  if (
+    lowerOrig.includes('serial') ||
+    lowerOrig.includes('series') ||
+    lowerOrig.includes('drama') ||
+    lowerOrig.includes('drakor') ||
+    lowerEn.includes('series') ||
+    lowerEn.includes('tv show')
+  ) {
+    formatHint = 'series';
+  } else if (
+    lowerOrig.includes('film') ||
+    lowerOrig.includes('movie') ||
+    lowerOrig.includes('bioskop') ||
+    lowerEn.includes('movie')
+  ) {
+    formatHint = 'movie';
+  }
+
+  // Extract concept tokens from original Indonesian text
+  const origTokens = lowerOrig
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !THEMATIC_STOPWORDS.has(w));
+
+  // Extract concept tokens from translated English text
+  const enTokens = lowerEn
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !THEMATIC_STOPWORDS.has(w));
+
+  const allConcepts = new Set<string>();
+  for (const w of origTokens) {
+    if (THEMATIC_CONCEPT_DICTIONARY[w]) {
+      THEMATIC_CONCEPT_DICTIONARY[w].forEach((c) => allConcepts.add(c));
+    } else {
+      allConcepts.add(w);
+    }
+  }
+  for (const w of enTokens) {
+    allConcepts.add(w);
+  }
+
+  return {
+    langHint,
+    formatHint,
+    origTokens,
+    enTokens,
+    concepts: Array.from(allConcepts),
+  };
+}
+
 /**
- * Dynamic TMDB Semantic Fallback Search
- * Searches keywords, person filmographies, and thematic discoveries when prompt isn't covered by archetypes.
+ * Intelligent Deep Thematic Engine
+ * Searches multi-concept keyword intersections, dual movie/tv discover, and scores co-occurrence in synopses.
  */
 async function queryTmdbThematicSearch(
   userQuery: string,
@@ -925,65 +1380,83 @@ async function queryTmdbThematicSearch(
 ): Promise<AiRecommendationItem[]> {
   try {
     const tmdbKey = getTmdbApiKey();
-    const translated = language === 'id' ? await translateText(userQuery, 'en') : userQuery;
+    const translatedEn =
+      language === 'id' ? await translateText(userQuery, 'en') : userQuery;
 
-    const stopwords = new Set([
-      'the', 'a', 'an', 'and', 'or', 'of', 'for', 'with', 'in', 'on', 'at', 'to', 'from', 'into',
-      'by', 'as', 'who', 'where', 'when', 'that', 'which', 'what', 'how', 'why', 'movie', 'film',
-      'show', 'series', 'anime', 'about', 'someone', 'person', 'story', 'tells', 'scene', 'character',
-      'enters', 'goes', 'went', 'save', 'saving', 'see', 'saw', 'past', 'future', 'make', 'called',
-      'named', 'know', 'because', 'tentang', 'yang', 'dan', 'di', 'ke', 'dari', 'seorang', 'orang',
-      'cerita', 'kisah', 'menceritakan', 'ada', 'itu', 'ini', 'seperti', 'mirip', 'judul', 'judulnya',
-      'bisa', 'akan', 'demi', 'adalah', 'punya', 'milik', 'sama', 'banget'
-    ]);
+    const parsed = parseThematicConcepts(userQuery, translatedEn);
+    if (parsed.concepts.length === 0 && parsed.enTokens.length === 0) return [];
 
-    const cleanTokens = translated
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopwords.has(w));
+    const candidateMap = new Map<number, any>();
 
-    if (cleanTokens.length === 0) return [];
+    // Strategy 1: Compound multi-search with concept pairs
+    const phrases: string[] = [];
+    const topC = parsed.concepts;
+    if (topC.length >= 2) {
+      phrases.push(`${topC[0]} ${topC[1]}`);
+      phrases.push(`${topC[1]} ${topC[0]}`);
+    }
+    if (topC.length >= 3) {
+      phrases.push(`${topC[0]} ${topC[2]}`);
+      phrases.push(`${topC[1]} ${topC[2]}`);
+    }
+    if (parsed.enTokens.length >= 2) {
+      phrases.push(parsed.enTokens.slice(0, 3).join(' '));
+    }
 
-    const recommendations: AiRecommendationItem[] = [];
-    const seen = new Set<string>();
+    for (const phrase of phrases.slice(0, 4)) {
+      try {
+        const url = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(
+          phrase
+        )}&page=1&include_adult=false`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          for (const it of data.results || []) {
+            if (it.id && !candidateMap.has(it.id)) {
+              candidateMap.set(it.id, it);
+            }
+          }
+        }
+      } catch {}
+    }
 
-    // Strategy 1: Search TMDB Keyword Discovery for top 2 tokens
-    for (const term of cleanTokens.slice(0, 2)) {
+    // Strategy 2: Concurrently Discover Movie & TV with keyword IDs and language filtering
+    for (const kw of parsed.concepts.slice(0, 3)) {
       try {
         const kwRes = await fetch(
           `https://api.themoviedb.org/3/search/keyword?api_key=${tmdbKey}&query=${encodeURIComponent(
-            term
+            kw
           )}`
         );
         if (kwRes.ok) {
           const kwData = await kwRes.json();
-          const firstKw = kwData.results?.[0];
-          if (firstKw?.id) {
-            const discRes = await fetch(
-              `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&with_keywords=${firstKw.id}&sort_by=vote_count.desc&page=1`
-            );
-            if (discRes.ok) {
-              const discData = await discRes.json();
-              for (const m of (discData.results || []).slice(0, 2)) {
-                const key = m.title.toLowerCase();
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  recommendations.push({
-                    title: m.title,
-                    year: m.release_date ? parseInt(m.release_date.slice(0, 4)) : undefined,
-                    type: 'movie',
-                    confidence: 86,
-                    matchReason:
-                      language === 'id'
-                        ? `Cocok dengan tema alur cerita: "${firstKw.name}". ${
-                            m.overview ? `Ringkasan: "${m.overview.slice(0, 100)}..."` : ''
-                          }`
-                        : `Matched thematic keyword: "${firstKw.name}". ${
-                            m.overview ? `Synopsis: "${m.overview.slice(0, 100)}..."` : ''
-                          }`,
-                  });
-                }
+          const kwId = kwData.results?.[0]?.id;
+          if (kwId) {
+            const langParam = parsed.langHint
+              ? `&with_original_language=${parsed.langHint}`
+              : '';
+            const [mRes, tRes] = await Promise.all([
+              fetch(
+                `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&with_keywords=${kwId}${langParam}&sort_by=vote_count.desc&page=1`
+              ),
+              fetch(
+                `https://api.themoviedb.org/3/discover/tv?api_key=${tmdbKey}&with_keywords=${kwId}${langParam}&sort_by=vote_count.desc&page=1`
+              ),
+            ]);
+
+            const [mData, tData] = await Promise.all([
+              mRes.ok ? mRes.json() : { results: [] },
+              tRes.ok ? tRes.json() : { results: [] },
+            ]);
+
+            for (const m of mData.results || []) {
+              if (m.id && !candidateMap.has(m.id)) {
+                candidateMap.set(m.id, { ...m, media_type: 'movie' });
+              }
+            }
+            for (const t of tData.results || []) {
+              if (t.id && !candidateMap.has(t.id)) {
+                candidateMap.set(t.id, { ...t, media_type: 'tv' });
               }
             }
           }
@@ -991,46 +1464,90 @@ async function queryTmdbThematicSearch(
       } catch {}
     }
 
-    // Strategy 2: Multi search for compound phrases
-    if (cleanTokens.length >= 2 && recommendations.length < 3) {
-      const phrase = `${cleanTokens[0]} ${cleanTokens[1]}`;
-      try {
-        const multiRes = await fetch(
-          `https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(
-            phrase
-          )}&include_adult=false&page=1`
-        );
-        if (multiRes.ok) {
-          const multiData = await multiRes.json();
-          for (const it of (multiData.results || []).slice(0, 2)) {
-            const t = it.title || it.name;
-            if (t && !seen.has(t.toLowerCase())) {
-              seen.add(t.toLowerCase());
-              recommendations.push({
-                title: t,
-                year: it.release_date
-                  ? parseInt(it.release_date.slice(0, 4))
-                  : it.first_air_date
-                  ? parseInt(it.first_air_date.slice(0, 4))
-                  : undefined,
-                type: it.media_type === 'tv' ? 'series' : 'movie',
-                confidence: 84,
-                matchReason:
-                  language === 'id'
-                    ? `Ditemukan berdasarkan kecocokan kata kunci "${phrase}". ${
-                        it.overview ? `Ringkasan: "${it.overview.slice(0, 100)}..."` : ''
-                      }`
-                    : `Matched by storyline keywords "${phrase}". ${
-                        it.overview ? `Synopsis: "${it.overview.slice(0, 100)}..."` : ''
-                      }`,
-              });
-            }
-          }
+    if (candidateMap.size === 0) return [];
+
+    // Strategy 3: Multi-Factor Synopsis and Concept Co-occurrence Scorer
+    const scored = Array.from(candidateMap.values()).map((item) => {
+      let score = 0;
+      const title = (item.title || item.name || '').toLowerCase();
+      const overview = (item.overview || '').toLowerCase();
+      const text = `${title} ${overview}`;
+
+      // Country / Original Language alignment
+      if (parsed.langHint && item.original_language === parsed.langHint) {
+        score += 40;
+      }
+
+      // Format alignment
+      if (parsed.formatHint === 'series' && item.media_type === 'tv') {
+        score += 25;
+      } else if (parsed.formatHint === 'movie' && item.media_type === 'movie') {
+        score += 20;
+      }
+
+      // Thematic concepts presence in title & synopsis
+      let conceptsFound = 0;
+      for (const c of parsed.concepts) {
+        if (text.includes(c.toLowerCase())) {
+          conceptsFound++;
+          score += 25;
         }
-      } catch {}
+      }
+
+      // Co-occurrence bonus (multiple concepts present together)
+      if (conceptsFound >= 2) score += 50;
+      if (conceptsFound >= 3) score += 60;
+
+      // Real-world popularity / Vote reliability weight
+      const votes = item.vote_count || 0;
+      if (votes > 1000) score += 25;
+      else if (votes > 100) score += 15;
+      else if (votes < 10) score -= 40;
+
+      return { item, score, conceptsFound };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const recommendations: AiRecommendationItem[] = [];
+    const seenTitles = new Set<string>();
+
+    for (const entry of scored.slice(0, 4)) {
+      const it = entry.item;
+      const t = it.title || it.name;
+      if (!t || seenTitles.has(t.toLowerCase())) continue;
+      seenTitles.add(t.toLowerCase());
+
+      const year = it.release_date
+        ? parseInt(it.release_date.slice(0, 4))
+        : it.first_air_date
+        ? parseInt(it.first_air_date.slice(0, 4))
+        : undefined;
+
+      const mediaType: 'movie' | 'series' =
+        it.media_type === 'tv' ? 'series' : 'movie';
+
+      const keyConceptsSummary = parsed.concepts.slice(0, 3).join(', ');
+
+      const matchReason =
+        language === 'id'
+          ? `Karya yang sangat cocok dengan tema alur cerita (${keyConceptsSummary}). ${
+              it.overview ? `Ringkasan: "${it.overview.slice(0, 110)}..."` : ''
+            }`
+          : `Strong thematic match for concepts (${keyConceptsSummary}). ${
+              it.overview ? `Synopsis: "${it.overview.slice(0, 110)}..."` : ''
+            }`;
+
+      recommendations.push({
+        title: t,
+        year,
+        type: mediaType,
+        confidence: Math.min(96, Math.max(78, 75 + Math.round(entry.score / 6))),
+        matchReason,
+      });
     }
 
-    return recommendations.slice(0, 4);
+    return recommendations;
   } catch {
     return [];
   }
