@@ -2,18 +2,73 @@
 <html lang="id" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Favicon & App Icons -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e50914'><polygon points='5 3 19 12 5 21 5 3'/></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="CINESTREAM NOVA - Platform streaming film, serial TV, drama, dan anime dengan pengalaman visual Awwwards dan fitur terlengkap IDLIX." />
-    <meta name="theme-color" content="#141414" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
+
+    <!-- Viewport — critical for mobile PWA -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Primary SEO -->
+    <meta name="description" content="CINESTREAM — Platform streaming film, serial TV, drama, dan anime dengan pengalaman sinematik modern dan fitur Watch Party." />
+    <meta name="keywords" content="streaming, film, serial, drama, anime, nonton online, watch party, cinestream" />
+    <meta name="author" content="Cinestream" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- PWA: Theme & Colors -->
+    <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#141414" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="background-color" content="#0b0b0f" />
+
+    <!-- PWA: Android Chrome -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Cinestream" />
+
+    <!-- PWA: Apple iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Cinestream" />
+
+    <!-- PWA: Apple iOS Splash Screens (portrait, common sizes) -->
+    <!-- iPhone SE (640x1136) -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/apple-touch-icon.png" />
+    <!-- iPhone 8 (750x1334) -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/apple-touch-icon.png" />
+    <!-- iPhone 14 Pro / 15 (1179x2556) -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/apple-touch-icon.png" />
+    <!-- iPhone 14 Pro Max / 15 Plus (1290x2796) -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="/apple-touch-icon.png" />
+    <!-- iPad Pro 12.9" -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/apple-touch-icon.png" />
+
+    <!-- PWA: Microsoft Windows -->
+    <meta name="msapplication-TileColor" content="#141414" />
+    <meta name="msapplication-TileImage" content="/pwa-192x192.png" />
+    <meta name="msapplication-navbutton-color" content="#E50914" />
+    <meta name="msapplication-starturl" content="/" />
+
+    <!-- Misc -->
+    <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="CINESTREAM • Modern Cinematic Streaming" />
+    <meta property="og:description" content="Nonton film, serial TV, drama, dan anime dengan pengalaman sinematik modern." />
+    <meta property="og:image" content="/pwa-512x512.png" />
+    <meta property="og:site_name" content="Cinestream" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CINESTREAM • Modern Cinematic Streaming" />
+    <meta name="twitter:image" content="/pwa-512x512.png" />
+
     <title>CINESTREAM • Modern Cinematic Streaming</title>
-    <!-- Google Fonts: Bebas Neue, Inter, Montserrat & Plus Jakarta Sans for Modern Netflix Aesthetics -->
+
+    <!-- Google Fonts: Bebas Neue, Inter, Montserrat & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,3 +78,4 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+

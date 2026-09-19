@@ -34,7 +34,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   ];
 
   return (
-    <nav className={`lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#141414]/95 backdrop-blur-2xl border-t border-white/10 px-1.5 sm:px-3 py-1.5 sm:py-2 flex items-center justify-around shadow-2xl safe-area-bottom transition-all duration-500 ${
+    <nav className={`lg:hidden fixed bottom-0 inset-x-0 z-[60] bg-[#141414]/95 backdrop-blur-2xl border-t border-white/10 px-1.5 sm:px-3 pt-1.5 sm:pt-2 pb-[max(6px,env(safe-area-inset-bottom,6px))] sm:pb-[max(8px,env(safe-area-inset-bottom,8px))] flex items-center justify-around shadow-2xl transition-all duration-500 ${
       isTheaterMode ? 'opacity-20 blur-sm pointer-events-none hover:opacity-100 hover:blur-none hover:pointer-events-auto' : 'opacity-100 blur-none'
     }`}>
       {items.map((item) => {

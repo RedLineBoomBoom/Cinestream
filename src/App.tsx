@@ -25,6 +25,7 @@ import { WatchPartyModal } from './components/party/WatchPartyModal';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
+import { OfflineBanner } from './components/layout/OfflineBanner';
 import { VpnDnsNoticeModal } from './components/player/VpnDnsNoticeModal';
 import { MOCK_CATALOG } from './data/mockCatalog';
 import type { MediaItem, Episode } from './types/media';
@@ -1222,6 +1223,9 @@ const MainContent: React.FC = () => {
 
       {/* ── Party Sync Toast (global) ───────────────────── */}
       <PartySyncToast />
+
+      {/* ── Offline Network Banner ───────────────────────── */}
+      <OfflineBanner />
 
       {/* ── PWA Install Prompt (Floating Banner) ────────── */}
       <PwaInstallPrompt />
