@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 export interface UserColorPalette {
   id: string;
@@ -157,6 +158,7 @@ function generateUniqueProfile(): UserProfile {
 interface UserProfileContextType {
   profile: UserProfile;
   activePalette: UserColorPalette;
+  isCloudSynced: boolean;
   updateProfile: (partial: Partial<UserProfile>) => void;
   randomizeProfile: () => void;
   allPalettes: UserColorPalette[];
@@ -167,6 +169,7 @@ interface UserProfileContextType {
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
   const [profile, setProfile] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -206,6 +209,64 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Supabase Cloud Profile Sync
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const loadCloudProfile = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (!error && data) {
+          setIsCloudSynced(true);
+          setProfile((prev) => {
+            const updated: UserProfile = {
+              ...prev,
+              id: data.id,
+              name: data.name || prev.name,
+              avatarType: (data.avatar_type as 'monogram' | 'emoji') || prev.avatarType,
+              initials: data.initials || prev.initials,
+              emoji: data.emoji || prev.emoji,
+              paletteId: data.theme_palette || prev.paletteId,
+            };
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.warn('Error loading cloud profile:', err);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadCloudProfile(session.user.id);
+      } else {
+        setIsCloudSynced(false);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadCloudProfile(session.user.id);
+      } else {
+        setIsCloudSynced(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const updateProfile = (partial: Partial<UserProfile>) => {
     setProfile((prev) => {
       const updated: UserProfile = { ...prev, ...partial };
@@ -214,6 +275,27 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       } catch (err) {
         console.warn('Failed to save profile to localStorage:', err);
       }
+
+      // Sync to cloud if user is logged in
+      if (isSupabaseConfigured && isCloudSynced) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            supabase
+              .from('profiles')
+              .update({
+                name: updated.name,
+                avatar_type: updated.avatarType,
+                initials: updated.initials,
+                emoji: updated.emoji,
+                theme_palette: updated.paletteId,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id)
+              .then();
+          }
+        });
+      }
+
       return updated;
     });
   };
@@ -226,6 +308,25 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newProfile));
     } catch {}
+
+    if (isSupabaseConfigured && isCloudSynced) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          supabase
+            .from('profiles')
+            .update({
+              name: newProfile.name,
+              avatar_type: newProfile.avatarType,
+              initials: newProfile.initials,
+              emoji: newProfile.emoji,
+              theme_palette: newProfile.paletteId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id)
+            .then();
+        }
+      });
+    }
   };
 
   const activePalette =
@@ -236,6 +337,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       value={{
         profile,
         activePalette,
+        isCloudSynced,
         updateProfile,
         randomizeProfile,
         allPalettes: PROFILE_PALETTES,
@@ -247,6 +349,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     </UserProfileContext.Provider>
   );
 };
+
 
 export const useUserProfile = () => {
   const context = useContext(UserProfileContext);

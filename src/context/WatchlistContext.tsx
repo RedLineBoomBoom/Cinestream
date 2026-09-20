@@ -2,6 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { MediaItem, PlayProgress, WatchHistoryItem, Episode } from '../types/media';
 import { MOCK_CATALOG, createTvServers } from '../data/mockCatalog';
 import { parseDurationToSeconds } from '../utils/formatters';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
+import {
+  fetchWatchlistFromCloud,
+  addToCloudWatchlist,
+  removeFromCloudWatchlist,
+  fetchHistoryFromCloud,
+  recordWatchInCloud,
+  removeHistoryFromCloud,
+  clearAllHistoryFromCloud,
+} from '../services/syncService';
 
 export const getHistoryItemKey = (
   mediaId: string,
@@ -370,6 +380,58 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [history]);
 
+  // Supabase Cloud Watchlist & History Sync
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const syncWithCloud = async (userId: string) => {
+      // 1. Fetch and merge cloud watchlist
+      const cloudWl = await fetchWatchlistFromCloud(userId);
+      if (cloudWl.ids.length > 0) {
+        setWatchlist((prev) => Array.from(new Set([...cloudWl.ids, ...prev])));
+        setWatchlistMediaMap((prev) => ({ ...cloudWl.mediaMap, ...prev }));
+      } else if (watchlist.length > 0) {
+        // Upload local guest items to cloud
+        watchlist.forEach((id) => {
+          const m = watchlistMediaMap[id.toLowerCase()];
+          if (m) addToCloudWatchlist(userId, m);
+        });
+      }
+
+      // 2. Fetch and merge cloud history
+      const cloudHistory = await fetchHistoryFromCloud(userId);
+      if (cloudHistory.length > 0) {
+        setHistoryItems((prev) => {
+          const merged = [...cloudHistory, ...prev];
+          const seen = new Set<string>();
+          return merged.filter((item) => {
+            const k = item.historyId || item.mediaId;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        });
+      } else if (historyItems.length > 0) {
+        // Upload local history to cloud
+        historyItems.forEach((h) => recordWatchInCloud(userId, h));
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) syncWithCloud(session.user.id);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) syncWithCloud(session.user.id);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const toggleWatchlist = (id: string, mediaItem?: MediaItem): boolean => {
     let isAdded = false;
     const lowerId = id.toLowerCase();
@@ -429,6 +491,19 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch (err) {
         console.warn('Failed to persist watchlist media to custom catalog:', err);
       }
+    }
+
+    // 5. Sync to Supabase Cloud if user is logged in
+    if (isSupabaseConfigured) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          if (isAdded && targetMedia) {
+            addToCloudWatchlist(user.id, targetMedia);
+          } else {
+            removeFromCloudWatchlist(user.id, id);
+          }
+        }
+      });
     }
 
     window.dispatchEvent(new Event('cinestream-watchlist-updated'));
@@ -538,6 +613,16 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch (err) {
         console.warn('Failed to persist historyItems synchronously:', err);
       }
+
+      // Sync watch history to Supabase Cloud
+      if (isSupabaseConfigured) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            recordWatchInCloud(user.id, updatedItem);
+          }
+        });
+      }
+
       return nextList;
     });
 
@@ -622,6 +707,15 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return nextList;
     });
 
+    // Cloud remove
+    if (isSupabaseConfigured) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          removeHistoryFromCloud(user.id, targetId);
+        }
+      });
+    }
+
     setContinueWatching((prev) => {
       const nextCw = prev.filter((p) => {
         if (episodeId && p.episodeId) {
@@ -655,6 +749,16 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       localStorage.removeItem(PROGRESS_STORAGE_KEY);
       localStorage.removeItem(HISTORY_STORAGE_KEY);
     } catch {}
+
+    // Cloud clear all
+    if (isSupabaseConfigured) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          clearAllHistoryFromCloud(user.id);
+        }
+      });
+    }
+
     window.dispatchEvent(new Event('cinestream-history-updated'));
   };
 

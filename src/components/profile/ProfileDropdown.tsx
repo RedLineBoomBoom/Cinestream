@@ -12,11 +12,15 @@ import {
   Smile,
   Type,
   X,
+  LogOut,
+  Sparkles,
+  Cloud,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
@@ -39,6 +43,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     allInitials,
   } = useUserProfile();
 
+  const { user, openAuthModal, signOut } = useAuth();
   const { watchlist, historyItems } = useWatchlist();
   const { playClick, playHover, playSuccess, playWhoosh } = useSound();
   const { language, t } = useLanguage();
@@ -129,10 +134,17 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <div className="absolute inset-0 bg-black/25" />
         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 backdrop-blur-md border border-white/10 text-white/90 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-sm">
-          <Tv className="w-3.5 h-3.5 text-white/80" />
-          <span>{language === 'en' ? 'Device Profile' : 'Profil Perangkat Ini'}</span>
-        </div>
+        {user ? (
+          <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/70 backdrop-blur-md border border-emerald-500/35 text-emerald-300 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-sm">
+            <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{language === 'en' ? 'Cloud Synced' : 'Cloud Sync'}</span>
+          </div>
+        ) : (
+          <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 backdrop-blur-md border border-white/10 text-white/90 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-sm">
+            <Tv className="w-3.5 h-3.5 text-white/80" />
+            <span>{language === 'en' ? 'Guest Profile' : 'Profil Tamu'}</span>
+          </div>
+        )}
 
         <button
           onClick={() => {
@@ -203,9 +215,15 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 <h3 className="text-base sm:text-lg font-display font-black text-white tracking-wide truncate max-w-[240px]">
                   {profile.name}
                 </h3>
-                <p className="text-[11px] font-mono text-slate-400">
-                  {activePalette.name} · {profile.avatarType === 'monogram' ? `Initials (${profile.initials})` : 'Emoji Persona'}
-                </p>
+                {user?.email ? (
+                  <p className="text-[11px] font-mono text-emerald-400 truncate max-w-[220px]">
+                    {user.email}
+                  </p>
+                ) : (
+                  <p className="text-[11px] font-mono text-slate-400">
+                    {activePalette.name} · {profile.avatarType === 'monogram' ? `Initials (${profile.initials})` : 'Emoji Persona'}
+                  </p>
+                )}
               </div>
 
               <button
@@ -256,6 +274,31 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         {/* TAB 1: OVERVIEW & STATS */}
         {activeTab === 'overview' && (
           <div className="space-y-3">
+            {/* Cloud Sync Account Banner (If Guest) */}
+            {!user && (
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-red-600/20 via-rose-600/15 to-transparent border border-red-500/30 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-red-300">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{language === 'en' ? 'Sync Across Devices' : 'Sinkronkan Antar Perangkat'}</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  {language === 'en'
+                    ? 'Sign in with Google or Email to sync your Watchlist & History across mobile, tablet, and PC.'
+                    : 'Masuk dengan Google atau Email agar Watchlist & Riwayat Anda tersambung di HP, Tab, dan Laptop.'}
+                </p>
+                <button
+                  onClick={() => {
+                    playClick();
+                    onClose();
+                    openAuthModal('signin');
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-[#E50914] hover:bg-red-600 text-white text-xs font-bold tracking-wide shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  {language === 'en' ? 'Sign In / Register' : 'Masuk / Daftar Akun'}
+                </button>
+              </div>
+            )}
+
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -308,10 +351,29 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-400 font-light leading-relaxed border-t border-white/[0.06] pt-3">
-              {language === 'en'
-                ? 'Your Watchlist, Watched, and History data are permanently saved on this device.'
-                : 'Daftar tontonan, riwayat, dan film selesai Anda tersimpan aman dan permanen di perangkat ini.'}
+              {user
+                ? language === 'en'
+                  ? 'Your Watchlist and History are securely backed up to the cloud.'
+                  : 'Daftar tontonan dan riwayat Anda tersinkronisasi aman ke cloud.'
+                : language === 'en'
+                ? 'Your data is saved locally. Sign in to backup and sync across devices.'
+                : 'Data Anda tersimpan di perangkat ini. Masuk untuk mencadangkan ke cloud.'}
             </p>
+
+            {/* Sign Out Button if Logged In */}
+            {user && (
+              <button
+                onClick={async () => {
+                  playClick();
+                  await signOut();
+                  onClose();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.05] hover:bg-red-500/20 border border-white/[0.1] hover:border-red-500/30 text-slate-300 hover:text-red-300 text-xs font-semibold transition-all cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Sign Out' : 'Keluar Akun'}</span>
+              </button>
+            )}
           </div>
         )}
 

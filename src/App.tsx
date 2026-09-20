@@ -18,6 +18,8 @@ import { WatchedView } from './components/history/WatchedView';
 import { AdvancedSearchView } from './components/search/AdvancedSearchView';
 import { WatchlistProvider, useWatchlist } from './context/WatchlistContext';
 import { UserProfileProvider } from './context/UserProfileContext';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
 import { SoundProvider, useSound } from './context/SoundContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { WatchPartyProvider, useWatchParty } from './context/WatchPartyContext';
@@ -1258,15 +1260,18 @@ const MainContent: React.FC = () => {
 export function App() {
   return (
     <LanguageProvider>
-      <UserProfileProvider>
-        <WatchlistProvider>
-          <SoundProvider>
-            <WatchPartyProvider>
-              <MainContent />
-            </WatchPartyProvider>
-          </SoundProvider>
-        </WatchlistProvider>
-      </UserProfileProvider>
+      <AuthProvider>
+        <UserProfileProvider>
+          <WatchlistProvider>
+            <SoundProvider>
+              <WatchPartyProvider>
+                <MainContent />
+                <AuthModal />
+              </WatchPartyProvider>
+            </SoundProvider>
+          </WatchlistProvider>
+        </UserProfileProvider>
+      </AuthProvider>
     </LanguageProvider>
   );
 }
