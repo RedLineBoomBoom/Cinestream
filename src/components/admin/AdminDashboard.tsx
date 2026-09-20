@@ -1816,8 +1816,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   title="Admin Stream Tester"
                   className="w-full h-full border-0"
                   allowFullScreen
-                  sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  referrerPolicy="origin"
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm">
