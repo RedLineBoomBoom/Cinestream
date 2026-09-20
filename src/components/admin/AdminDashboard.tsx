@@ -20,14 +20,18 @@ import {
   Check,
   Film,
   Tv,
+  Globe,
+  Loader2,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   saveAnnouncement,
   getActiveAnnouncement,
+  fetchActiveAnnouncementFromCloud,
   type BroadcastAnnouncement,
   getAdminEmails,
 } from '../../utils/admin';
@@ -72,6 +76,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const { user, signOut } = useAuth();
   const { profile } = useUserProfile();
   const { playClick, playSuccess, playHover } = useSound();
+  const { language, toggleLanguage } = useLanguage();
 
   // Active Admin Sub-Tab
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'stream-tester' | 'system'>('overview');
@@ -97,7 +102,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (active) return active;
     return {
       id: `bc_${Date.now().toString(36)}`,
-      title: 'PENGUMUMAN',
+      title: language === 'en' ? 'NOTICE' : 'PENGUMUMAN',
       message: '',
       type: 'info',
       active: false,
@@ -106,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       linkUrl: '',
     };
   });
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
   const [announcementSavedFeedback, setAnnouncementSavedFeedback] = useState(false);
 
   // Media / Stream Tester State
@@ -137,10 +143,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setUserList(profilesData as UserProfileRow[]);
       }
 
-      // 2. Fetch total watchlist count
+      // 2. Fetch total watchlist count (excluding internal broadcast row)
       const { count: watchlistCount } = await supabase
         .from('watchlist')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .neq('media_id', '__cinestream_broadcast_announcement__');
       setTotalWatchlist(watchlistCount ?? 0);
 
       // 3. Fetch total history count
@@ -202,9 +209,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsCheckingHealth(false);
   }, []);
 
+  // Sync cloud announcement when opening dashboard
   useEffect(() => {
     fetchMetrics();
     checkHealth();
+    fetchActiveAnnouncementFromCloud().then((cloud) => {
+      if (cloud) {
+        setAnnouncement(cloud);
+      }
+    });
   }, [fetchMetrics, checkHealth]);
 
   // Update test embed url when parameters change
@@ -253,26 +266,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Save Announcement
-  const handleSaveAnnouncement = (e: React.FormEvent) => {
+  // Save Announcement (Synced to Supabase Cloud so all devices & PWAs see it)
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     playSuccess();
+    setIsSavingAnnouncement(true);
     const toSave: BroadcastAnnouncement = {
       ...announcement,
       createdAt: new Date().toISOString(),
     };
-    saveAnnouncement(toSave);
+    await saveAnnouncement(toSave, user?.id);
+    setIsSavingAnnouncement(false);
     setAnnouncementSavedFeedback(true);
-    setTimeout(() => setAnnouncementSavedFeedback(false), 3000);
+    setTimeout(() => setAnnouncementSavedFeedback(false), 3500);
   };
 
   // Clear Announcement
-  const handleClearAnnouncement = () => {
+  const handleClearAnnouncement = async () => {
     playClick();
-    saveAnnouncement(null);
+    setIsSavingAnnouncement(true);
+    await saveAnnouncement(null, user?.id);
+    setIsSavingAnnouncement(false);
     setAnnouncement({
       id: `bc_${Date.now().toString(36)}`,
-      title: 'PENGUMUMAN',
+      title: language === 'en' ? 'NOTICE' : 'PENGUMUMAN',
       message: '',
       type: 'info',
       active: false,
@@ -281,7 +298,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       linkUrl: '',
     });
     setAnnouncementSavedFeedback(true);
-    setTimeout(() => setAnnouncementSavedFeedback(false), 3000);
+    setTimeout(() => setAnnouncementSavedFeedback(false), 3500);
   };
 
   return (
@@ -297,10 +314,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }}
               onMouseEnter={playHover}
               className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              title="Kembali ke Beranda"
+              title={language === 'en' ? 'Back to Home' : 'Kembali ke Beranda'}
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Keluar Dashboard</span>
+              <span className="hidden sm:inline">
+                {language === 'en' ? 'Exit Dashboard' : 'Keluar Dashboard'}
+              </span>
             </button>
 
             <div className="flex items-center gap-3">
@@ -312,14 +331,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-display font-black tracking-tight text-white uppercase">
-                    Admin Command Center
+                    {language === 'en' ? 'Admin Command Center' : 'Pusat Kontrol Admin'}
                   </h1>
                   <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-mono font-bold tracking-wider uppercase">
                     SUPERADMIN
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 font-mono flex items-center gap-2 mt-0.5">
-                  <span className="text-emerald-400">● Logged in as:</span>
+                <p className="text-xs text-slate-400 font-mono flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-emerald-400">
+                    {language === 'en' ? '● Logged in as:' : '● Masuk sebagai:'}
+                  </span>
                   <span className="text-slate-200 font-bold">{user?.email || 'Admin'}</span>
                   <span className="text-slate-500">|</span>
                   <span className="text-slate-400">Cinestream v2.5.0</span>
@@ -329,7 +350,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {/* Quick Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Direct Language Switcher */}
+            <button
+              onClick={() => {
+                playClick();
+                toggleLanguage();
+              }}
+              onMouseEnter={playHover}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer"
+              title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-[11px] font-black">{language.toUpperCase()}</span>
+            </button>
+
             <button
               onClick={() => {
                 playClick();
@@ -341,7 +376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
               <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth ? 'animate-spin' : ''}`} />
-              <span>Refresh Data</span>
+              <span>{language === 'en' ? 'Refresh Data' : 'Segarkan Data'}</span>
             </button>
 
             <button
@@ -353,7 +388,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onMouseEnter={playHover}
               className="px-3 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-xs font-semibold text-red-300 transition-all cursor-pointer"
             >
-              Sign Out
+              {language === 'en' ? 'Sign Out' : 'Keluar Akun'}
             </button>
           </div>
         </div>
@@ -361,11 +396,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* ── Navigation Tabs ── */}
         <div className="flex overflow-x-auto no-scrollbar gap-2 mt-6 pb-2 border-b border-white/[0.06]">
           {[
-            { id: 'overview', label: 'Ringkasan & Metrik', icon: Activity },
-            { id: 'users', label: 'Pengguna & Profil', icon: Users, badge: totalProfiles },
-            { id: 'broadcast', label: 'Pengumuman Banner', icon: Megaphone, highlight: announcement.active },
-            { id: 'stream-tester', label: 'Inspektur Stream & TMDB', icon: Play },
-            { id: 'system', label: 'Sistem & Server', icon: Server },
+            {
+              id: 'overview',
+              label: language === 'en' ? 'Overview & Metrics' : 'Ringkasan & Metrik',
+              icon: Activity,
+            },
+            {
+              id: 'users',
+              label: language === 'en' ? 'Users & Profiles' : 'Pengguna & Profil',
+              icon: Users,
+              badge: totalProfiles,
+            },
+            {
+              id: 'broadcast',
+              label: language === 'en' ? 'Announcement Banner' : 'Pengumuman Banner',
+              icon: Megaphone,
+              highlight: announcement.active,
+            },
+            {
+              id: 'stream-tester',
+              label: language === 'en' ? 'Stream & TMDB Inspector' : 'Inspektur Stream & TMDB',
+              icon: Play,
+            },
+            {
+              id: 'system',
+              label: language === 'en' ? 'System & Servers' : 'Sistem & Server',
+              icon: Server,
+            },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -409,7 +466,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 rounded-full blur-2xl group-hover:bg-red-600/20 transition-all pointer-events-none" />
                 <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Total Profil Terdaftar</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Total Registered Profiles' : 'Total Profil Terdaftar'}
+                  </span>
                   <Users className="w-4 h-4 text-red-400" />
                 </div>
                 <div className="text-3xl font-display font-black text-white">
@@ -417,7 +476,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
                   <span className="text-emerald-400">✓ Supabase Cloud</span>
-                  <span>• profiles table</span>
+                  <span>{language === 'en' ? '• profiles table' : '• tabel profiles'}</span>
                 </p>
               </div>
 
@@ -425,7 +484,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/10 rounded-full blur-2xl group-hover:bg-amber-600/20 transition-all pointer-events-none" />
                 <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Total Disimpan (Watchlist)</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Total Saved (Watchlist)' : 'Total Disimpan (Watchlist)'}
+                  </span>
                   <Bookmark className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-3xl font-display font-black text-white">
@@ -433,7 +494,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
                   <span className="text-amber-400">★ Items synced</span>
-                  <span>• global user bookmarks</span>
+                  <span>{language === 'en' ? '• global user bookmarks' : '• bookmark pengguna'}</span>
                 </p>
               </div>
 
@@ -441,7 +502,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/10 rounded-full blur-2xl group-hover:bg-blue-600/20 transition-all pointer-events-none" />
                 <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Riwayat Tontonan</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Watch History Items' : 'Riwayat Tontonan'}
+                  </span>
                   <Clock className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="text-3xl font-display font-black text-white">
@@ -449,7 +512,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
                   <span className="text-cyan-400">▶ Stream sessions</span>
-                  <span>• watch progress log</span>
+                  <span>{language === 'en' ? '• watch progress log' : '• log progres nonton'}</span>
                 </p>
               </div>
 
@@ -457,7 +520,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/10 rounded-full blur-2xl group-hover:bg-emerald-600/20 transition-all pointer-events-none" />
                 <div className="flex items-center justify-between text-slate-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Kesehatan Streaming</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Streaming Engine Health' : 'Kesehatan Streaming'}
+                  </span>
                   <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
                 </div>
                 <div className="text-3xl font-display font-black text-emerald-400">
@@ -465,7 +530,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
                   <span className="text-emerald-400">● 5/5 Providers ready</span>
-                  <span>• zero downtime</span>
+                  <span>{language === 'en' ? '• zero downtime' : '• tanpa kendala'}</span>
                 </p>
               </div>
             </div>
@@ -476,10 +541,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
                     <Server className="w-4 h-4 text-cyan-400" />
-                    Status Server Streaming & API Metadata
+                    {language === 'en' ? 'Streaming Servers & Metadata API Status' : 'Status Server Streaming & API Metadata'}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Pemantauan ketersediaan endpoint provider video dan metadata film
+                    {language === 'en'
+                      ? 'Live endpoint availability monitoring for video providers and movie metadata'
+                      : 'Pemantauan ketersediaan endpoint provider video dan metadata film'}
                   </p>
                 </div>
                 <button
@@ -488,7 +555,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <RotateCw className={`w-3 h-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
-                  <span>Ping Server</span>
+                  <span>{language === 'en' ? 'Ping Servers' : 'Ping Server'}</span>
                 </button>
               </div>
 
@@ -535,10 +602,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10">
               <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-amber-400" />
-                Daftar Whitelist Email Administrator
+                {language === 'en' ? 'Administrator Email Whitelist' : 'Daftar Whitelist Email Administrator'}
               </h3>
               <p className="text-xs text-slate-400 mb-4">
-                Hanya akun dengan email terverifikasi di bawah ini yang dapat membuka dashboard ini dan melihat tombol akses admin.
+                {language === 'en'
+                  ? 'Only accounts with verified emails listed below can open this dashboard and access administrator controls.'
+                  : 'Hanya akun dengan email terverifikasi di bawah ini yang dapat membuka dashboard ini dan melihat tombol akses admin.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 {getAdminEmails().map((email) => (
@@ -563,9 +632,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-white">Daftar Profil Pengguna Terdaftar</h3>
+                <h3 className="text-lg font-bold text-white">
+                  {language === 'en' ? 'Registered User Profiles' : 'Daftar Profil Pengguna Terdaftar'}
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Data profil disinkronkan langsung dari tabel profiles di Supabase.
+                  {language === 'en'
+                    ? 'User profile records synchronized directly from Supabase profiles table.'
+                    : 'Data profil disinkronkan langsung dari tabel profiles di Supabase.'}
                 </p>
               </div>
 
@@ -574,7 +647,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Cari nama, ID, atau inisial..."
+                  placeholder={language === 'en' ? 'Search name, ID, or initials...' : 'Cari nama, ID, atau inisial...'}
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
                   className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#E50914]"
@@ -586,7 +659,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {filteredUsers.length === 0 ? (
               <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10">
                 <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">Tidak ada profil yang cocok dengan pencarian.</p>
+                <p className="text-sm text-slate-400">
+                  {language === 'en' ? 'No profiles found matching search.' : 'Tidak ada profil yang cocok dengan pencarian.'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -639,7 +714,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           onClick={() => handleCopyId(u.id)}
                           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
-                          title="Salin User ID"
+                          title={language === 'en' ? 'Copy User ID' : 'Salin User ID'}
                         >
                           {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
@@ -650,7 +725,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           ID: {u.id.substring(0, 16)}...
                         </span>
                         <span>
-                          {u.updated_at ? new Date(u.updated_at).toLocaleDateString('id-ID') : 'Aktif'}
+                          {u.updated_at
+                            ? new Date(u.updated_at).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID')
+                            : (language === 'en' ? 'Active' : 'Aktif')}
                         </span>
                       </div>
                     </div>
@@ -667,17 +744,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Megaphone className="w-5 h-5 text-amber-400" />
-                Manajemen Pengumuman Global (Broadcast Banner)
+                {language === 'en'
+                  ? 'Global Announcement Management (Broadcast Banner)'
+                  : 'Manajemen Pengumuman Global (Broadcast Banner)'}
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Kirim pengumuman penting (informasi pembaruan, status server, atau event) yang akan tampil di bagian atas situs web untuk semua pengunjung.
+                {language === 'en'
+                  ? 'Send announcements (maintenance notices, updates, or events) synchronized in real-time across all devices (Desktop, Mobile, Tablet, PWA).'
+                  : 'Kirim pengumuman penting (informasi pembaruan, status server, atau event) yang otomatis tersinkron ke semua perangkat (Desktop, HP, Tablet, PWA).'}
               </p>
             </div>
 
             {/* Live Preview of the Banner */}
             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Pratinjau Langsung (Live Preview)
+                {language === 'en' ? 'Live Preview' : 'Pratinjau Langsung (Live Preview)'}
               </span>
               <div
                 className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
@@ -693,10 +774,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Megaphone className="w-4 h-4 shrink-0" />
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-black/40 border border-white/20">
-                    {announcement.title || 'PENGUMUMAN'}
+                    {announcement.title || (language === 'en' ? 'NOTICE' : 'PENGUMUMAN')}
                   </span>
                   <span className="truncate font-medium">
-                    {announcement.message || 'Contoh pesan pengumuman untuk seluruh pengunjung website...'}
+                    {announcement.message || (language === 'en'
+                      ? 'Example announcement message visible to all visitors across devices...'
+                      : 'Contoh pesan pengumuman untuk seluruh pengunjung website...')}
                   </span>
                   {announcement.linkUrl && announcement.linkText && (
                     <span className="underline font-bold shrink-0 inline-flex items-center gap-1">
@@ -705,7 +788,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   )}
                 </div>
                 <span className="text-[10px] font-mono opacity-70">
-                  {announcement.active ? '● AKTIF' : '○ NONAKTIF'}
+                  {announcement.active
+                    ? (language === 'en' ? '● ACTIVE' : '● AKTIF')
+                    : (language === 'en' ? '○ INACTIVE' : '○ NONAKTIF')}
                 </span>
               </div>
             </div>
@@ -715,9 +800,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Active Toggle */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10">
                 <div>
-                  <span className="text-xs font-bold text-white block">Status Banner Pengumuman</span>
+                  <span className="text-xs font-bold text-white block">
+                    {language === 'en' ? 'Announcement Banner Status' : 'Status Banner Pengumuman'}
+                  </span>
                   <span className="text-[11px] text-slate-400">
-                    {announcement.active ? 'Banner sedang aktif dan muncul di seluruh halaman' : 'Banner sedang dinonaktifkan (tersembunyi)'}
+                    {announcement.active
+                      ? (language === 'en' ? 'Banner is active and broadcasting globally across all devices' : 'Banner sedang aktif dan muncul di seluruh halaman & perangkat')
+                      : (language === 'en' ? 'Banner is disabled (hidden)' : 'Banner sedang dinonaktifkan (tersembunyi)')}
                   </span>
                 </div>
                 <button
@@ -740,13 +829,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Type Selection */}
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-2">Tipe Pengumuman</label>
+                <label className="text-xs font-bold text-slate-300 block mb-2">
+                  {language === 'en' ? 'Announcement Type' : 'Tipe Pengumuman'}
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { type: 'info', label: 'Info (Biru/Cyan)' },
-                    { type: 'warning', label: 'Peringatan (Kuning)' },
-                    { type: 'alert', label: 'Penting/Alert (Merah)' },
-                    { type: 'success', label: 'Sukses (Hijau)' },
+                    { type: 'info', label: language === 'en' ? 'Info (Blue/Cyan)' : 'Info (Biru/Cyan)' },
+                    { type: 'warning', label: language === 'en' ? 'Warning (Yellow)' : 'Peringatan (Kuning)' },
+                    { type: 'alert', label: language === 'en' ? 'Alert (Red)' : 'Penting/Alert (Merah)' },
+                    { type: 'success', label: language === 'en' ? 'Success (Green)' : 'Sukses (Hijau)' },
                   ].map((t) => (
                     <button
                       key={t.type}
@@ -769,12 +860,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Title Input */}
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Judul / Tag Badge</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  {language === 'en' ? 'Badge Title / Tag' : 'Judul / Tag Badge'}
+                </label>
                 <input
                   type="text"
                   value={announcement.title}
                   onChange={(e) => setAnnouncement((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Misal: UPDATE, SERVER, PENTING"
+                  placeholder={language === 'en' ? 'e.g. UPDATE, MAINTENANCE, NOTICE' : 'Misal: UPDATE, SERVER, PENTING'}
                   maxLength={20}
                   className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 />
@@ -782,11 +875,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Message Input */}
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Isi Pesan Pengumuman *</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  {language === 'en' ? 'Announcement Message *' : 'Isi Pesan Pengumuman *'}
+                </label>
                 <textarea
                   value={announcement.message}
                   onChange={(e) => setAnnouncement((prev) => ({ ...prev, message: e.target.value }))}
-                  placeholder="Ketik teks pengumuman yang akan dibaca pengguna..."
+                  placeholder={language === 'en' ? 'Type the announcement message for all visitors...' : 'Ketik teks pengumuman yang akan dibaca pengguna...'}
                   rows={3}
                   required
                   className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
@@ -796,17 +891,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Optional Link */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Teks Tautan (Opsional)</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {language === 'en' ? 'Link Text (Optional)' : 'Teks Tautan (Opsional)'}
+                  </label>
                   <input
                     type="text"
                     value={announcement.linkText || ''}
                     onChange={(e) => setAnnouncement((prev) => ({ ...prev, linkText: e.target.value }))}
-                    placeholder="Misal: Pelajari Selengkapnya"
+                    placeholder={language === 'en' ? 'e.g. Learn More' : 'Misal: Pelajari Selengkapnya'}
                     className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">URL Tautan (Opsional)</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {language === 'en' ? 'Link URL (Optional)' : 'URL Tautan (Opsional)'}
+                  </label>
                   <input
                     type="url"
                     value={announcement.linkUrl || ''}
@@ -822,25 +921,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   type="button"
                   onClick={handleClearAnnouncement}
-                  className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-red-950/40 border border-white/10 hover:border-red-500/30 text-xs font-semibold text-slate-300 hover:text-red-300 transition-all cursor-pointer flex items-center gap-1.5"
+                  disabled={isSavingAnnouncement}
+                  className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-red-950/40 border border-white/10 hover:border-red-500/30 text-xs font-semibold text-slate-300 hover:text-red-300 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus Pengumuman</span>
+                  <span>{language === 'en' ? 'Delete Announcement' : 'Hapus Pengumuman'}</span>
                 </button>
 
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-xs font-bold tracking-wide shadow-lg shadow-red-900/40 transition-all cursor-pointer active:scale-95 flex items-center gap-2"
+                  disabled={isSavingAnnouncement}
+                  className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-red-600 text-white text-xs font-bold tracking-wide shadow-lg shadow-red-900/40 transition-all cursor-pointer active:scale-95 flex items-center gap-2 disabled:opacity-50"
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>Simpan & Siarkan Banner</span>
+                  {isSavingAnnouncement ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {isSavingAnnouncement
+                      ? (language === 'en' ? 'Broadcasting...' : 'Menyiarkan...')
+                      : (language === 'en' ? 'Save & Broadcast Globally' : 'Simpan & Siarkan Banner')}
+                  </span>
                 </button>
               </div>
 
               {announcementSavedFeedback && (
                 <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Pengumuman berhasil diperbarui dan disiarkan secara real-time!</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    {language === 'en'
+                      ? 'Announcement saved & broadcast globally to all mobile, tablet, desktop, and PWA devices!'
+                      : 'Pengumuman berhasil disimpan & disiarkan ke semua perangkat HP, Tablet, Desktop, dan PWA!'}
+                  </span>
                 </div>
               )}
             </form>
@@ -853,10 +966,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Play className="w-5 h-5 text-red-500" />
-                Inspektur & Penguji Server Video (Stream Quick Tester)
+                {language === 'en'
+                  ? 'Video Server Inspector (Stream Quick Tester)'
+                  : 'Inspektur & Penguji Server Video (Stream Quick Tester)'}
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Uji coba langsung pemutaran video menggunakan berbagai server mirror pihak ketiga untuk memastikan link aktif sebelum dilaporkan penonton.
+                {language === 'en'
+                  ? 'Live test video playback across third-party mirror servers before users report issues.'
+                  : 'Uji coba langsung pemutaran video menggunakan berbagai server mirror pihak ketiga untuk memastikan link aktif sebelum dilaporkan penonton.'}
               </p>
             </div>
 
@@ -870,7 +987,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     type="text"
                     value={testTmdbId}
                     onChange={(e) => setTestTmdbId(e.target.value)}
-                    placeholder="Contoh: 550"
+                    placeholder={language === 'en' ? 'e.g. 550' : 'Contoh: 550'}
                     className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-[#E50914]"
                   />
                   <span className="text-[10px] text-slate-500 font-mono mt-0.5 block">550 = Fight Club</span>
@@ -878,7 +995,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Media Type */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Tipe Media</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {language === 'en' ? 'Media Type' : 'Tipe Media'}
+                  </label>
                   <div className="flex rounded-xl bg-white/[0.05] p-1 border border-white/10">
                     <button
                       type="button"
@@ -888,7 +1007,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     >
                       <Film className="w-3 h-3 inline mr-1" />
-                      Film
+                      {language === 'en' ? 'Movie' : 'Film'}
                     </button>
                     <button
                       type="button"
@@ -907,7 +1026,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {testMediaType === 'tv' && (
                   <>
                     <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">Season</label>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        {language === 'en' ? 'Season' : 'Musim'}
+                      </label>
                       <input
                         type="number"
                         min="1"
@@ -931,7 +1052,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Server Selection */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Provider Embed</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {language === 'en' ? 'Embed Provider' : 'Provider Embed'}
+                  </label>
                   <select
                     value={testServer}
                     onChange={(e) => setTestServer(e.target.value as any)}
@@ -953,7 +1076,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white shrink-0"
-                  title="Buka di tab baru"
+                  title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -972,7 +1095,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm">
-                  Masukkan ID TMDB untuk memulai pengetesan streaming
+                  {language === 'en'
+                    ? 'Enter a TMDB ID to start stream testing'
+                    : 'Masukkan ID TMDB untuk memulai pengetesan streaming'}
                 </div>
               )}
             </div>
@@ -985,10 +1110,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Server className="w-5 h-5 text-cyan-400" />
-                Konfigurasi Sistem & Lingkungan
+                {language === 'en' ? 'System & Environment Configuration' : 'Konfigurasi Sistem & Lingkungan'}
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Informasi detail platform, koneksi database cloud Supabase, dan manajemen cache browser.
+                {language === 'en'
+                  ? 'Platform details, Supabase cloud database connection, and local cache maintenance.'
+                  : 'Informasi detail platform, koneksi database cloud Supabase, dan manajemen cache browser.'}
               </p>
             </div>
 
@@ -1005,11 +1132,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Status Otentikasi Supabase
+                    {language === 'en' ? 'Supabase Connection Status' : 'Status Otentikasi Supabase'}
                   </span>
                   <span className="text-xs font-mono text-emerald-400 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Terhubung & Aktif
+                    {language === 'en' ? 'Connected & Active' : 'Terhubung & Aktif'}
                   </span>
                 </div>
 
@@ -1035,15 +1162,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {/* Cache Management */}
               <div className="pt-4 border-t border-white/10 space-y-2">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Pemeliharaan Cache Perangkat
+                  {language === 'en' ? 'Device Cache Maintenance' : 'Pemeliharaan Cache Perangkat'}
                 </h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Jika Anda mengalami inkonsistensi data lokal atau thumbnail lama, Anda dapat mereset cache lokal aplikasi.
+                  {language === 'en'
+                    ? 'If you experience outdated thumbnails or stale local data, you can reset the local app cache.'
+                    : 'Jika Anda mengalami inkonsistensi data lokal atau thumbnail lama, Anda dapat mereset cache lokal aplikasi.'}
                 </p>
                 <button
                   onClick={() => {
                     playClick();
-                    if (window.confirm('Bersihkan cache katalog lokal dan refresh halaman?')) {
+                    const msg = language === 'en'
+                      ? 'Clear local catalog cache and refresh page?'
+                      : 'Bersihkan cache katalog lokal dan refresh halaman?';
+                    if (window.confirm(msg)) {
                       localStorage.removeItem('cinestream_hero_cache_v2');
                       localStorage.removeItem('cinestream_curated_cache_v1');
                       window.location.reload();
@@ -1051,7 +1183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }}
                   className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer"
                 >
-                  Bersihkan Cache TMDB Lokal
+                  {language === 'en' ? 'Clear Local TMDB Cache' : 'Bersihkan Cache TMDB Lokal'}
                 </button>
               </div>
             </div>

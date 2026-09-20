@@ -1,32 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, AlertTriangle, CheckCircle2, X, ExternalLink } from 'lucide-react';
-import { getActiveAnnouncement, type BroadcastAnnouncement } from '../../utils/admin';
+import {
+  getActiveAnnouncement,
+  fetchActiveAnnouncementFromCloud,
+  type BroadcastAnnouncement,
+} from '../../utils/admin';
 
 export const BroadcastBanner: React.FC = () => {
-  const [announcement, setAnnouncement] = useState<BroadcastAnnouncement | null>(null);
+  const [announcement, setAnnouncement] = useState<BroadcastAnnouncement | null>(() => {
+    const local = getActiveAnnouncement();
+    if (local && local.active) {
+      if (typeof window !== 'undefined') {
+        const dismissedKey = `cinestream_dismissed_announcement_${local.id}`;
+        if (sessionStorage.getItem(dismissedKey) === 'true') {
+          return null;
+        }
+      }
+      return local;
+    }
+    return null;
+  });
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    const updateFromStorage = () => {
-      const active = getActiveAnnouncement();
-      if (active) {
-        // Check if user previously dismissed this specific announcement
-        const dismissedKey = `cinestream_dismissed_announcement_${active.id}`;
-        if (sessionStorage.getItem(dismissedKey) === 'true') {
-          setIsDismissed(true);
-        } else {
-          setIsDismissed(false);
+    let isMounted = true;
+
+    const checkAnnouncement = async () => {
+      try {
+        // 1. Check local storage cache
+        const local = getActiveAnnouncement();
+        if (local && local.active && isMounted) {
+          const dismissedKey = `cinestream_dismissed_announcement_${local.id}`;
+          if (sessionStorage.getItem(dismissedKey) === 'true') {
+            setIsDismissed(true);
+          } else {
+            setIsDismissed(false);
+            setAnnouncement(local);
+          }
         }
-        setAnnouncement(active);
-      } else {
-        setAnnouncement(null);
+
+        // 2. Fetch latest from Supabase Cloud (ensures mobile, tablet, and PWAs see it)
+        const cloud = await fetchActiveAnnouncementFromCloud();
+        if (!isMounted) return;
+
+        if (cloud && cloud.active) {
+          const dismissedKey = `cinestream_dismissed_announcement_${cloud.id}`;
+          if (sessionStorage.getItem(dismissedKey) === 'true') {
+            setIsDismissed(true);
+          } else {
+            setIsDismissed(false);
+            setAnnouncement(cloud);
+          }
+        } else {
+          setAnnouncement(null);
+        }
+      } catch (err) {
+        console.warn('Error syncing broadcast banner:', err);
       }
     };
 
-    updateFromStorage();
+    checkAnnouncement();
 
-    // Listen for real-time updates dispatched from AdminDashboard
-    const handleUpdate = (e: CustomEvent<BroadcastAnnouncement | null>) => {
+    // 3. Listen for real-time updates dispatched locally from AdminDashboard
+    const handleLocalUpdate = (e: CustomEvent<BroadcastAnnouncement | null>) => {
       const active = e.detail;
       if (active && active.active) {
         setAnnouncement(active);
@@ -36,12 +72,26 @@ export const BroadcastBanner: React.FC = () => {
       }
     };
 
-    window.addEventListener('cinestream_announcement_updated' as any, handleUpdate as any);
-    window.addEventListener('storage', updateFromStorage);
+    // 4. Check on window focus or visibility change (user reopens mobile browser / PWA)
+    const handleFocus = () => {
+      checkAnnouncement();
+    };
+
+    window.addEventListener('cinestream_announcement_updated' as any, handleLocalUpdate as any);
+    window.addEventListener('storage', checkAnnouncement);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    // Periodic check every 45 seconds to keep all devices synchronized
+    const interval = setInterval(checkAnnouncement, 45000);
 
     return () => {
-      window.removeEventListener('cinestream_announcement_updated' as any, handleUpdate as any);
-      window.removeEventListener('storage', updateFromStorage);
+      isMounted = false;
+      window.removeEventListener('cinestream_announcement_updated' as any, handleLocalUpdate as any);
+      window.removeEventListener('storage', checkAnnouncement);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+      clearInterval(interval);
     };
   }, []);
 
@@ -91,10 +141,10 @@ export const BroadcastBanner: React.FC = () => {
   return (
     <div
       role="alert"
-      className={`relative z-40 w-full border-b backdrop-blur-md px-4 py-2.5 shadow-lg animate-in fade-in slide-in-from-top-3 duration-300 ${style.bg}`}
+      className={`relative z-40 w-full border-b backdrop-blur-md px-4 py-2 sm:py-2.5 shadow-lg animate-in fade-in slide-in-from-top-3 duration-300 ${style.bg}`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs sm:text-sm">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
           {style.icon}
           {announcement.title && (
             <span
@@ -103,7 +153,7 @@ export const BroadcastBanner: React.FC = () => {
               {announcement.title}
             </span>
           )}
-          <p className="truncate text-slate-100 font-medium leading-tight">
+          <p className="truncate text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
             {announcement.message}
           </p>
           {announcement.linkUrl && announcement.linkText && (
@@ -111,7 +161,7 @@ export const BroadcastBanner: React.FC = () => {
               href={announcement.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0"
+              className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs"
             >
               <span>{announcement.linkText}</span>
               <ExternalLink className="w-3 h-3" />

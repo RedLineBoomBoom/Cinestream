@@ -73,6 +73,7 @@ export async function fetchWatchlistFromCloud(
     const mediaMap: Record<string, MediaItem> = {};
 
     data?.forEach((row) => {
+      if (row.media_id === '__cinestream_broadcast_announcement__') return;
       ids.push(row.media_id);
       mediaMap[row.media_id] = createMinimalMediaItem(row);
     });
