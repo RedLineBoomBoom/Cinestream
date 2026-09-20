@@ -858,10 +858,19 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
-                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-[0.97] contrast-[1.01] blur-[0.6px] saturate-[0.95]"
+                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-[0.97] contrast-[1.01] saturate-[0.95]
+                      blur-[3px] opacity-25
+                      sm:blur-[0.6px] sm:opacity-100"
                   />
                 </div>
               </div>
+
+              {/* Mobile-only: left-side dark scrim so text stays legible over the blurred cutout */}
+              <div className="sm:hidden absolute inset-y-0 left-0 right-0 pointer-events-none z-[14]"
+                style={{
+                  background: 'linear-gradient(to right, #141414 30%, #141414cc 60%, transparent 100%)',
+                }}
+              />
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
                 {/* Banner Header: Prestigious Category Title, Spotlight Show Logo, & Tagline / Synopsis */}
