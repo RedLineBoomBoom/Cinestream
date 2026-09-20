@@ -25,7 +25,6 @@ import {
   SkipBack,
   SkipForward,
   Flag,
-  Users,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode, Season } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
@@ -40,7 +39,6 @@ import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { WatchPartyButton } from '../party/WatchPartyButton';
 import { useWatchlist } from '../../context/WatchlistContext';
-import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useWatchParty } from '../../context/WatchPartyContext';
@@ -101,13 +99,8 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   const isCompleted = Boolean(historyItems.find((h) => h.mediaId === media.id)?.completed);
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
-  const { profile } = useUserProfile();
-  const { status: partyStatus, isHost, changeMedia, publicRooms, joinParty } = useWatchParty();
+  const { status: partyStatus, isHost, changeMedia } = useWatchParty();
   const displayTitle = getMediaTitle(media, language);
-
-  const matchingPublicRoom = partyStatus !== 'connected'
-    ? publicRooms?.find((r) => String(r.mediaId) === String(media.id))
-    : undefined;
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(media);
 
@@ -1064,51 +1057,6 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
               )}
             </div>
-          </div>
-        )}
-
-        {/* Live Public Watch Party Notice for this Media */}
-        {!isMiniPlayer && !isFullscreen && matchingPublicRoom && (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-950/80 via-cinema-900/90 to-purple-950/70 border border-violet-500/30 p-3 sm:p-4 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/30 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0 shadow-lg shadow-violet-500/20">
-                <Users className="w-5 h-5 text-violet-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                  </span>
-                  <span className="text-xs font-bold text-violet-300 uppercase tracking-wider">
-                    {t('partyLive')} • {matchingPublicRoom.hostName}
-                  </span>
-                  {matchingPublicRoom.memberCount > 1 && (
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-medium">
-                      {matchingPublicRoom.memberCount} {t('partyViewersCount')}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  {t('partySameMovieNotice')}
-                  {matchingPublicRoom.episodeTitle ? ` (${matchingPublicRoom.episodeTitle})` : ''}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={async () => {
-                playClick();
-                const nameToUse = profile?.name || (language === 'en' ? 'Viewer' : 'Penonton');
-                await joinParty(matchingPublicRoom.roomCode, nameToUse, profile?.id);
-                onOpenWatchParty?.();
-              }}
-              onMouseEnter={playHover}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 border border-violet-400/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>{t('partyJoinLive')}</span>
-            </button>
           </div>
         )}
 
