@@ -79,10 +79,12 @@ interface ServerStatusItem {
 
 const STREAM_SERVERS: ServerStatusItem[] = [
   { id: 'tmdb', name: 'TMDB Metadata API', url: 'https://api.themoviedb.org/3/configuration', type: 'api', status: 'checking' },
-  { id: 'autoembed', name: 'AutoEmbed Provider', url: 'https://player.autoembed.cc', type: 'embed', status: 'checking' },
-  { id: 'vidlink', name: 'VidLink Pro Engine', url: 'https://vidlink.pro', type: 'embed', status: 'checking' },
-  { id: '2embed', name: '2Embed Stream Gateway', url: 'https://www.2embed.cc', type: 'embed', status: 'checking' },
-  { id: 'vidsrc', name: 'Vidsrc In-House Mirror', url: 'https://vidsrc.xyz', type: 'embed', status: 'checking' },
+  { id: 'vidsrc', name: 'Server 1 • VidSrc Prime', url: 'https://vidsrc.to', type: 'embed', status: 'checking' },
+  { id: 'autoembed', name: 'Server 2 • AutoEmbed Ultra', url: 'https://player.autoembed.co', type: 'embed', status: 'checking' },
+  { id: '2embed', name: 'Server 3 • 2Embed Cinema', url: 'https://www.2embed.cc', type: 'embed', status: 'checking' },
+  { id: 'multiembed', name: 'Server 4 • MultiStream Pro', url: 'https://multiembed.mov', type: 'embed', status: 'checking' },
+  { id: 'anyembed', name: 'Server 5 • AnyEmbed Sub Indo', url: 'https://anyembed.xyz', type: 'embed', status: 'checking' },
+  { id: 'vidlink', name: 'Server 6 • VidLink Pro HD', url: 'https://vidlink.pro', type: 'embed', status: 'checking' },
 ];
 
 function getIssueBadge(type: string, lang: string) {
@@ -250,11 +252,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (report.seasonNumber) setTestSeason(String(report.seasonNumber));
     if (report.episodeNumber) setTestEpisode(String(report.episodeNumber));
 
-    const cleanServer = report.serverId.toLowerCase();
-    if (cleanServer.includes('autoembed')) setTestServer('autoembed');
-    else if (cleanServer.includes('2embed')) setTestServer('2embed');
-    else if (cleanServer.includes('vidsrc')) setTestServer('vidsrc');
-    else setTestServer('vidlink');
+    const cleanServer = (report.serverId || '').toLowerCase();
+    const cleanServerName = (report.serverName || '').toLowerCase();
+
+    if (cleanServer.includes('autoembed') || cleanServerName.includes('autoembed')) {
+      setTestServer('autoembed');
+    } else if (cleanServer.includes('2embed') || cleanServerName.includes('2embed')) {
+      setTestServer('2embed');
+    } else if (cleanServer.includes('vidsrc') || cleanServerName.includes('vidsrc')) {
+      setTestServer('vidsrc');
+    } else if (cleanServer.includes('multiembed') || cleanServer.includes('multistream') || cleanServerName.includes('multistream')) {
+      setTestServer('multiembed');
+    } else if (cleanServer.includes('anyembed') || cleanServer.includes('smashy') || cleanServerName.includes('anyembed')) {
+      setTestServer('anyembed');
+    } else {
+      setTestServer('vidlink');
+    }
 
     setActiveTab('stream-tester');
   };
@@ -338,7 +351,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [testMediaType, setTestMediaType] = useState<'movie' | 'tv'>('movie');
   const [testSeason, setTestSeason] = useState('1');
   const [testEpisode, setTestEpisode] = useState('1');
-  const [testServer, setTestServer] = useState<'autoembed' | 'vidlink' | '2embed' | 'vidsrc'>('vidlink');
+  const [testServer, setTestServer] = useState<'vidlink' | 'autoembed' | '2embed' | 'vidsrc' | 'multiembed' | 'anyembed'>('vidlink');
   const [testEmbedUrl, setTestEmbedUrl] = useState('');
 
   // ── Load Platform Metrics ──
@@ -457,17 +470,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         : `https://vidlink.pro/tv/${cleanId}/${testSeason}/${testEpisode}?primaryColor=e50914`;
     } else if (testServer === 'autoembed') {
       url = testMediaType === 'movie'
-        ? `https://player.autoembed.cc/embed/movie/${cleanId}`
-        : `https://player.autoembed.cc/embed/tv/${cleanId}/${testSeason}/${testEpisode}`;
+        ? `https://player.autoembed.co/embed/movie/${cleanId}`
+        : `https://player.autoembed.co/embed/tv/${cleanId}/${testSeason}/${testEpisode}`;
     } else if (testServer === '2embed') {
       url = testMediaType === 'movie'
         ? `https://www.2embed.cc/embed/${cleanId}`
         : `https://www.2embed.cc/embedtv/${cleanId}&s=${testSeason}&e=${testEpisode}`;
-    } else {
-      // vidsrc
+    } else if (testServer === 'vidsrc') {
       url = testMediaType === 'movie'
-        ? `https://vidsrc.xyz/embed/movie/${cleanId}`
-        : `https://vidsrc.xyz/embed/tv/${cleanId}/${testSeason}-${testEpisode}`;
+        ? `https://vidsrc.to/embed/movie/${cleanId}`
+        : `https://vidsrc.to/embed/tv/${cleanId}/${testSeason}/${testEpisode}`;
+    } else if (testServer === 'multiembed') {
+      url = testMediaType === 'movie'
+        ? `https://multiembed.mov/?video_id=${cleanId}&tmdb=1`
+        : `https://multiembed.mov/?video_id=${cleanId}&tmdb=1&s=${testSeason}&e=${testEpisode}`;
+    } else if (testServer === 'anyembed') {
+      url = testMediaType === 'movie'
+        ? `https://anyembed.xyz/embed/tmdb-movie-${cleanId}`
+        : `https://anyembed.xyz/embed/tmdb-tv-${cleanId}-${testSeason}-${testEpisode}`;
     }
     setTestEmbedUrl(url);
   }, [testTmdbId, testMediaType, testSeason, testEpisode, testServer]);
@@ -1785,26 +1805,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={(e) => setTestServer(e.target.value as any)}
                     className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-[#E50914] cursor-pointer"
                   >
-                    <option value="vidlink">VidLink Pro (Default)</option>
-                    <option value="autoembed">AutoEmbed Fast</option>
-                    <option value="2embed">2Embed Gateway</option>
-                    <option value="vidsrc">Vidsrc Mirror</option>
+                    <option value="vidsrc">Server 1 • VidSrc Prime</option>
+                    <option value="autoembed">Server 2 • AutoEmbed Ultra</option>
+                    <option value="2embed">Server 3 • 2Embed Cinema</option>
+                    <option value="multiembed">Server 4 • MultiStream Pro</option>
+                    <option value="anyembed">Server 5 • AnyEmbed Sub Indo</option>
+                    <option value="vidlink">Server 6 • VidLink Pro HD (Default)</option>
                   </select>
                 </div>
               </div>
 
-              {/* URL Preview */}
-              <div className="p-3 rounded-xl bg-black/40 border border-white/[0.06] flex items-center justify-between gap-2 text-xs font-mono text-slate-400">
-                <span className="truncate text-cyan-300">{testEmbedUrl}</span>
-                <a
-                  href={testEmbedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white shrink-0"
-                  title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+              {/* URL Preview & Quick Switcher */}
+              <div className="space-y-2.5">
+                {/* 1-Click Server Switcher Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                    {language === 'en' ? 'Quick Switch:' : 'Uji Server Lain:'}
+                  </span>
+                  {[
+                    { id: 'vidsrc', label: 'S1 • VidSrc' },
+                    { id: 'autoembed', label: 'S2 • AutoEmbed' },
+                    { id: '2embed', label: 'S3 • 2Embed' },
+                    { id: 'multiembed', label: 'S4 • MultiStream' },
+                    { id: 'anyembed', label: 'S5 • AnyEmbed' },
+                    { id: 'vidlink', label: 'S6 • VidLink' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        setTestServer(s.id as any);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                        testServer === s.id
+                          ? 'bg-[#E50914] text-white shadow-md shadow-red-900/40'
+                          : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* URL preview with Open in Tab button */}
+                <div className="p-3 rounded-xl bg-black/40 border border-white/[0.06] flex items-center justify-between gap-3 text-xs font-mono text-slate-400">
+                  <span className="truncate text-cyan-300">{testEmbedUrl}</span>
+                  <a
+                    href={testEmbedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-colors"
+                  >
+                    <span>{language === 'en' ? 'Open in Tab' : 'Buka Tab Penuh'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -1826,6 +1882,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     : 'Masukkan ID TMDB untuk memulai pengetesan streaming'}
                 </div>
               )}
+            </div>
+
+            {/* DNS / ISP Notice */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5 text-xs text-amber-300">
+              <span className="text-base leading-none">💡</span>
+              <p className="leading-relaxed">
+                {language === 'en'
+                  ? 'Note: If an embed server shows "server IP address could not be found" or connection failed, the domain might be blocked by your local ISP DNS. Use Cloudflare 1.1.1.1 / WARP DNS, or test alternative servers (VidSrc, MultiStream, or VidLink) using the quick switch buttons above.'
+                  : 'Catatan: Jika player menampilkan "server IP address could not be found" atau koneksi gagal, domain mirror tersebut mungkin diblokir oleh DNS operator internet lokal (ISP). Solusi: Aktifkan DNS 1.1.1.1 (Cloudflare) / WARP, atau uji server alternatif (VidSrc, MultiStream, atau VidLink) pada tombol uji cepat di atas.'}
+              </p>
             </div>
           </div>
         )}

@@ -367,7 +367,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     Boolean(activeServer.isEmbed) ||
     (typeof videoSource === 'string' &&
       (videoSource.includes('/embed/') ||
-        videoSource.includes('autoembed.cc') ||
+        videoSource.includes('autoembed') ||
         videoSource.includes('multiembed.mov') ||
         videoSource.includes('vidsrc') ||
         videoSource.includes('vidlink') ||
