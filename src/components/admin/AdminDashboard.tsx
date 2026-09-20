@@ -25,6 +25,9 @@ import {
   AlertTriangle,
   CheckCircle,
   MessageSquare,
+  Star,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -39,6 +42,14 @@ import {
   type StreamReport,
   type ReportStatus,
 } from '../../services/reportService';
+import {
+  fetchAllReviewsForAdmin,
+  updateReviewStatus,
+  deleteReview,
+  SUPABASE_REVIEWS_SQL,
+  type MediaReview,
+  type ReviewStatus,
+} from '../../services/reviewService';
 import {
   isAdminUser,
   saveAnnouncement,
@@ -160,6 +171,7 @@ function getStatusBadge(status: string, lang: string) {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToHome,
+  onPlayMedia,
 }) => {
   const { user, signOut } = useAuth();
   const { profile } = useUserProfile();
@@ -180,7 +192,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
 
   // Active Admin Sub-Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'issues' | 'stream-tester' | 'system'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'issues' | 'stream-tester' | 'reviews' | 'system'>('overview');
 
   // Stream Reports State
   const [reports, setReports] = useState<StreamReport[]>([]);
@@ -189,6 +201,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [copiedReportSql, setCopiedReportSql] = useState(false);
   const [updatingReportId, setUpdatingReportId] = useState<string | null>(null);
+
+  // Community Reviews Moderation State
+  const [adminReviews, setAdminReviews] = useState<MediaReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'published' | 'hidden' | 'flagged'>('all');
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [copiedReviewSql, setCopiedReviewSql] = useState(false);
+  const [updatingReviewId, setUpdatingReviewId] = useState<string | null>(null);
+
+  const fetchAdminReviews = useCallback(async () => {
+    setIsLoadingReviews(true);
+    try {
+      const data = await fetchAllReviewsForAdmin();
+      setAdminReviews(data);
+    } catch (e) {
+      console.warn('Error fetching admin reviews:', e);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  }, []);
+
+  const handleUpdateReviewStatus = async (reviewId: string, status: ReviewStatus) => {
+    playClick();
+    setUpdatingReviewId(reviewId);
+    try {
+      const success = await updateReviewStatus(reviewId, status);
+      if (success) {
+        setAdminReviews((prev) =>
+          prev.map((r) => (r.id === reviewId ? { ...r, status } : r))
+        );
+        playSuccess();
+      }
+    } finally {
+      setUpdatingReviewId(null);
+    }
+  };
+
+  const handleDeleteAdminReview = async (reviewId: string) => {
+    if (!confirm(language === 'en' ? 'Permanently delete this review?' : 'Hapus ulasan ini secara permanen?')) {
+      return;
+    }
+    playClick();
+    setUpdatingReviewId(reviewId);
+    try {
+      const success = await deleteReview(reviewId);
+      if (success) {
+        setAdminReviews((prev) => prev.filter((r) => r.id !== reviewId));
+        playSuccess();
+      }
+    } finally {
+      setUpdatingReviewId(null);
+    }
+  };
 
   const fetchReports = useCallback(async () => {
     setIsLoadingReports(true);
@@ -288,6 +353,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return true;
     });
   }, [reports, reportFilter, reportSearchQuery]);
+
+  const filteredReviews = useMemo(() => {
+    return adminReviews.filter((r) => {
+      if (reviewFilter !== 'all' && r.status !== reviewFilter) return false;
+      if (reviewSearchQuery.trim()) {
+        const q = reviewSearchQuery.toLowerCase();
+        const titleMatch = r.mediaTitle.toLowerCase().includes(q);
+        const userMatch = (r.userName || '').toLowerCase().includes(q) || (r.userEmail || '').toLowerCase().includes(q);
+        const contentMatch = (r.content || '').toLowerCase().includes(q);
+        return titleMatch || userMatch || contentMatch;
+      }
+      return true;
+    });
+  }, [adminReviews, reviewFilter, reviewSearchQuery]);
 
   // Metrics State
   const [totalProfiles, setTotalProfiles] = useState<number | null>(null);
@@ -446,19 +525,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchMetrics();
     checkHealth();
     fetchReports();
+    fetchAdminReviews();
     fetchActiveAnnouncementFromCloud().then((cloud) => {
       if (cloud) {
         setAnnouncement(cloud);
       }
     });
-  }, [fetchMetrics, checkHealth, fetchReports]);
+  }, [fetchMetrics, checkHealth, fetchReports, fetchAdminReviews]);
 
-  // Refetch reports whenever opening issues tab
+  // Refetch reports whenever opening issues tab or reviews tab
   useEffect(() => {
     if (activeTab === 'issues') {
       fetchReports();
     }
-  }, [activeTab, fetchReports]);
+    if (activeTab === 'reviews') {
+      fetchAdminReviews();
+    }
+  }, [activeTab, fetchReports, fetchAdminReviews]);
 
   // Update test embed url when parameters change
   useEffect(() => {
@@ -622,12 +705,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 fetchMetrics();
                 checkHealth();
                 fetchReports();
+                fetchAdminReviews();
               }}
               onMouseEnter={playHover}
-              disabled={isLoadingMetrics || isCheckingHealth || isLoadingReports}
+              disabled={isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth || isLoadingReports ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews ? 'animate-spin' : ''}`} />
               <span>{language === 'en' ? 'Refresh Data' : 'Segarkan Data'}</span>
             </button>
 
@@ -678,6 +762,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               icon: Play,
             },
             {
+              id: 'reviews',
+              label: language === 'en' ? 'Community Reviews' : 'Ulasan Komunitas',
+              icon: MessageSquare,
+              badge: adminReviews.length > 0 ? adminReviews.length : undefined,
+              highlight: adminReviews.some((r) => r.status === 'flagged'),
+            },
+            {
               id: 'system',
               label: language === 'en' ? 'System & Servers' : 'Sistem & Server',
               icon: Server,
@@ -720,7 +811,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {activeTab === 'overview' && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Top Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {/* Metric 1: Profiles */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 rounded-full blur-2xl group-hover:bg-red-600/20 transition-all pointer-events-none" />
@@ -821,6 +912,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {openIssuesCount > 0 ? `⚠ ${openIssuesCount} unhandled` : '✓ All clear'}
                   </span>
                   <span>{language === 'en' ? '• click to view' : '• klik untuk pantau'}</span>
+                </p>
+              </div>
+
+              {/* Metric 6: Community Reviews */}
+              <div
+                onClick={() => {
+                  playClick();
+                  setActiveTab('reviews');
+                }}
+                className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group cursor-pointer hover:border-amber-400/40 transition-all"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/10 rounded-full blur-2xl group-hover:bg-amber-600/20 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Community Reviews' : 'Ulasan Komunitas'}
+                  </span>
+                  <MessageSquare className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-3xl font-display font-black text-white flex items-center gap-2">
+                  <span>{isLoadingReviews ? '...' : adminReviews.length}</span>
+                  {adminReviews.filter((r) => r.status === 'flagged').length > 0 && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                      {adminReviews.filter((r) => r.status === 'flagged').length} {language === 'en' ? 'FLAGGED' : 'DILAPORKAN'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
+                  <span className="text-amber-400">★ 1–10 Scale</span>
+                  <span>{language === 'en' ? '• click to moderate' : '• klik untuk kurasi'}</span>
                 </p>
               </div>
             </div>
@@ -1892,6 +2012,337 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   ? 'Note: If an embed server shows "server IP address could not be found" or connection failed, the domain might be blocked by your local ISP DNS. Use Cloudflare 1.1.1.1 / WARP DNS, or test alternative servers (VidSrc, MultiStream, or VidLink) using the quick switch buttons above.'
                   : 'Catatan: Jika player menampilkan "server IP address could not be found" atau koneksi gagal, domain mirror tersebut mungkin diblokir oleh DNS operator internet lokal (ISP). Solusi: Aktifkan DNS 1.1.1.1 (Cloudflare) / WARP, atau uji server alternatif (VidSrc, MultiStream, atau VidLink) pada tombol uji cepat di atas.'}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ TAB: COMMUNITY REVIEWS MODERATION ════════════════ */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header & Quick Action */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-amber-400" />
+                  <span>
+                    {language === 'en'
+                      ? 'Community Reviews & Star Ratings Moderation'
+                      : 'Moderasi Ulasan & Rating Komunitas Penonton'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {language === 'en'
+                    ? 'Curate audience reviews, manage spoiler flags, hide toxic comments, and maintain community trust across movies and series.'
+                    : 'Kurasi ulasan penonton, kelola label spoiler, sembunyikan komentar tidak pantas, dan jaga standar kualitas ulasan film dan series.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    playClick();
+                    fetchAdminReviews();
+                  }}
+                  disabled={isLoadingReviews}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 text-amber-400 ${isLoadingReviews ? 'animate-spin' : ''}`} />
+                  <span>{language === 'en' ? 'Refresh Reviews' : 'Segarkan Ulasan'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                {[
+                  { id: 'all', labelId: 'Semua', labelEn: 'All', count: adminReviews.length, color: '' },
+                  { id: 'published', labelId: 'Diterbitkan', labelEn: 'Published', count: adminReviews.filter((r) => r.status === 'published').length, color: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40' },
+                  { id: 'hidden', labelId: 'Disembunyikan', labelEn: 'Hidden', count: adminReviews.filter((r) => r.status === 'hidden').length, color: 'text-amber-300 bg-amber-500/20 border-amber-500/40' },
+                  { id: 'flagged', labelId: 'Dilaporkan', labelEn: 'Flagged', count: adminReviews.filter((r) => r.status === 'flagged').length, color: 'text-red-400 bg-red-500/20 border-red-500/40' },
+                ].map((f) => {
+                  const isSelected = reviewFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        playClick();
+                        setReviewFilter(f.id as any);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer border ${
+                        isSelected
+                          ? 'bg-white/15 text-white border-white/30 shadow-sm'
+                          : 'bg-white/[0.02] text-slate-400 hover:text-white border-transparent hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <span>{language === 'en' ? f.labelEn : f.labelId}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${f.color || 'bg-white/10 text-slate-300'}`}>
+                        {f.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search input */}
+              <div className="relative w-full md:w-72">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                  placeholder={language === 'en' ? 'Search by title, user, content...' : 'Cari judul, nama pengulas, ulasan...'}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Reviews List */}
+            {isLoadingReviews ? (
+              <div className="p-12 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-400 mx-auto" />
+                <p className="text-xs text-slate-400">
+                  {language === 'en' ? 'Loading community reviews from Supabase...' : 'Memuat data ulasan dari Supabase...'}
+                </p>
+              </div>
+            ) : filteredReviews.length === 0 ? (
+              <div className="p-12 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">
+                    {language === 'en' ? 'No reviews found' : 'Tidak ada ulasan ditemukan'}
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {reviewFilter === 'all'
+                      ? (language === 'en' ? 'No audience reviews submitted yet. Reviews written by visitors will appear here.' : 'Belum ada ulasan yang ditulis oleh penonton. Ulasan baru akan muncul di sini.')
+                      : (language === 'en' ? `No reviews with status "${reviewFilter}".` : `Tidak ada ulasan dengan status "${reviewFilter}".`)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredReviews.map((rev) => {
+                  const isUpdating = updatingReviewId === rev.id;
+
+                  return (
+                    <div
+                      key={rev.id}
+                      className={`p-5 rounded-2xl border transition-all duration-200 space-y-4 ${
+                        rev.status === 'flagged'
+                          ? 'bg-gradient-to-r from-red-950/25 via-white/[0.02] to-white/[0.01] border-red-500/35 shadow-lg shadow-red-950/20'
+                          : rev.status === 'hidden'
+                          ? 'bg-gradient-to-r from-amber-950/20 via-white/[0.02] to-white/[0.01] border-amber-500/30'
+                          : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      {/* Top Row: Media info, rating badge, status */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            {rev.mediaType === 'movie' ? (
+                              <Film className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            ) : (
+                              <Tv className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            )}
+                            <span className="text-sm font-semibold tracking-wide">{rev.mediaTitle}</span>
+                          </span>
+
+                          <span className="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] font-mono uppercase font-bold">
+                            {rev.mediaType}
+                          </span>
+
+                          {/* 1-10 Star Rating Badge */}
+                          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span>{rev.rating}/10</span>
+                          </span>
+
+                          {/* Spoiler Badge */}
+                          {rev.hasSpoilers && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold text-[10px]">
+                              <AlertTriangle className="w-3 h-3" />
+                              <span>Spoiler</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              rev.status === 'published'
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : rev.status === 'hidden'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                : 'bg-red-500/20 text-red-300 border-red-500/40'
+                            }`}
+                          >
+                            {rev.status === 'published'
+                              ? (language === 'en' ? '● Published' : '● Diterbitkan')
+                              : rev.status === 'hidden'
+                              ? (language === 'en' ? '● Hidden' : '● Disembunyikan')
+                              : (language === 'en' ? '● Flagged' : '● Dilaporkan')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Middle: Reviewer Info and Review Content */}
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2.5">
+                          {rev.userAvatar ? (
+                            <img
+                              src={rev.userAvatar}
+                              alt={rev.userName}
+                              className="w-7 h-7 rounded-full object-cover border border-white/10"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-xs font-bold text-white">
+                              {rev.userName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex items-baseline gap-2 flex-wrap text-xs">
+                            <span className="font-semibold text-white">{rev.userName}</span>
+                            {rev.userEmail && (
+                              <span className="text-[11px] text-slate-500 font-mono">({rev.userEmail})</span>
+                            )}
+                            <span className="text-[10px] text-slate-400">
+                              • {new Date(rev.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 text-xs text-slate-200 leading-relaxed font-light">
+                          {rev.content}
+                        </div>
+                      </div>
+
+                      {/* Bottom Bar: Helpful votes & Action buttons */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/5 text-xs">
+                        <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>{rev.helpfulCount} {language === 'en' ? 'helpful votes' : 'suara membantu'}</span>
+                          </span>
+                          <span>• ID: <span className="font-mono text-[10px] text-slate-500">{rev.id}</span></span>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {onPlayMedia && (
+                            <button
+                              onClick={() => {
+                                playClick();
+                                onPlayMedia(rev.mediaId, rev.mediaType === 'movie' ? 'movie' : 'series');
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>{language === 'en' ? 'Open Title' : 'Buka Film'}</span>
+                            </button>
+                          )}
+
+                          {rev.status !== 'published' ? (
+                            <button
+                              onClick={() => handleUpdateReviewStatus(rev.id, 'published')}
+                              disabled={isUpdating}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>{language === 'en' ? 'Publish' : 'Terbitkan'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUpdateReviewStatus(rev.id, 'hidden')}
+                              disabled={isUpdating}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                              <span>{language === 'en' ? 'Hide' : 'Sembunyikan'}</span>
+                            </button>
+                          )}
+
+                          {rev.status !== 'flagged' && (
+                            <button
+                              onClick={() => handleUpdateReviewStatus(rev.id, 'flagged')}
+                              disabled={isUpdating}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-red-500/15 border border-white/10 hover:border-red-500/30 text-slate-400 hover:text-red-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>{language === 'en' ? 'Flag' : 'Tandai Laporkan'}</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteAdminReview(rev.id)}
+                            disabled={isUpdating}
+                            className="p-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/25 border border-red-500/20 hover:border-red-500/40 text-red-400 transition-all cursor-pointer disabled:opacity-50"
+                            title={language === 'en' ? 'Permanently delete review' : 'Hapus ulasan secara permanen'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── SQL Setup Box for Supabase media_reviews table ── */}
+            <div className="mt-8 p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    {language === 'en'
+                      ? 'Supabase Database Schema: media_reviews'
+                      : 'Skema Database Supabase: media_reviews'}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    navigator.clipboard.writeText(SUPABASE_REVIEWS_SQL);
+                    setCopiedReviewSql(true);
+                    playSuccess();
+                    setTimeout(() => setCopiedReviewSql(false), 2500);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer transition-all shrink-0"
+                >
+                  {copiedReviewSql ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">
+                        {language === 'en' ? 'Copied SQL!' : 'SQL Disalin!'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-300" />
+                      <span>{language === 'en' ? 'Copy SQL Script' : 'Salin Skrip SQL'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {language === 'en'
+                  ? 'Run this SQL script in Supabase SQL Editor to create the media_reviews table with RLS security policies, allowing visitors to read published reviews, logged-in users to write their own reviews, and administrators to moderate all reviews.'
+                  : 'Jalankan skrip SQL ini di SQL Editor Supabase untuk membuat tabel media_reviews beserta aturan keamanan RLS, sehingga penonton bisa membaca ulasan, pengguna terdaftar bisa menulis ulasan, dan administrator bisa memoderasinya.'}
+              </p>
+
+              <pre className="p-3.5 rounded-xl bg-black/60 border border-white/10 text-[11px] font-mono text-amber-300 overflow-x-auto max-h-44 no-scrollbar">
+                <code>{SUPABASE_REVIEWS_SQL}</code>
+              </pre>
             </div>
           </div>
         )}

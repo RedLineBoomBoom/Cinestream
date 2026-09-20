@@ -26,13 +26,15 @@ import {
   SkipForward,
   Flag,
 } from 'lucide-react';
-import type { MediaItem, Server, Episode, Season, Review } from '../../types/media';
+import type { MediaItem, Server, Episode, Season } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
 import { type CurationTarget, splitMultipleNames } from '../../services/curation';
 import { CinematicPlayer, appendSubtitleParams } from '../player/CinematicPlayer';
 import { ReportIssueModal } from '../player/ReportIssueModal';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
+import { CommunityReviewsSection } from './CommunityReviewsSection';
+import { fetchMediaReviews } from '../../services/reviewService';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -623,8 +625,8 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     setActiveLang: setSynopsisActiveLang,
   } = useAutoTranslateSynopsis(media, language);
 
-  // Reviews state
-  const [reviewsList, setReviewsList] = useState<Review[]>(media.reviews || []);
+  // Community Reviews count state
+  const [communityReviewsCount, setCommunityReviewsCount] = useState<number>(() => media.reviews?.length || 0);
 
   // Official Review Portals state
   const [portalBadges, setPortalBadges] = useState<PortalBadgeInfo[]>([]);
@@ -779,8 +781,16 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     } else {
       setActiveTab('info');
     }
-    setReviewsList(media.reviews || []);
+    let isMounted = true;
+    fetchMediaReviews(media.id)
+      .then((revs) => {
+        if (isMounted) setCommunityReviewsCount(revs.length);
+      })
+      .catch(() => {});
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    return () => {
+      isMounted = false;
+    };
   }, [media.id, media.seasons]);
 
   const handleShare = () => {
@@ -1590,7 +1600,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>{t('tabReviewsOfficial')} ({portalReviews.length + reviewsList.length})</span>
+              <span>{t('tabReviewsOfficial')} ({portalReviews.length + communityReviewsCount})</span>
             </button>
 
           </div>
@@ -1988,7 +1998,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                       : 'bg-white/[0.04] text-neutral-300 hover:text-white border border-white/10'
                   }`}
                 >
-                  {t('allPortals')} ({portalReviews.length + reviewsList.length})
+                  {t('allPortals')} ({portalReviews.length + communityReviewsCount})
                 </button>
 
                 <button
@@ -2082,7 +2092,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 >
                   <MessageSquare className="w-3 h-3" />
                   <span>{t('userReviewsTab')}</span>
-                  <span className="text-[10px] opacity-75">({reviewsList.length})</span>
+                  <span className="text-[10px] opacity-75">({communityReviewsCount})</span>
                 </button>
               </div>
 
@@ -2278,57 +2288,13 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   </div>
                 )}
 
-                {/* Audience Notes */}
+                {/* Community Reviews & Audience Ratings */}
                 {(selectedPortalFilter === 'all' || selectedPortalFilter === 'user') && (
-                  <div className="space-y-4 pt-2">
-                    {reviewsList.length > 0 && (
-                      <div className="space-y-3">
-                        <h4 className="text-xs font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                          <MessageSquare className="w-3.5 h-3.5 text-brand-gold" />
-                          {t('userReviewsTab')}
-                        </h4>
-                        {reviewsList.map((rev) => (
-                          <div
-                            key={rev.id}
-                            className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] space-y-2.5"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <img
-                                  src={rev.avatar}
-                                  alt={rev.author}
-                                  className="w-8 h-8 rounded-full object-cover border border-white/10"
-                                />
-                                <div>
-                                  <div className="font-medium text-xs sm:text-sm text-slate-200">{rev.author}</div>
-                                  <div className="text-[10px] text-slate-500">{rev.date}</div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-0.5 text-brand-gold">
-                                {Array.from({ length: rev.rating }).map((_, i) => (
-                                  <Star key={i} className="w-3.5 h-3.5 fill-brand-gold" />
-                                ))}
-                              </div>
-                            </div>
-
-                            <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">{rev.content}</p>
-
-                            <div className="flex items-center gap-1 text-[11px] text-slate-500 pt-1">
-                              <button
-                                type="button"
-                                onClick={playClick}
-                                className="flex items-center gap-1.5 hover:text-brand-champagne transition-colors"
-                              >
-                                <ThumbsUp className="w-3 h-3" />
-                                <span>{rev.likes} {t('appreciations')}</span>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
+                  <div className="pt-4 border-t border-white/[0.08]">
+                    <CommunityReviewsSection
+                      media={activeMedia}
+                      onReviewCountChange={setCommunityReviewsCount}
+                    />
                   </div>
                 )}
               </div>

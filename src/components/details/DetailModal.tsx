@@ -5,21 +5,20 @@ import {
   Plus,
   Check,
   Share2,
-  MessageSquare,
-  Send,
-  ThumbsUp,
   ExternalLink,
   Award,
   Globe,
   Clapperboard,
   Sparkles,
 } from 'lucide-react';
-import type { MediaItem, Server, Episode, Review } from '../../types/media';
+import type { MediaItem, Server, Episode } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
 import { type CurationTarget, splitMultipleNames } from '../../services/curation';
 import { CinematicPlayer } from '../player/CinematicPlayer';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
+import { CommunityReviewsSection } from './CommunityReviewsSection';
+import { fetchMediaReviews } from '../../services/reviewService';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -77,10 +76,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   );
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Reviews state
-  const [reviewsList, setReviewsList] = useState<Review[]>(media.reviews || []);
-  const [newReviewText, setNewReviewText] = useState('');
-  const [newRating, setNewRating] = useState(5);
+  // Community Reviews count state
+  const [communityReviewsCount, setCommunityReviewsCount] = useState<number>(() => media.reviews?.length || 0);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
 
   // Filmography / Country Curation Modal State
@@ -106,7 +103,18 @@ export const DetailModal: React.FC<DetailModalProps> = ({
       setCurrentEpisode(undefined);
       setActiveTab('info');
     }
-    setReviewsList(media.reviews || []);
+    
+    // Sinkronkan jumlah ulasan komunitas
+    let isMounted = true;
+    fetchMediaReviews(media.id)
+      .then((revs) => {
+        if (isMounted) setCommunityReviewsCount(revs.length);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, [media.id]);
 
   // Flatten all episodes across seasons in chronological order
@@ -211,24 +219,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleAddReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReviewText.trim()) return;
-    playSuccess();
-
-    const newRev: Review = {
-      id: `rev-${Date.now()}`,
-      author: language === 'en' ? 'Film Critic' : 'Kritikus Film',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop',
-      rating: newRating,
-      date: language === 'en' ? 'Just now' : 'Baru saja',
-      content: newReviewText.trim(),
-      likes: 0,
-    };
-
-    setReviewsList([newRev, ...reviewsList]);
-    setNewReviewText('');
-  };
 
   const recommendations = catalog
     .filter((item) => item.id !== media.id && (item.type === media.type || item.genres.some((g) => media.genres.includes(g))))
@@ -535,7 +525,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   : 'text-slate-400 hover:text-white bg-white/[0.04]'
               }`}
             >
-              {language === 'en' ? `Audience Reviews (${reviewsList.length})` : `Ulasan Penonton (${reviewsList.length})`}
+              {language === 'en' ? `Audience Reviews (${communityReviewsCount})` : `Ulasan Penonton (${communityReviewsCount})`}
             </button>
           </div>
 
@@ -730,93 +720,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           {/* Tab 3: Reviews */}
           {activeTab === 'reviews' && (
-            <div className="space-y-6">
-              <form
-                onSubmit={handleAddReview}
-                className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-xs text-slate-300 flex items-center gap-2 uppercase tracking-wider">
-                    <MessageSquare className="w-3.5 h-3.5 text-brand-champagne" />
-                    {language === 'en' ? 'Write a Review or Curation Note' : 'Tulis Catatan Kurasi atau Ulasan'}
-                  </h4>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        type="button"
-                        key={star}
-                        onClick={() => setNewRating(star)}
-                        className="text-brand-gold hover:scale-115 transition-transform"
-                      >
-                        <Star
-                          className={`w-3.5 h-3.5 ${
-                            star <= newRating ? 'fill-brand-gold' : 'text-slate-600'
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newReviewText}
-                    onChange={(e) => setNewReviewText(e.target.value)}
-                    placeholder={language === 'en' ? 'Share your thoughts about this title...' : 'Bagikan apresiasi sinematik Anda tentang karya ini...'}
-                    className="flex-1 bg-cinema-950/80 border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#E50914]"
-                  />
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-[#F40612] text-white font-bold text-xs flex items-center gap-1.5 shadow-glow-red transition-all cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{language === 'en' ? 'Publish' : 'Terbitkan'}</span>
-                  </button>
-                </div>
-              </form>
-
-              {/* Reviews List */}
-              <div className="space-y-3">
-                {reviewsList.map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={rev.avatar}
-                          alt={rev.author}
-                          className="w-7 h-7 rounded-full object-cover border border-white/10"
-                        />
-                        <div>
-                          <div className="font-medium text-xs text-slate-200">{rev.author}</div>
-                          <div className="text-[10px] text-slate-500">{rev.date}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-0.5 text-brand-gold">
-                        {Array.from({ length: rev.rating }).map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-brand-gold" />
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300 font-light leading-relaxed">{rev.content}</p>
-
-                    <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                      <button
-                        onClick={playClick}
-                        className="flex items-center gap-1 hover:text-brand-champagne transition-colors"
-                      >
-                        <ThumbsUp className="w-3 h-3" />
-                        <span>{rev.likes} {language === 'en' ? 'Likes' : 'Apresiasi'}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="pt-2 animate-in fade-in duration-300">
+              <CommunityReviewsSection
+                media={media}
+                onReviewCountChange={setCommunityReviewsCount}
+              />
             </div>
           )}
 
