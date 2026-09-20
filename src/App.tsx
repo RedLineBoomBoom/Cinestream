@@ -45,6 +45,13 @@ import {
 import { Bookmark, Users, ShieldAlert } from 'lucide-react';
 import { initCapacitorApp } from './utils/capacitorApp';
 import { isAdminUser } from './utils/admin';
+import {
+  fetchSpotlightConfig,
+  subscribeSpotlightRealtime,
+  spotlightItemToMediaItem,
+  type SpotlightConfig,
+  DEFAULT_SPOTLIGHT_CONFIG,
+} from './services/spotlightService';
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'home';
@@ -261,7 +268,55 @@ const MainContent: React.FC = () => {
     };
   }, []);
 
-  const heroDisplayItems = heroPopularItems.length > 0 ? heroPopularItems : featuredItems;
+  // Spotlight & Editor's Choice Real-time Integration
+  const [spotlightConfig, setSpotlightConfig] = useState<SpotlightConfig>(() => {
+    try {
+      const cached = localStorage.getItem('cinestream_spotlight_config_v1');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return DEFAULT_SPOTLIGHT_CONFIG;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchSpotlightConfig().then((cfg) => {
+      if (isMounted) setSpotlightConfig(cfg);
+    });
+
+    const unsub = subscribeSpotlightRealtime((cfg) => {
+      if (isMounted) setSpotlightConfig(cfg);
+    });
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, []);
+
+  // Compute Active Hero Display Items (incorporating real-time curated Spotlight)
+  const heroDisplayItems = useMemo(() => {
+    const baseTrending = heroPopularItems.length > 0 ? heroPopularItems : featuredItems;
+    if (!spotlightConfig.enabled || !spotlightConfig.items || spotlightConfig.items.length === 0) {
+      return baseTrending;
+    }
+
+    const activeSpotlightItems = spotlightConfig.items
+      .filter((it) => it.active)
+      .map((it) => spotlightItemToMediaItem(it));
+
+    if (activeSpotlightItems.length === 0) {
+      return baseTrending;
+    }
+
+    if (spotlightConfig.mode === 'override_hero') {
+      return activeSpotlightItems;
+    }
+
+    // Default: 'pin_to_front' - pin curated spotlight items in front, followed by trending items without duplicate IDs
+    const spotlightIds = new Set(activeSpotlightItems.map((s) => s.id));
+    const filteredTrending = baseTrending.filter((item) => !spotlightIds.has(item.id));
+    return [...activeSpotlightItems, ...filteredTrending];
+  }, [heroPopularItems, featuredItems, spotlightConfig]);
 
   // Switch tab and persist state to URL and localStorage
   const handleSelectTab = (tab: string, pushHistory = true) => {
@@ -1136,6 +1191,7 @@ const MainContent: React.FC = () => {
           <AdminDashboard
             onBackToHome={() => handleSelectTab('home')}
             onPlayMedia={(mediaId) => resolveAndPlayMedia(mediaId)}
+            catalog={fullCatalog}
           />
         )}
 

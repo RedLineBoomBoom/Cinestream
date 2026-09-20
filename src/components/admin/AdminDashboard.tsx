@@ -28,12 +28,29 @@ import {
   Star,
   Eye,
   EyeOff,
+  Sparkles,
+  Crown,
+  ArrowUp,
+  ArrowDown,
+  Plus,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  fetchSpotlightConfig,
+  saveSpotlightConfig,
+  subscribeSpotlightRealtime,
+  mediaItemToSpotlightItem,
+  type SpotlightConfig,
+  type SpotlightBadgeColor,
+  SUPABASE_SPOTLIGHT_SQL,
+  DEFAULT_SPOTLIGHT_CONFIG,
+} from '../../services/spotlightService';
+import { searchTMDB, fetchFullMediaItem } from '../../services/tmdb';
+import type { MediaItem } from '../../types/media';
 import {
   fetchStreamReports,
   updateReportStatus,
@@ -65,6 +82,7 @@ import {
 interface AdminDashboardProps {
   onBackToHome: () => void;
   onPlayMedia?: (mediaId: string, type: 'movie' | 'series') => void;
+  catalog?: MediaItem[];
 }
 
 interface UserProfileRow {
@@ -172,6 +190,7 @@ function getStatusBadge(status: string, lang: string) {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToHome,
   onPlayMedia,
+  catalog = [],
 }) => {
   const { user, signOut } = useAuth();
   const { profile } = useUserProfile();
@@ -192,7 +211,182 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
 
   // Active Admin Sub-Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'issues' | 'stream-tester' | 'reviews' | 'system'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'users' | 'spotlight' | 'broadcast' | 'issues' | 'stream-tester' | 'reviews' | 'system'
+  >('overview');
+
+  // Spotlight & Editor's Choice State
+  const [spotlightConfig, setSpotlightConfig] = useState<SpotlightConfig>(DEFAULT_SPOTLIGHT_CONFIG);
+  const [isLoadingSpotlight, setIsLoadingSpotlight] = useState(false);
+  const [isSavingSpotlight, setIsSavingSpotlight] = useState(false);
+  const [spotlightSaveToast, setSpotlightSaveToast] = useState<string | null>(null);
+  const [spotlightSearchInput, setSpotlightSearchInput] = useState('');
+  const [spotlightSearchResults, setSpotlightSearchResults] = useState<any[]>([]);
+  const [isSearchingSpotlight, setIsSearchingSpotlight] = useState(false);
+  const [copiedSpotlightSql, setCopiedSpotlightSql] = useState(false);
+  const [previewSpotlightIndex, setPreviewSpotlightIndex] = useState(0);
+  const [addingMediaId, setAddingMediaId] = useState<string | number | null>(null);
+
+  // ── Load & Subscribe Spotlight Config ──
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingSpotlight(true);
+    fetchSpotlightConfig().then((cfg) => {
+      if (isMounted) {
+        setSpotlightConfig(cfg);
+        setIsLoadingSpotlight(false);
+      }
+    });
+
+    const unsub = subscribeSpotlightRealtime((newCfg) => {
+      if (isMounted) {
+        setSpotlightConfig(newCfg);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, []);
+
+  const handleSearchSpotlight = async (query: string) => {
+    if (!query.trim()) {
+      setSpotlightSearchResults([]);
+      return;
+    }
+    setIsSearchingSpotlight(true);
+    try {
+      const tmdbResults = await searchTMDB(query, 1, language);
+      const localMatches = catalog
+        .filter(
+          (m) =>
+            m.title.toLowerCase().includes(query.toLowerCase()) ||
+            (m.titleEn && m.titleEn.toLowerCase().includes(query.toLowerCase())) ||
+            (m.originalTitle && m.originalTitle.toLowerCase().includes(query.toLowerCase()))
+        )
+        .slice(0, 5);
+
+      const merged: any[] = [...localMatches];
+      for (const item of tmdbResults) {
+        if (!merged.some((m) => String(m.tmdbId || m.id) === String(item.id))) {
+          merged.push(item);
+        }
+      }
+      setSpotlightSearchResults(merged.slice(0, 12));
+    } catch (err) {
+      console.warn('Failed to search TMDB for spotlight:', err);
+    } finally {
+      setIsSearchingSpotlight(false);
+    }
+  };
+
+  const handleAddSpotlightItem = async (candidate: any) => {
+    playClick();
+    setAddingMediaId(candidate.id || candidate.tmdbId);
+    try {
+      let fullMedia: MediaItem | null = null;
+      if (candidate.backdrop && candidate.synopsis && candidate.type) {
+        fullMedia = candidate as MediaItem;
+      } else {
+        fullMedia = await fetchFullMediaItem(
+          candidate.id,
+          candidate.mediaType === 'tv' ? 'tv' : 'movie'
+        );
+      }
+
+      if (!fullMedia) {
+        alert(
+          language === 'en'
+            ? 'Failed to fetch details for this title.'
+            : 'Gagal mengambil detail untuk tayangan ini.'
+        );
+        return;
+      }
+
+      const newItem = mediaItemToSpotlightItem(fullMedia, {
+        customBadge: language === 'en' ? "⭐ EDITOR'S CHOICE" : '⭐ PILIHAN EDITOR',
+        customBadgeColor: 'amber',
+        order: spotlightConfig.items.length,
+        active: true,
+      });
+
+      setSpotlightConfig((prev) => ({
+        ...prev,
+        enabled: true,
+        items: [newItem, ...prev.items.filter((i) => i.mediaId !== newItem.mediaId)],
+      }));
+
+      playSuccess();
+      setSpotlightSearchInput('');
+      setSpotlightSearchResults([]);
+    } catch (err) {
+      console.error('Failed to add spotlight item:', err);
+    } finally {
+      setAddingMediaId(null);
+    }
+  };
+
+  const handleMoveSpotlight = (index: number, direction: 'up' | 'down') => {
+    playClick();
+    const newItems = [...spotlightConfig.items];
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newItems.length) return;
+    const temp = newItems[index];
+    newItems[index] = newItems[targetIdx];
+    newItems[targetIdx] = temp;
+    setSpotlightConfig((prev) => ({ ...prev, items: newItems }));
+  };
+
+  const handleToggleSpotlightItem = (id: string) => {
+    playClick();
+    setSpotlightConfig((prev) => ({
+      ...prev,
+      items: prev.items.map((it) => (it.id === id ? { ...it, active: !it.active } : it)),
+    }));
+  };
+
+  const handleRemoveSpotlightItem = (id: string) => {
+    if (
+      !confirm(
+        language === 'en'
+          ? 'Remove this title from the curated spotlight list?'
+          : 'Hapus film ini dari daftar pilihan editor?'
+      )
+    ) {
+      return;
+    }
+    playClick();
+    setSpotlightConfig((prev) => ({
+      ...prev,
+      items: prev.items.filter((it) => it.id !== id),
+    }));
+  };
+
+  const handleSaveSpotlight = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    playClick();
+    setIsSavingSpotlight(true);
+    try {
+      await saveSpotlightConfig(spotlightConfig, user?.email || user?.id);
+      playSuccess();
+      setSpotlightSaveToast(
+        language === 'en'
+          ? "Spotlight & Editor's Choice saved & broadcast globally in real-time!"
+          : 'Spotlight & Pilihan Editor berhasil disimpan dan disiarkan secara real-time ke semua penonton!'
+      );
+      setTimeout(() => setSpotlightSaveToast(null), 4000);
+    } catch (err: any) {
+      console.error('Failed to save spotlight:', err);
+      alert(
+        language === 'en'
+          ? 'Error saving spotlight: ' + err.message
+          : 'Gagal menyimpan spotlight: ' + err.message
+      );
+    } finally {
+      setIsSavingSpotlight(false);
+    }
+  };
 
   // Stream Reports State
   const [reports, setReports] = useState<StreamReport[]>([]);
@@ -706,12 +900,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 checkHealth();
                 fetchReports();
                 fetchAdminReviews();
+                setIsLoadingSpotlight(true);
+                fetchSpotlightConfig()
+                  .then((cfg) => setSpotlightConfig(cfg))
+                  .finally(() => setIsLoadingSpotlight(false));
               }}
               onMouseEnter={playHover}
-              disabled={isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews}
+              disabled={isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews || isLoadingSpotlight}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth || isLoadingReports || isLoadingReviews || isLoadingSpotlight ? 'animate-spin' : ''}`} />
               <span>{language === 'en' ? 'Refresh Data' : 'Segarkan Data'}</span>
             </button>
 
@@ -742,6 +940,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               label: language === 'en' ? 'Users & Profiles' : 'Pengguna & Profil',
               icon: Users,
               badge: totalProfiles,
+            },
+            {
+              id: 'spotlight',
+              label: language === 'en' ? "Spotlight & Editor's Choice" : 'Kurasi Spotlight & Editor',
+              icon: Sparkles,
+              badge:
+                spotlightConfig.items.filter((i) => i.active).length > 0
+                  ? spotlightConfig.items.filter((i) => i.active).length
+                  : undefined,
+              highlight: spotlightConfig.enabled && spotlightConfig.items.some((i) => i.active),
             },
             {
               id: 'broadcast',
@@ -1145,6 +1353,769 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ════════════════ TAB: SPOTLIGHT & EDITOR'S CHOICE ════════════════ */}
+        {activeTab === 'spotlight' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Header & Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <span>
+                    {language === 'en'
+                      ? "Spotlight & Editor's Choice Manager (Hero Banner)"
+                      : 'Manager Spotlight & Pilihan Editor (Hero Banner)'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {language === 'en'
+                    ? 'Curate and switch featured homepage hero movies in real-time at any time. Changes are instantly broadcast to all devices.'
+                    : 'Ganti dan atur film unggulan di layar utama beranda secara real-time kapan pun. Perubahan disiarkan ke semua perangkat penonton seketika.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {spotlightConfig.enabled ? (
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{language === 'en' ? 'LIVE ON HOMEPAGE' : 'AKTIF DI BERANDA'}</span>
+                    <span className="text-[10px] text-emerald-400/80">
+                      ({spotlightConfig.items.filter((i) => i.active).length}{' '}
+                      {language === 'en' ? 'titles' : 'judul'})
+                    </span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-xs font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-slate-500" />
+                    <span>{language === 'en' ? 'DISABLED (USING TMDB TRENDING)' : 'NONAKTIF (TMDB TRENDING)'}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Master Controls: Toggle + Mode Selection */}
+            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-6">
+              {/* Enable / Disable Switch */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.04] border border-white/10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-bold text-white">
+                      {language === 'en' ? 'Curated Spotlight Status' : 'Status Kurasi Spotlight'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 max-w-xl">
+                    {language === 'en'
+                      ? 'When enabled, admin-curated titles override or pin to the front of the homepage Hero Banner across all devices in real-time.'
+                      : 'Ketika diaktifkan, film pilihan editor akan tampil di posisi utama Hero Banner beranda pada seluruh perangkat penonton secara real-time.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setSpotlightConfig((prev) => ({ ...prev, enabled: !prev.enabled }));
+                  }}
+                  className={`w-14 h-7 rounded-full transition-colors cursor-pointer relative p-0.5 shrink-0 ${
+                    spotlightConfig.enabled ? 'bg-amber-500 shadow-lg shadow-amber-500/30' : 'bg-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-full bg-white transition-transform ${
+                      spotlightConfig.enabled ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Mode Selection */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  {language === 'en' ? 'Homepage Hero Display Mode:' : 'Mode Penayangan di Beranda:'}
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Mode 1: Pin to Front */}
+                  <div
+                    onClick={() => {
+                      playClick();
+                      setSpotlightConfig((prev) => ({ ...prev, mode: 'pin_to_front' }));
+                    }}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                      spotlightConfig.mode === 'pin_to_front'
+                        ? 'bg-amber-500/15 border-amber-500/50 shadow-md shadow-amber-950/30'
+                        : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>
+                          {language === 'en' ? 'Pin to Front (#1) (Recommended)' : 'Sematkan di Depan (#1) (Disarankan)'}
+                        </span>
+                      </span>
+                      {spotlightConfig.mode === 'pin_to_front' && (
+                        <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {language === 'en'
+                        ? 'Curated spotlight titles appear first in rotation, followed smoothly by trending TMDB movies.'
+                        : 'Film pilihan editor berada di urutan pertama Hero Banner, diikuti oleh film populer trending TMDB.'}
+                    </p>
+                  </div>
+
+                  {/* Mode 2: Override Entire Hero */}
+                  <div
+                    onClick={() => {
+                      playClick();
+                      setSpotlightConfig((prev) => ({ ...prev, mode: 'override_hero' }));
+                    }}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                      spotlightConfig.mode === 'override_hero'
+                        ? 'bg-red-500/15 border-red-500/50 shadow-md shadow-red-950/30'
+                        : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Crown className="w-3.5 h-3.5 text-red-400" />
+                        <span>
+                          {language === 'en' ? 'Show Only Editor’s Choice' : 'Hanya Tampilkan Pilihan Editor'}
+                        </span>
+                      </span>
+                      {spotlightConfig.mode === 'override_hero' && (
+                        <CheckCircle2 className="w-4 h-4 text-red-400" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {language === 'en'
+                        ? 'Exclusively showcases admin-curated titles in the hero rotation, hiding automatic TMDB trending.'
+                        : 'Mengganti seluruh rotasi banner hanya dengan film yang dipilih oleh admin secara eksklusif.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* TMDB & Catalog Live Search */}
+            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Search className="w-4 h-4 text-cyan-400" />
+                    <span>
+                      {language === 'en' ? 'Search Movie or Series to Feature' : 'Cari Film atau Series untuk Spotlight'}
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    {language === 'en'
+                      ? 'Search millions of titles on TMDB or pick from your local catalog.'
+                      : 'Cari jutaan judul di database TMDB atau pilih dari katalog lokal Anda.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Search Box */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSearchSpotlight(spotlightSearchInput);
+                }}
+                className="flex gap-2"
+              >
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={spotlightSearchInput}
+                    onChange={(e) => {
+                      setSpotlightSearchInput(e.target.value);
+                      if (!e.target.value.trim()) setSpotlightSearchResults([]);
+                    }}
+                    placeholder={
+                      language === 'en'
+                        ? 'Type movie or series title (e.g. Interstellar, Dune, Arcane, Avatar)...'
+                        : 'Ketik judul film atau serial (misal: Interstellar, Dune, Arcane, Avatar)...'
+                    }
+                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-500 transition-all"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSearchingSpotlight || !spotlightSearchInput.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                >
+                  {isSearchingSpotlight ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  <span>{language === 'en' ? 'Search' : 'Cari'}</span>
+                </button>
+              </form>
+
+              {/* Quick Picks from Catalog */}
+              {catalog.length > 0 && spotlightSearchResults.length === 0 && (
+                <div className="pt-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                    {language === 'en' ? 'Quick Picks from Local Catalog:' : 'Pilihan Cepat dari Katalog Lokal:'}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {catalog.slice(0, 8).map((catItem) => (
+                      <button
+                        key={catItem.id}
+                        type="button"
+                        onClick={() => handleAddSpotlightItem(catItem)}
+                        disabled={addingMediaId === catItem.id}
+                        className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3 h-3 text-amber-400" />
+                        <span>{catItem.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Search Results Grid */}
+              {spotlightSearchResults.length > 0 && (
+                <div className="pt-4 border-t border-white/[0.06] space-y-3">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-bold text-white">
+                      {spotlightSearchResults.length} {language === 'en' ? 'Titles Found' : 'Judul Ditemukan'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSpotlightSearchResults([])}
+                      className="text-[11px] text-slate-500 hover:text-slate-300 cursor-pointer"
+                    >
+                      {language === 'en' ? 'Clear Results' : 'Tutup Hasil'}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {spotlightSearchResults.map((cand) => {
+                      const isAdding = addingMediaId === (cand.id || cand.tmdbId);
+                      const isAlreadyAdded = spotlightConfig.items.some(
+                        (i) => i.mediaId === cand.id || String(i.tmdbId) === String(cand.id)
+                      );
+
+                      return (
+                        <div
+                          key={cand.id || cand.tmdbId}
+                          className="p-3 rounded-xl bg-black/40 border border-white/10 flex gap-3 items-center group hover:border-amber-500/40 transition-all"
+                        >
+                          <img
+                            src={cand.poster || cand.posterEn || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200'}
+                            alt={cand.title}
+                            className="w-12 h-16 object-cover rounded-lg shrink-0 border border-white/10"
+                          />
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <h5 className="text-xs font-bold text-white truncate group-hover:text-amber-300 transition-colors">
+                              {cand.title}
+                            </h5>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                              <span>{cand.year || (cand.releaseDate ? new Date(cand.releaseDate).getFullYear() : '')}</span>
+                              <span>•</span>
+                              <span className="uppercase text-amber-400 font-bold">{cand.mediaType || cand.type || 'Movie'}</span>
+                              {cand.rating ? (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-yellow-400">★ {Number(cand.rating).toFixed(1)}</span>
+                                </>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAddSpotlightItem(cand)}
+                              disabled={isAdding}
+                              className={`w-full mt-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                isAlreadyAdded
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  : 'bg-white/10 hover:bg-amber-500 hover:text-black text-white'
+                              }`}
+                            >
+                              {isAdding ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : isAlreadyAdded ? (
+                                <>
+                                  <Check className="w-3 h-3 text-amber-400" />
+                                  <span>{language === 'en' ? 'Added (Update)' : 'Terpilih (Perbarui)'}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-3 h-3" />
+                                  <span>{language === 'en' ? 'Set as Spotlight' : 'Jadikan Spotlight'}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Live Hero Banner Simulator (Miniature Preview) */}
+            {spotlightConfig.items.length > 0 && (
+              <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>{language === 'en' ? 'Live Hero Banner Preview' : 'Pratinjau Langsung Hero Banner (Live Preview)'}</span>
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      {language === 'en'
+                        ? 'Simulating how visitors will see the featured title on the homepage hero banner.'
+                        : 'Simulasi tampilan film unggulan pada layar utama pengunjung di halaman beranda.'}
+                    </p>
+                  </div>
+
+                  {spotlightConfig.items.length > 1 && (
+                    <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
+                      {spotlightConfig.items.map((it, idx) => (
+                        <button
+                          key={it.id}
+                          type="button"
+                          onClick={() => setPreviewSpotlightIndex(idx)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                            previewSpotlightIndex === idx
+                              ? 'bg-amber-500 text-black shadow-sm'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          #{idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {(() => {
+                  const previewItem = spotlightConfig.items[previewSpotlightIndex] || spotlightConfig.items[0];
+                  if (!previewItem) return null;
+
+                  const badgeBg =
+                    previewItem.customBadgeColor === 'red'
+                      ? 'bg-[#E50914] text-white shadow-red-900/50'
+                      : previewItem.customBadgeColor === 'purple'
+                      ? 'bg-purple-600 text-white shadow-purple-900/50'
+                      : previewItem.customBadgeColor === 'emerald'
+                      ? 'bg-emerald-600 text-white shadow-emerald-900/50'
+                      : previewItem.customBadgeColor === 'cyan'
+                      ? 'bg-cyan-500 text-black shadow-cyan-900/50'
+                      : 'bg-amber-400 text-black shadow-amber-950/50';
+
+                  return (
+                    <div className="relative h-64 sm:h-80 rounded-2xl overflow-hidden border border-white/15 shadow-2xl bg-black select-none">
+                      {/* Backdrop image */}
+                      <img
+                        src={previewItem.customBackdrop || previewItem.backdrop || previewItem.poster}
+                        alt={previewItem.title}
+                        className="w-full h-full object-cover object-center filter brightness-90 contrast-105"
+                      />
+                      {/* Vignette gradients */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/70 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/80 to-transparent w-full md:w-[70%]" />
+
+                      {/* Content Overlay */}
+                      <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end max-w-xl space-y-2.5">
+                        {/* Custom Badge */}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg flex items-center gap-1 ${badgeBg}`}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>{previewItem.customBadge || '⭐ PILIHAN EDITOR'}</span>
+                          </span>
+                          <span className="text-xs font-bold text-white font-mono">{previewItem.year}</span>
+                          <span className="px-1.5 py-0.5 border border-white/30 text-[9px] text-white font-bold rounded">
+                            4K ULTRA HD
+                          </span>
+                          <span className="text-[11px] text-yellow-400 font-bold">★ {previewItem.rating?.toFixed(1) || '8.8'}</span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl sm:text-3xl font-display font-black text-white uppercase tracking-tight line-clamp-1 drop-shadow-lg">
+                          {previewItem.title}
+                        </h3>
+
+                        {/* Editorial Tagline */}
+                        {previewItem.customTagline && (
+                          <p className="text-xs sm:text-sm font-semibold text-amber-300/90 italic line-clamp-1">
+                            "{previewItem.customTagline}"
+                          </p>
+                        )}
+
+                        {/* Synopsis */}
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {previewItem.synopsis}
+                        </p>
+
+                        {/* Mock CTA Buttons */}
+                        <div className="flex items-center gap-2 pt-1 pointer-events-none">
+                          <div className="px-4 py-2 rounded-md bg-white text-black font-black text-xs flex items-center gap-1.5 shadow-md">
+                            <Play className="w-3.5 h-3.5 fill-black" />
+                            <span>{previewItem.mediaType === 'movie' ? 'Tonton Film' : 'Tonton Series'}</span>
+                          </div>
+                          <div className="px-4 py-2 rounded-md bg-white/20 text-white font-bold text-xs backdrop-blur-md">
+                            Detail & Ulasan
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Curated Spotlight Showcase List */}
+            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span>{language === 'en' ? 'Curated Spotlight Showcase' : 'Daftar Tayangan Spotlight Terpilih'}</span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    {language === 'en'
+                      ? 'Reorder rotation, customize badge text and colors, or set editorial spotlight notes.'
+                      : 'Atur urutan rotasi banner, sesuaikan teks & warna lencana, serta tambahkan catatan sorotan editor.'}
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-slate-400">
+                  {spotlightConfig.items.length} {language === 'en' ? 'items configured' : 'judul terdaftar'}
+                </span>
+              </div>
+
+              {spotlightConfig.items.length === 0 ? (
+                <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10 space-y-2">
+                  <Sparkles className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {language === 'en'
+                      ? 'No spotlight titles added yet. Search a movie or series in the search box above to begin curating.'
+                      : 'Belum ada tayangan spotlight yang dipilih. Cari film atau series pada kolom pencarian di atas untuk mulai mengkurasi.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {spotlightConfig.items.map((item, index) => {
+                    const BADGE_PRESETS = [
+                      { label: language === 'en' ? "⭐ EDITOR'S CHOICE" : '⭐ PILIHAN EDITOR', color: 'amber' as SpotlightBadgeColor },
+                      { label: language === 'en' ? '👑 PREMIER SPOTLIGHT' : '👑 SPOTLIGHT UTAMA', color: 'red' as SpotlightBadgeColor },
+                      { label: language === 'en' ? '🔥 MUST WATCH' : '🔥 WAJIB TONTON', color: 'red' as SpotlightBadgeColor },
+                      { label: language === 'en' ? '💎 MASTERPIECE' : '💎 MAHA KARYA', color: 'purple' as SpotlightBadgeColor },
+                      { label: language === 'en' ? '🏆 BEST PICTURE' : '🏆 FILM TERBAIK', color: 'amber' as SpotlightBadgeColor },
+                    ];
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-5 rounded-2xl border transition-all duration-200 space-y-4 ${
+                          item.active
+                            ? 'bg-gradient-to-r from-amber-950/20 via-white/[0.02] to-white/[0.01] border-amber-500/30 shadow-lg shadow-amber-950/20'
+                            : 'bg-white/[0.01] border-white/5 opacity-60'
+                        }`}
+                      >
+                        {/* Top Header Row: Poster, Title, Move Controls, Remove */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Order Position Badge */}
+                            <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                              #{index + 1}
+                            </div>
+
+                            <img
+                              src={item.poster || item.posterEn}
+                              alt={item.title}
+                              className="w-10 h-14 object-cover rounded-lg border border-white/10 shrink-0"
+                            />
+
+                            <div className="min-w-0 space-y-0.5">
+                              <h5 className="text-sm font-bold text-white truncate">{item.title}</h5>
+                              <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+                                <span>{item.year}</span>
+                                <span>•</span>
+                                <span className="uppercase text-amber-400 font-bold">{item.mediaType}</span>
+                                <span>•</span>
+                                <span className="text-yellow-400">★ {item.rating?.toFixed(1) || '8.8'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Actions: Move Up / Down, Toggle Active, Delete */}
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            {/* Move Up */}
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSpotlight(index, 'up')}
+                              disabled={index === 0}
+                              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer disabled:opacity-30"
+                              title={language === 'en' ? 'Move Up in Rotation' : 'Pindah ke Atas'}
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Move Down */}
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSpotlight(index, 'down')}
+                              disabled={index === spotlightConfig.items.length - 1}
+                              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer disabled:opacity-30"
+                              title={language === 'en' ? 'Move Down in Rotation' : 'Pindah ke Bawah'}
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Active Toggle */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSpotlightItem(item.id)}
+                              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                                item.active
+                                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                  : 'bg-white/[0.04] border-white/10 text-slate-500'
+                              }`}
+                              title={item.active ? 'Status: Aktif' : 'Status: Nonaktif'}
+                            >
+                              {item.active ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSpotlightItem(item.id)}
+                              className="p-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all cursor-pointer"
+                              title={language === 'en' ? 'Remove Title' : 'Hapus dari Pilihan Editor'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Custom Badge & Color Configuration */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {/* Badge Text Input */}
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                              {language === 'en' ? 'Badge Label (Hero Pill)' : 'Teks Lencana (Hero Badge)'}
+                            </label>
+                            <input
+                              type="text"
+                              value={item.customBadge || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSpotlightConfig((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) => (it.id === item.id ? { ...it, customBadge: val } : it)),
+                                }));
+                              }}
+                              placeholder="e.g. ⭐ PILIHAN EDITOR"
+                              className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                            />
+
+                            {/* 1-Click Badge Presets */}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {BADGE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.label}
+                                  type="button"
+                                  onClick={() => {
+                                    playClick();
+                                    setSpotlightConfig((prev) => ({
+                                      ...prev,
+                                      items: prev.items.map((it) =>
+                                        it.id === item.id
+                                          ? { ...it, customBadge: preset.label, customBadgeColor: preset.color }
+                                          : it
+                                      ),
+                                    }));
+                                  }}
+                                  className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 text-[10px] font-mono font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Badge Color Selector */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                              {language === 'en' ? 'Badge Color Theme' : 'Warna Lencana'}
+                            </label>
+                            <div className="flex items-center gap-2 pt-1">
+                              {[
+                                { id: 'amber', label: 'Gold', bg: 'bg-amber-400' },
+                                { id: 'red', label: 'Red', bg: 'bg-red-600' },
+                                { id: 'purple', label: 'Purple', bg: 'bg-purple-600' },
+                                { id: 'emerald', label: 'Green', bg: 'bg-emerald-500' },
+                                { id: 'cyan', label: 'Cyan', bg: 'bg-cyan-400' },
+                              ].map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    playClick();
+                                    setSpotlightConfig((prev) => ({
+                                      ...prev,
+                                      items: prev.items.map((it) =>
+                                        it.id === item.id ? { ...it, customBadgeColor: c.id as any } : it
+                                      ),
+                                    }));
+                                  }}
+                                  className={`w-7 h-7 rounded-xl ${c.bg} transition-all cursor-pointer flex items-center justify-center ${
+                                    item.customBadgeColor === c.id
+                                      ? 'ring-2 ring-white scale-110 shadow-md'
+                                      : 'opacity-60 hover:opacity-100'
+                                  }`}
+                                  title={c.label}
+                                >
+                                  {item.customBadgeColor === c.id && <Check className="w-3.5 h-3.5 text-black" />}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Custom Tagline & Optional YouTube Trailer Key */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1">
+                              {language === 'en' ? 'Editorial Tagline / Highlight Note' : 'Tagline Sorotan / Catatan Kurasi'}
+                            </label>
+                            <input
+                              type="text"
+                              value={item.customTagline || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSpotlightConfig((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) => (it.id === item.id ? { ...it, customTagline: val } : it)),
+                                }));
+                              }}
+                              placeholder={
+                                language === 'en'
+                                  ? 'e.g. Masterpiece film awarded 7 Academy Awards...'
+                                  : 'Misal: Film mahakarya peraih 7 piala Oscar...'
+                              }
+                              className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1">
+                              {language === 'en' ? 'YouTube Trailer Key (Optional Override)' : 'Trailer YouTube Key (Opsional)'}
+                            </label>
+                            <input
+                              type="text"
+                              value={item.trailerYoutubeKey || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSpotlightConfig((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((it) => (it.id === item.id ? { ...it, trailerYoutubeKey: val } : it)),
+                                }));
+                              }}
+                              placeholder="e.g. d9MyW72ELq0"
+                              className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Action Save Bar */}
+              <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-xs text-slate-400">
+                  {language === 'en'
+                    ? 'Clicking Save will broadcast changes across WebSockets in real-time to all live sessions.'
+                    : 'Menyimpan konfigurasi akan langsung menyiarkan pembaruan secara real-time via WebSocket ke seluruh penonton.'}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveSpotlight()}
+                  disabled={isSavingSpotlight}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs transition-all shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {isSavingSpotlight ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 fill-black" />
+                  )}
+                  <span>{language === 'en' ? 'Save & Apply in Real-time' : 'Simpan & Terapkan Real-time'}</span>
+                </button>
+              </div>
+
+              {/* Toast Feedback */}
+              {spotlightSaveToast && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs font-bold flex items-center gap-2.5 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{spotlightSaveToast}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Supabase SQL Setup Box for spotlight_config table */}
+            <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    {language === 'en'
+                      ? 'Supabase Database Schema: spotlight_config'
+                      : 'Skema Database Supabase: spotlight_config'}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    navigator.clipboard.writeText(SUPABASE_SPOTLIGHT_SQL);
+                    setCopiedSpotlightSql(true);
+                    playSuccess();
+                    setTimeout(() => setCopiedSpotlightSql(false), 2500);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer transition-all shrink-0"
+                >
+                  {copiedSpotlightSql ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">
+                        {language === 'en' ? 'Copied SQL!' : 'SQL Disalin!'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-300" />
+                      <span>{language === 'en' ? 'Copy SQL Script' : 'Salin Skrip SQL'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {language === 'en'
+                  ? 'Run this SQL script in Supabase SQL Editor to allow all visitor devices (Mobile, Tablet, Desktop, PWA) to read the spotlight configuration without authentication.'
+                  : 'Jalankan skrip SQL ini di SQL Editor Supabase untuk membuat tabel spotlight_config beserta aturan keamanan RLS, sehingga seluruh pengunjung di HP, Tablet, dan PWA dapat langsung melihat film pilihan editor.'}
+              </p>
+
+              <pre className="p-3.5 rounded-xl bg-black/60 border border-white/10 text-[11px] font-mono text-cyan-300 overflow-x-auto max-h-44 no-scrollbar">
+                <code>{SUPABASE_SPOTLIGHT_SQL}</code>
+              </pre>
+            </div>
           </div>
         )}
 

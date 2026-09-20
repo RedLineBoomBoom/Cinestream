@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Info, Plus, Check, ExternalLink, Volume2, VolumeX } from 'lucide-react';
+import { Play, Info, Plus, Check, ExternalLink, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
@@ -370,10 +370,29 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         <div className="max-w-xl sm:max-w-2xl lg:max-w-3xl 3xl:max-w-4xl space-y-3 sm:space-y-4 lg:space-y-5">
           {/* Netflix Signature Metadata Badges */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs">
-            {/* Top 10 / Trending Badge */}
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#E50914] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-md shadow-red-900/40">
-              <span>TOP 10</span>
-            </div>
+            {/* Custom Spotlight Badge vs Standard Top 10 */}
+            {currentMedia.isSpotlight || currentMedia.customBadge ? (
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-lg ${
+                  currentMedia.customBadgeColor === 'red'
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-red-900/50 border border-red-400/40'
+                    : currentMedia.customBadgeColor === 'purple'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-900/50 border border-purple-400/40'
+                    : currentMedia.customBadgeColor === 'emerald'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-emerald-900/50 border border-emerald-400/40'
+                    : currentMedia.customBadgeColor === 'cyan'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-cyan-900/50 border border-cyan-300'
+                    : 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-black shadow-amber-950/50 border border-amber-300'
+                }`}
+              >
+                <Sparkles className="w-3 h-3 shrink-0" />
+                <span>{currentMedia.customBadge || (language === 'en' ? "EDITOR'S CHOICE" : 'PILIHAN EDITOR')}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#E50914] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-md shadow-red-900/40">
+                <span>TOP 10</span>
+              </div>
+            )}
 
             {/* Release Year */}
             {currentMedia.year ? (
@@ -423,6 +442,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <h1 className="text-3xl sm:text-5xl lg:text-7xl xl:text-8xl font-display font-black text-white tracking-tight uppercase leading-[0.98] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">
               {displayTitle}
             </h1>
+          )}
+
+          {/* Custom Editorial Spotlight Tagline */}
+          {currentMedia.customTagline && (
+            <div className="flex items-center gap-2 py-0.5 animate-in fade-in slide-in-from-left-2 duration-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 shadow-glow-amber" />
+              <p className="text-xs sm:text-sm md:text-base font-semibold text-amber-300/95 italic drop-shadow-md">
+                "{currentMedia.customTagline}"
+              </p>
+            </div>
           )}
 
           {/* Director & Genre Badges */}

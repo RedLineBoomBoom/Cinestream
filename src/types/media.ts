@@ -106,6 +106,10 @@ export interface MediaItem {
   completedSeasons?: number[];
   ongoingSeason?: number;
   seasonBreakdown?: string;
+  isSpotlight?: boolean;
+  customBadge?: string;
+  customBadgeColor?: string;
+  customTagline?: string;
 }
 
 export interface NextEpisodeAirInfo {
