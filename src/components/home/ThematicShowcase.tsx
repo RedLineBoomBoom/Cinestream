@@ -827,31 +827,52 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 />
               </div>
 
-              {/* High-Impact Character Cutout PNG (Proportionally framed within the content container) */}
+              {/* High-Impact Character Cutout PNG with Seamless Gradient Blur Transition */}
               <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 pointer-events-none overflow-visible z-[12]">
                 <div
                   className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[370px] sm:h-[490px] md:h-[570px] lg:h-[650px] xl:h-[730px] 2xl:h-[800px] pointer-events-none select-none flex items-start`}
                   style={{
-                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 7%, black 74%, transparent 100%), linear-gradient(to left, transparent 0%, black 14%, black 100%)',
+                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 78%, transparent 100%), linear-gradient(to left, transparent 0%, black 12%, black 100%)',
                     maskComposite: 'intersect',
-                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 7%, black 74%, transparent 100%), linear-gradient(to left, transparent 0%, black 14%, black 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 78%, transparent 100%), linear-gradient(to left, transparent 0%, black 12%, black 100%)',
                     WebkitMaskComposite: 'source-in',
                   }}
                 >
-                  <img
-                    src={banner.cutoutArt}
-                    alt={banner.cutoutAlt}
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] brightness-[0.97] contrast-[1.01] saturate-[0.95]
-                      blur-[4px] opacity-25
-                      sm:blur-[5px] sm:opacity-35
-                      md:blur-[6px] md:opacity-45
-                      lg:blur-[6px] lg:opacity-50
-                      xl:blur-[7px] xl:opacity-55"
-                  />
+                  <div className="relative h-full flex items-start">
+                    {/* Layer 1: Ambient Gradient Blur Depth Layer (Blurry behind the cards/left, seamlessly fading out towards right) */}
+                    <img
+                      src={banner.cutoutArt}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      className="h-full w-auto object-contain object-top filter brightness-[0.92] contrast-[1.02] saturate-[0.95]
+                        blur-[8px] sm:blur-[12px] md:blur-[15px] lg:blur-[18px]
+                        opacity-35 sm:opacity-45 md:opacity-55 lg:opacity-65"
+                      style={{
+                        maskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.2) 60%, transparent 85%)',
+                        WebkitMaskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.2) 60%, transparent 85%)',
+                      }}
+                    />
+
+                    {/* Layer 2: High-Def Character Focus Layer (Emerges via smooth gradient transition into crisp focus) */}
+                    <img
+                      src={banner.cutoutArt}
+                      alt={banner.cutoutAlt}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      className="absolute top-0 left-0 h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] brightness-[0.99] contrast-[1.04] saturate-[1.03]
+                        opacity-60 sm:opacity-75 md:opacity-85 lg:opacity-95"
+                      style={{
+                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.65) 45%, black 75%)',
+                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.65) 45%, black 75%)',
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
