@@ -76,8 +76,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? 'bg-[#141414]/95 backdrop-blur-xl border-b border-white/[0.08] py-3 shadow-2xl'
-          : 'bg-gradient-to-b from-black/95 via-black/60 to-transparent py-4 sm:py-5'
+          ? 'bg-[#141414]/95 backdrop-blur-xl border-b border-white/[0.08] pb-3 shadow-2xl'
+          : 'bg-gradient-to-b from-black/95 via-black/60 to-transparent pb-4 sm:pb-5'
       } ${
         isHidden
           ? 'opacity-0 -translate-y-full pointer-events-none'
@@ -85,6 +85,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           ? 'opacity-20 blur-sm hover:opacity-100 hover:blur-none pointer-events-none hover:pointer-events-auto'
           : 'opacity-100 blur-none'
       }`}
+      style={{
+        paddingTop: isScrolled
+          ? 'calc(env(safe-area-inset-top, 0px) + 12px)'
+          : 'calc(env(safe-area-inset-top, 0px) + 16px)',
+      }}
     >
       <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 flex items-center justify-between gap-4 xl:gap-6">
         {/* Brand Logo - Modern Netflix-Style Streaming Identity */}
