@@ -730,7 +730,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* ── Navigation Tabs ── */}
-        <div className="flex overflow-x-auto no-scrollbar gap-2 mt-6 pb-2 border-b border-white/[0.06]">
+        <div className="flex flex-wrap items-center gap-2 mt-6 pb-2 border-b border-white/[0.06]">
           {[
             {
               id: 'overview',
@@ -784,7 +784,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   setActiveTab(tab.id as any);
                 }}
                 onMouseEnter={playHover}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
                   isActive
                     ? 'bg-[#E50914] text-white border-[#E50914] shadow-lg shadow-red-950/40'
                     : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border-white/[0.06]'
