@@ -860,15 +860,17 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                     }}
                     className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-[0.97] contrast-[1.01] saturate-[0.95]
                       blur-[3px] opacity-25
-                      sm:blur-[0.6px] sm:opacity-100"
+                      sm:blur-[2.5px] sm:opacity-35
+                      md:blur-[1.5px] md:opacity-55
+                      lg:blur-[0.6px] lg:opacity-100"
                   />
                 </div>
               </div>
 
-              {/* Mobile-only: left-side dark scrim so text stays legible over the blurred cutout */}
-              <div className="sm:hidden absolute inset-y-0 left-0 right-0 pointer-events-none z-[14]"
+              {/* Mobile + Tablet: left-side dark scrim so text stays legible over the blurred cutout */}
+              <div className="lg:hidden absolute inset-y-0 left-0 right-0 pointer-events-none z-[14]"
                 style={{
-                  background: 'linear-gradient(to right, #141414 30%, #141414cc 60%, transparent 100%)',
+                  background: 'linear-gradient(to right, #141414 25%, #141414dd 55%, #141414aa 72%, transparent 100%)',
                 }}
               />
 
