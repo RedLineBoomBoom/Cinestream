@@ -2,7 +2,11 @@ import React from 'react';
 import { Play, Shield, Lock, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenLegal?: (tab: 'privacy' | 'terms') => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
   const { t, language } = useLanguage();
 
   return (
@@ -43,9 +47,15 @@ export const Footer: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <a
                 href={`/privacy.html?lang=${language}`}
+                onClick={(e) => {
+                  if (onOpenLegal && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button !== 1) {
+                    e.preventDefault();
+                    onOpenLegal('privacy');
+                  }
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#E50914]/15 hover:border-[#E50914]/50 hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#E50914]/15 hover:border-[#E50914]/50 hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline cursor-pointer"
               >
                 <Lock className="w-3 h-3 text-[#E50914] group-hover:scale-110 transition-transform" />
                 <span>{t('privacyPolicy')}</span>
@@ -53,9 +63,15 @@ export const Footer: React.FC = () => {
 
               <a
                 href={`/terms.html?lang=${language}`}
+                onClick={(e) => {
+                  if (onOpenLegal && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button !== 1) {
+                    e.preventDefault();
+                    onOpenLegal('terms');
+                  }
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline cursor-pointer"
               >
                 <FileText className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform" />
                 <span>{t('termsOfService')}</span>
@@ -71,18 +87,30 @@ export const Footer: React.FC = () => {
             <span className="hidden sm:inline text-white/10">•</span>
             <a
               href={`/privacy.html?lang=${language}`}
+              onClick={(e) => {
+                if (onOpenLegal && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button !== 1) {
+                  e.preventDefault();
+                  onOpenLegal('privacy');
+                }
+              }}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 hover:text-[#E50914] transition-colors"
+              className="text-slate-400 hover:text-[#E50914] transition-colors cursor-pointer"
             >
               {t('privacyPolicy')}
             </a>
             <span className="text-white/10">•</span>
             <a
               href={`/terms.html?lang=${language}`}
+              onClick={(e) => {
+                if (onOpenLegal && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button !== 1) {
+                  e.preventDefault();
+                  onOpenLegal('terms');
+                }
+              }}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-400 hover:text-white transition-colors"
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               {t('termsOfService')}
             </a>

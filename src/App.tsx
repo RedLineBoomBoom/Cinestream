@@ -45,6 +45,7 @@ import {
 import { Bookmark, Users, ShieldAlert } from 'lucide-react';
 import { initCapacitorApp } from './utils/capacitorApp';
 import { isAdminUser } from './utils/admin';
+import { LegalModal } from './components/common/LegalModal';
 import {
   fetchSpotlightConfig,
   subscribeSpotlightRealtime,
@@ -108,6 +109,13 @@ const MainContent: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInitialSource, setSearchInitialSource] = useState<ModalSearchSource>('all');
   const [isCustomStreamOpen, setIsCustomStreamOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'privacy' | 'terms' | null>(() => {
+    if (typeof window !== 'undefined') {
+      const route = parseCurrentRoute();
+      if (route.type === 'legal') return route.tab;
+    }
+    return null;
+  });
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [resumeTime, setResumeTime] = useState<number | undefined>(undefined);
   const [resumeEpisodeId, setResumeEpisodeId] = useState<string | undefined>(undefined);
@@ -349,6 +357,28 @@ const MainContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Open Legal Modal (Privacy Policy / Terms of Service)
+  const handleOpenLegal = (tab: 'privacy' | 'terms') => {
+    playClick();
+    setLegalModalTab(tab);
+    try {
+      window.history.pushState({ type: 'legal', tab }, '', `/${tab}`);
+    } catch {}
+  };
+
+  const handleCloseLegal = () => {
+    setLegalModalTab(null);
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        (/^\/(?:privacy|terms)/i.test(window.location.pathname) ||
+          /^#\/?(?:privacy|terms)/i.test(window.location.hash))
+      ) {
+        window.history.replaceState({ type: 'tab', tab: activeTab }, '', getTabUrl(activeTab));
+      }
+    } catch {}
+  };
+
   // Open player / details section
   const handleOpenMedia = (
     media: MediaItem,
@@ -460,6 +490,11 @@ const MainContent: React.FC = () => {
   // Capacitor Android Native: Status bar color & hardware back button handling
   useEffect(() => {
     const cleanup = initCapacitorApp(() => {
+      // 0. If legal modal is open, close it
+      if (legalModalTab) {
+        handleCloseLegal();
+        return true;
+      }
       // 1. If video player is open, close player
       if (selectedMedia) {
         handleClosePlayer();
@@ -498,6 +533,7 @@ const MainContent: React.FC = () => {
       if (cleanup) cleanup();
     };
   }, [
+    legalModalTab,
     selectedMedia,
     isSearchOpen,
     isPartyOpen,
@@ -649,6 +685,10 @@ const MainContent: React.FC = () => {
       setIsPartyOpen(true);
       setSelectedMedia(null);
       setIsMediaLoading(false);
+    } else if (route.type === 'legal') {
+      setLegalModalTab(route.tab);
+      setSelectedMedia(null);
+      setIsMediaLoading(false);
     } else {
       setSelectedMedia(null);
       setIsMediaLoading(false);
@@ -709,6 +749,7 @@ const MainContent: React.FC = () => {
       const route = parseCurrentRoute();
 
       if (route.type === 'watch') {
+        setLegalModalTab(null);
         if (selectedMedia?.id !== route.mediaId) {
           resolveAndPlayMedia(route.mediaId, route.episodeId);
         } else if (route.episodeId) {
@@ -716,6 +757,7 @@ const MainContent: React.FC = () => {
         }
         setIsMiniPlayer(false);
       } else if (route.type === 'tab') {
+        setLegalModalTab(null);
         if (selectedMedia) {
           setSelectedMedia(null);
           setIsMiniPlayer(false);
@@ -736,8 +778,11 @@ const MainContent: React.FC = () => {
           // ignore
         }
       } else if (route.type === 'party') {
+        setLegalModalTab(null);
         setAutoJoinCode(route.code);
         setIsPartyOpen(true);
+      } else if (route.type === 'legal') {
+        setLegalModalTab(route.tab);
       }
     };
 
@@ -1252,7 +1297,7 @@ const MainContent: React.FC = () => {
 
       {/* Footer */}
       <div className={`transition-all duration-500 ${isTheaterMode ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100 blur-none'}`}>
-        <Footer />
+        <Footer onOpenLegal={handleOpenLegal} />
       </div>
 
       {/* Mobile Bottom Nav */}
@@ -1303,6 +1348,13 @@ const MainContent: React.FC = () => {
       <VpnDnsNoticeModal
         isOpen={isVpnNoticeOpen}
         onClose={() => setIsVpnNoticeOpen(false)}
+      />
+
+      {/* ── Legal Modal (Privacy Policy & Terms of Service) ───────── */}
+      <LegalModal
+        isOpen={Boolean(legalModalTab)}
+        initialTab={legalModalTab || 'privacy'}
+        onClose={handleCloseLegal}
       />
 
       {/* ── Watch Party Modal ───────────────────────────── */}

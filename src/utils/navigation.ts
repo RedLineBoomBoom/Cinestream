@@ -1,6 +1,7 @@
 export type RouteInfo =
   | { type: 'watch'; mediaId: string; episodeId?: string }
   | { type: 'party'; code: string }
+  | { type: 'legal'; tab: 'privacy' | 'terms' }
   | { type: 'tab'; tab: string };
 
 export const VALID_TABS = [
@@ -109,6 +110,14 @@ export function parseCurrentRoute(): RouteInfo {
   const partyHashMatch = hash.match(/^#\/party\/([A-Z0-9]{4,8})/i);
   if (partyHashMatch) {
     return { type: 'party', code: partyHashMatch[1].toUpperCase() };
+  }
+
+  // 3b. Check Legal routes in pathname or hash (/privacy, /terms, #privacy, etc.)
+  if (/^\/(?:privacy(?:\.html)?|kebijakan-privasi)/i.test(pathname) || /^#\/?(?:privacy|kebijakan-privasi)/i.test(hash)) {
+    return { type: 'legal', tab: 'privacy' };
+  }
+  if (/^\/(?:terms(?:\.html)?|ketentuan-layanan|tos)/i.test(pathname) || /^#\/?(?:terms|ketentuan-layanan|tos)/i.test(hash)) {
+    return { type: 'legal', tab: 'terms' };
   }
 
   // 4. Check clean section tabs in pathname (e.g. /movie, /series, /watchlist)
