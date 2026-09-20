@@ -53,14 +53,24 @@ CREATE POLICY "Public can view announcements"
     TO public
     USING (true);
 
--- 4. Kebijakan KELOLA: Izinkan simpan, ubah, dan nonaktifkan pengumuman
+-- 4. Kebijakan KELOLA HANYA UNTUK ADMIN TERDAFTAR:
+-- Hanya akun admin terotentikasi dengan email JWT terverifikasi yang bisa INSERT, UPDATE, DELETE
 DROP POLICY IF EXISTS "Anyone can manage announcements" ON public.announcements;
-CREATE POLICY "Anyone can manage announcements"
+DROP POLICY IF EXISTS "Admin manage announcements" ON public.announcements;
+CREATE POLICY "Admin manage announcements"
     ON public.announcements
     FOR ALL
-    TO public
-    USING (true)
-    WITH CHECK (true);
+    TO authenticated
+    USING (
+      (auth.jwt() ->> 'email') IN (
+        'renaldy.maulana.rm@gmail.com'
+      )
+    )
+    WITH CHECK (
+      (auth.jwt() ->> 'email') IN (
+        'renaldy.maulana.rm@gmail.com'
+      )
+    );
 
 -- 5. Kebijakan Fallback pada tabel watchlist
 DROP POLICY IF EXISTS "Public can view broadcast announcements on watchlist" ON public.watchlist;
@@ -91,30 +101,29 @@ export function getAdminEmails(): string[] {
 
 /**
  * Checks if a given user/profile has administrator privileges.
- * Returns true ONLY if:
- * 1. The user is logged in AND their verified email matches the admin email whitelist, OR
- * 2. The user profile has an explicit role === 'admin' or is_admin === true.
+ * 
+ * SECURITY HARDENED:
+ * Requires an active, authenticated Supabase session (`user != null` with valid `email`).
+ * Never trusts unauthenticated client-side localStorage properties to prevent privilege escalation.
  */
 export function isAdminUser(
-  user: User | { email?: string | null } | null | undefined,
-  profile?: (UserProfile & { role?: string; is_admin?: boolean }) | null | undefined
+  user: User | { email?: string | null; app_metadata?: Record<string, any> } | null | undefined,
+  _profile?: (UserProfile & { role?: string; is_admin?: boolean }) | null | undefined
 ): boolean {
-  if (!user && !profile) return false;
+  if (!user || !user.email) return false;
 
-  // 1. Check user email against whitelist
-  if (user?.email) {
-    const userEmail = user.email.trim().toLowerCase();
-    const adminEmails = getAdminEmails();
-    if (adminEmails.includes(userEmail)) {
-      return true;
-    }
+  const userEmail = user.email.trim().toLowerCase();
+  const adminEmails = getAdminEmails();
+
+  // 1. Verify user email against administrator whitelist
+  if (adminEmails.includes(userEmail)) {
+    return true;
   }
 
-  // 2. Check profile role or is_admin flag if configured
-  if (profile) {
-    if (profile.role === 'admin' || profile.role === 'superadmin' || profile.is_admin === true) {
-      return true;
-    }
+  // 2. Verify server-signed Supabase auth token metadata
+  const appRole = (user as User)?.app_metadata?.role;
+  if (appRole === 'admin' || appRole === 'superadmin') {
+    return true;
   }
 
   return false;

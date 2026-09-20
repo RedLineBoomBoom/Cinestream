@@ -3,6 +3,13 @@ import { X, Mail, Lock, User, Sparkles, Loader2, CheckCircle2, AlertCircle } fro
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
+import {
+  validateEmail,
+  validatePassword,
+  sanitizeText,
+  checkRateLimit,
+  resetRateLimit,
+} from '../../utils/security';
 
 export const AuthModal: React.FC = () => {
   const {
@@ -32,11 +39,33 @@ export const AuthModal: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    // 1. Rate Limiting Protection against Brute-Force
+    const rateCheck = checkRateLimit('auth_form_attempt', 5, 30000, 30000);
+    if (!rateCheck.allowed) {
+      setErrorMsg(
+        language === 'en'
+          ? `Too many failed attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`
+          : `Terlalu banyak percobaan. Silakan tunggu ${rateCheck.retryAfterSeconds} detik sebelum mencoba lagi.`
+      );
+      return;
+    }
+
+    // 2. Validate Email Format
+    const cleanEmail = email.trim();
+    if (!validateEmail(cleanEmail)) {
+      setErrorMsg(
+        language === 'en' ? 'Please enter a valid email address.' : 'Silakan masukkan format email yang valid.'
+      );
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (isSignUp) {
-        if (!fullName.trim()) {
+        const cleanName = sanitizeText(fullName, 100);
+        if (!cleanName) {
           setErrorMsg(
             language === 'en' ? 'Please enter your full name' : 'Silakan masukkan nama lengkap'
           );
@@ -44,10 +73,19 @@ export const AuthModal: React.FC = () => {
           return;
         }
 
-        const { error } = await signUpWithEmail(email.trim(), password, fullName.trim());
+        // 3. Password Strength Enforcement
+        const passCheck = validatePassword(password, language);
+        if (!passCheck.isValid) {
+          setErrorMsg(passCheck.message || 'Password too weak');
+          setIsLoading(false);
+          return;
+        }
+
+        const { error } = await signUpWithEmail(cleanEmail, password, cleanName);
         if (error) {
           setErrorMsg(error.message);
         } else {
+          resetRateLimit('auth_form_attempt');
           playSuccess();
           setSuccessMsg(
             language === 'en'
@@ -59,7 +97,7 @@ export const AuthModal: React.FC = () => {
           }, 2000);
         }
       } else {
-        const { error } = await signInWithEmail(email.trim(), password);
+        const { error } = await signInWithEmail(cleanEmail, password);
         if (error) {
           setErrorMsg(
             error.message.includes('Invalid login')
@@ -69,6 +107,7 @@ export const AuthModal: React.FC = () => {
               : error.message
           );
         } else {
+          resetRateLimit('auth_form_attempt');
           playSuccess();
           closeAuthModal();
         }

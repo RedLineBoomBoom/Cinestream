@@ -30,6 +30,7 @@ import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileConte
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
+  isAdminUser,
   saveAnnouncement,
   getActiveAnnouncement,
   fetchActiveAnnouncementFromCloud,
@@ -81,6 +82,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const { profile } = useUserProfile();
   const { playClick, playSuccess, playHover } = useSound();
   const { language, toggleLanguage } = useLanguage();
+
+  // Internal Defense-in-Depth Authorization Guard
+  const isAuthorized = isAdminUser(user, profile as any);
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      onBackToHome();
+    }
+  }, [isAuthorized, onBackToHome]);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   // Active Admin Sub-Tab
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'stream-tester' | 'system'>('overview');
@@ -1257,6 +1271,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   title="Admin Stream Tester"
                   className="w-full h-full border-0"
                   allowFullScreen
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 />
               ) : (

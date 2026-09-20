@@ -32,6 +32,22 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "X-Permitted-Cross-Domain-Policies",
+          "value": "none"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://image.tmdb.org https://images.unsplash.com https://*.supabase.co https://*.googleusercontent.com https://avatars.githubusercontent.com https://m.media-amazon.com https://static.tvmaze.com; media-src 'self' blob: https:; frame-src 'self' https://player.autoembed.cc https://vidlink.pro https://www.2embed.cc https://vidsrc.xyz https://*.autoembed.cc https://*.vidlink.pro https://*.2embed.cc https://*.vidsrc.xyz https://*.youtube.com https://www.youtube-nocookie.com https://vidsrc.to https://embed.su https://multiembed.mov https://autoembed.co https://accounts.google.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.themoviedb.org https://0.peerjs.com wss://0.peerjs.com https://api.tvmaze.com https://www.omdbapi.com https://accounts.google.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self';"
         }
       ]
     }

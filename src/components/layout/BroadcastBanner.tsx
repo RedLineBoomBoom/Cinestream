@@ -7,6 +7,7 @@ import {
   BROADCAST_STORAGE_KEY,
   type BroadcastAnnouncement,
 } from '../../utils/admin';
+import { sanitizeUrl } from '../../utils/security';
 
 export const BroadcastBanner: React.FC = () => {
   const [announcement, setAnnouncement] = useState<BroadcastAnnouncement | null>(() => {
@@ -185,9 +186,9 @@ export const BroadcastBanner: React.FC = () => {
           <p className="truncate text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
             {announcement.message}
           </p>
-          {announcement.linkUrl && announcement.linkText && (
+          {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
             <a
-              href={announcement.linkUrl}
+              href={sanitizeUrl(announcement.linkUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs"
