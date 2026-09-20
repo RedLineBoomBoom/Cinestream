@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.public_party_rooms (
   members_preview JSONB DEFAULT '[]'::jsonb,
   control_mode TEXT NOT NULL DEFAULT 'all',
   is_playing BOOLEAN DEFAULT true,
+  is_public BOOLEAN DEFAULT true,
   created_at BIGINT NOT NULL,
   last_heartbeat BIGINT NOT NULL
 );
@@ -146,11 +147,13 @@ if (typeof window !== 'undefined') {
  */
 export async function publishPublicRoom(
   room: PartyRoom,
-  isPlaying: boolean = true
+  isPlaying: boolean = true,
+  isPublic?: boolean
 ): Promise<void> {
   const now = Date.now();
   const hostMember = room.members[room.hostId];
   const membersList = Object.values(room.members).filter((m) => m.isActive);
+  const resolvedIsPublic = isPublic !== undefined ? isPublic : (room.isPublic !== undefined ? room.isPublic : true);
 
   const publicRoom: PublicPartyRoom = {
     roomCode: room.roomCode,
@@ -169,6 +172,7 @@ export async function publishPublicRoom(
     createdAt: room.createdAt || now,
     lastHeartbeat: now,
     isPlaying,
+    isPublic: resolvedIsPublic,
   };
 
   // 1. Simpan lokal
@@ -201,6 +205,7 @@ export async function publishPublicRoom(
         members_preview: publicRoom.membersPreview,
         control_mode: publicRoom.controlMode,
         is_playing: publicRoom.isPlaying,
+        is_public: publicRoom.isPublic ?? true,
         created_at: publicRoom.createdAt,
         last_heartbeat: publicRoom.lastHeartbeat,
       });
@@ -330,6 +335,7 @@ export async function fetchActivePublicRooms(): Promise<PublicPartyRoom[]> {
       createdAt: Number(item.created_at) || Date.now(),
       lastHeartbeat: Number(item.last_heartbeat) || Date.now(),
       isPlaying: Boolean(item.is_playing),
+      isPublic: item.is_public !== false,
     }));
 
     // Gabungkan cloud dan local, deduplikasi berdasarkan roomCode
@@ -365,4 +371,12 @@ export function subscribeToPublicLobby(listener: LobbyListener): () => void {
   return () => {
     subscribers.delete(listener);
   };
+}
+
+/**
+  * Verifikasi apakah kode yang dimasukkan cocok dengan kode room target
+  */
+export function verifyPrivateRoomCode(enteredCode: string, targetRoomCode: string): boolean {
+  if (!enteredCode || !targetRoomCode) return false;
+  return enteredCode.trim().toUpperCase() === targetRoomCode.trim().toUpperCase();
 }

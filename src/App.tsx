@@ -26,6 +26,7 @@ import { SoundProvider, useSound } from './context/SoundContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { WatchPartyProvider, useWatchParty } from './context/WatchPartyContext';
 import { WatchPartyModal } from './components/party/WatchPartyModal';
+import { WatchPartyLobbyView } from './components/party/WatchPartyLobbyView';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
@@ -1135,6 +1136,15 @@ const MainContent: React.FC = () => {
           <AdminDashboard
             onBackToHome={() => handleSelectTab('home')}
             onPlayMedia={(mediaId) => resolveAndPlayMedia(mediaId)}
+          />
+        )}
+
+        {/* VIEW 8: WATCH PARTY LOBBY (PUBLIC & PRIVATE SOCIAL DISCOVERY) */}
+        {activeTab === 'watch-party' && (
+          <WatchPartyLobbyView
+            catalog={fullCatalog}
+            onPlayMedia={(m, time, epId) => handleOpenMedia(m, time, epId)}
+            onGoHome={() => handleSelectTab('home')}
           />
         )}
           </>

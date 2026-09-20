@@ -97,9 +97,7 @@ export class WatchPartyService {
           controlMode: 'all',
           isPublic,
         };
-        if (isPublic) {
-          publishPublicRoom(this.room);
-        }
+        publishPublicRoom(this.room, true, isPublic);
         this._startHostHeartbeat();
         this.cbs.onRoomCreated?.(this.room);
         resolve(this.room);

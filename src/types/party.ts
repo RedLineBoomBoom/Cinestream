@@ -94,7 +94,11 @@ export interface PublicPartyRoom {
   createdAt: number;
   lastHeartbeat: number;
   isPlaying?: boolean;
+  isPublic?: boolean;
 }
+
+export type LobbyPartyRoom = PublicPartyRoom;
+export type LobbyFilter = 'all' | 'public' | 'private' | 'movie' | 'series';
 
 export type PartyStatus = 'idle' | 'creating' | 'joining' | 'connected' | 'error' | 'disconnected';
 

@@ -13,6 +13,7 @@ export const VALID_TABS = [
   'watchlist',
   'history',
   'watched',
+  'watch-party',
   'admin',
 ] as const;
 
@@ -31,6 +32,10 @@ const TAB_ALIASES: Record<string, ValidTab> = {
   filters: 'advanced-search',
   riwayat: 'history',
   dashboard: 'admin',
+  party: 'watch-party',
+  lobby: 'watch-party',
+  nobar: 'watch-party',
+  watchparty: 'watch-party',
 };
 
 /**
