@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   SkipBack,
   SkipForward,
+  Flag,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
@@ -35,6 +36,7 @@ import { useWatchParty } from '../../context/WatchPartyContext';
 import { WatchPartyButton } from '../party/WatchPartyButton';
 import { PartyReactionsOverlay } from '../party/PartyReactionsOverlay';
 import { resolveBestServer } from '../../services/serverResolver';
+import { ReportIssueModal } from './ReportIssueModal';
 
 export type SnapCorner = 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
 
@@ -266,6 +268,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const { updateProgress, continueWatching, historyItems, recordWatch } = useWatchlist();
   const { playClick, playHover } = useSound();
   const { t, language } = useLanguage();
+
+  // Stream Issue Report Modal State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Auto Next Episode Preference State (persisted in localStorage)
   const [localIsAutoNext, setLocalIsAutoNext] = useState<boolean>(() => {
@@ -2775,6 +2780,19 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
                 )}
 
+                {/* Report Stream Issue Button */}
+                <button
+                  onClick={() => {
+                    playClick();
+                    setIsReportModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 bg-cinema-950/85 hover:bg-red-600/25 text-slate-300 hover:text-red-200 backdrop-blur-md px-2.5 sm:px-3 py-1 rounded-full border border-white/10 hover:border-red-500/40 text-[10px] sm:text-[11px] font-medium transition-all shadow-lg cursor-pointer"
+                  title={language === 'en' ? 'Report broken stream, audio or subtitle issue' : 'Laporkan masalah video, audio, atau subtitle'}
+                >
+                  <Flag className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden lg:inline">{language === 'en' ? 'Report' : 'Lapor'}</span>
+                </button>
+
                 {/* Floating Mini Player Button (Only in normal player view) */}
                 {onToggleMiniPlayer && !isFullscreen && (
                   <button
@@ -3521,6 +3539,20 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             </button>
           )}
 
+          {/* Report Issue Button */}
+          <button
+            onClick={() => {
+              playClick();
+              setIsReportModalOpen(true);
+            }}
+            onMouseEnter={playHover}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600/15 hover:bg-red-600/30 text-red-300 hover:text-white border border-red-500/30 text-[11px] font-medium transition-all cursor-pointer shadow-sm hover:shadow-red-900/20"
+            title={language === 'en' ? 'Report broken stream, audio or subtitle issue' : 'Laporkan masalah video, audio, atau subtitle'}
+          >
+            <Flag className="w-3.5 h-3.5 text-red-400" />
+            <span>{language === 'en' ? 'Report Issue' : 'Lapor Masalah'}</span>
+          </button>
+
           <button
             onClick={handleSmartFailover}
             disabled={isResolvingServer}
@@ -3545,6 +3577,15 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       </div>
     )}
 
+    {/* Report Issue Modal */}
+    <ReportIssueModal
+      isOpen={isReportModalOpen}
+      onClose={() => setIsReportModalOpen(false)}
+      media={media}
+      currentEpisode={currentEpisode}
+      activeServer={activeServer}
+      onSwitchServerPrompt={handleSmartFailover}
+    />
   </div>
   );
 };

@@ -23,12 +23,22 @@ import {
   Globe,
   Loader2,
   AlertTriangle,
+  CheckCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  fetchStreamReports,
+  updateReportStatus,
+  deleteStreamReport,
+  SUPABASE_STREAM_REPORTS_SQL,
+  type StreamReport,
+  type ReportStatus,
+} from '../../services/reportService';
 import {
   isAdminUser,
   saveAnnouncement,
@@ -75,6 +85,77 @@ const STREAM_SERVERS: ServerStatusItem[] = [
   { id: 'vidsrc', name: 'Vidsrc In-House Mirror', url: 'https://vidsrc.xyz', type: 'embed', status: 'checking' },
 ];
 
+function getIssueBadge(type: string, lang: string) {
+  switch (type) {
+    case 'playback_error':
+      return {
+        label: lang === 'en' ? 'Playback / 404' : 'Video Rusak / 404',
+        icon: '🚫',
+        className: 'bg-red-500/20 text-red-300 border-red-500/40',
+      };
+    case 'subtitle_error':
+      return {
+        label: lang === 'en' ? 'Subtitle Error' : 'Subtitle Rusak',
+        icon: '💬',
+        className: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      };
+    case 'audio_sync':
+      return {
+        label: lang === 'en' ? 'Audio Muted / Desync' : 'Suara Bisu / Desync',
+        icon: '🔊',
+        className: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      };
+    case 'slow_buffer':
+      return {
+        label: lang === 'en' ? 'Buffering / Freezing' : 'Buffering Parah',
+        icon: '⏳',
+        className: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+      };
+    case 'wrong_content':
+      return {
+        label: lang === 'en' ? 'Wrong Content' : 'Konten / Episode Salah',
+        icon: '⚠️',
+        className: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      };
+    default:
+      return {
+        label: lang === 'en' ? 'Technical Issue' : 'Kendala Teknis',
+        icon: '📝',
+        className: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+      };
+  }
+}
+
+function getStatusBadge(status: string, lang: string) {
+  switch (status) {
+    case 'open':
+      return {
+        label: lang === 'en' ? 'Open' : 'Terbuka',
+        className: 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse',
+      };
+    case 'investigating':
+      return {
+        label: lang === 'en' ? 'Investigating' : 'Sedang Diperiksa',
+        className: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      };
+    case 'resolved':
+      return {
+        label: lang === 'en' ? 'Resolved' : 'Selesai',
+        className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      };
+    case 'rejected':
+      return {
+        label: lang === 'en' ? 'Rejected' : 'Ditolak',
+        className: 'bg-slate-500/20 text-slate-400 border-slate-500/40',
+      };
+    default:
+      return {
+        label: status,
+        className: 'bg-white/10 text-slate-300 border-white/20',
+      };
+  }
+}
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToHome,
 }) => {
@@ -97,7 +178,103 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }
 
   // Active Admin Sub-Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'stream-tester' | 'system'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'broadcast' | 'issues' | 'stream-tester' | 'system'>('overview');
+
+  // Stream Reports State
+  const [reports, setReports] = useState<StreamReport[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
+  const [reportFilter, setReportFilter] = useState<'all' | 'open' | 'investigating' | 'resolved' | 'rejected'>('all');
+  const [reportSearchQuery, setReportSearchQuery] = useState('');
+  const [copiedReportSql, setCopiedReportSql] = useState(false);
+  const [updatingReportId, setUpdatingReportId] = useState<string | null>(null);
+
+  const fetchReports = useCallback(async () => {
+    setIsLoadingReports(true);
+    try {
+      const data = await fetchStreamReports();
+      setReports(data);
+    } catch (e) {
+      console.warn('Error fetching reports:', e);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  }, []);
+
+  const openIssuesCount = useMemo(() => {
+    return reports.filter((r) => r.status === 'open' || r.status === 'investigating').length;
+  }, [reports]);
+
+  const handleUpdateStatus = async (reportId: string, status: ReportStatus, notes?: string) => {
+    playClick();
+    setUpdatingReportId(reportId);
+    try {
+      await updateReportStatus(reportId, status, notes);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === reportId
+            ? {
+                ...r,
+                status,
+                resolvedAt: status === 'resolved' || status === 'rejected' ? new Date().toISOString() : undefined,
+                adminNotes: notes ?? r.adminNotes,
+              }
+            : r
+        )
+      );
+      playSuccess();
+    } catch (e) {
+      console.warn('Failed to update status:', e);
+    } finally {
+      setUpdatingReportId(null);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    playClick();
+    setUpdatingReportId(reportId);
+    try {
+      await deleteStreamReport(reportId);
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+    } catch (e) {
+      console.warn('Failed to delete report:', e);
+    } finally {
+      setUpdatingReportId(null);
+    }
+  };
+
+  const handleTestReportStream = (report: StreamReport) => {
+    playClick();
+    const rawId = report.tmdbId ? String(report.tmdbId) : report.mediaId.replace('tmdb-movie-', '').replace('tmdb-tv-', '');
+    setTestTmdbId(rawId || '550');
+    setTestMediaType(report.mediaType === 'movie' ? 'movie' : 'tv');
+    if (report.seasonNumber) setTestSeason(String(report.seasonNumber));
+    if (report.episodeNumber) setTestEpisode(String(report.episodeNumber));
+
+    const cleanServer = report.serverId.toLowerCase();
+    if (cleanServer.includes('autoembed')) setTestServer('autoembed');
+    else if (cleanServer.includes('2embed')) setTestServer('2embed');
+    else if (cleanServer.includes('vidsrc')) setTestServer('vidsrc');
+    else setTestServer('vidlink');
+
+    setActiveTab('stream-tester');
+  };
+
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) => {
+      // 1. Status filter
+      if (reportFilter !== 'all' && r.status !== reportFilter) return false;
+
+      // 2. Search query filter
+      if (reportSearchQuery.trim()) {
+        const q = reportSearchQuery.toLowerCase();
+        const titleMatch = r.mediaTitle.toLowerCase().includes(q);
+        const serverMatch = r.serverName.toLowerCase().includes(q) || r.serverId.toLowerCase().includes(q);
+        const userMatch = (r.reportedBy || '').toLowerCase().includes(q) || (r.userEmail || '').toLowerCase().includes(q);
+        return titleMatch || serverMatch || userMatch;
+      }
+      return true;
+    });
+  }, [reports, reportFilter, reportSearchQuery]);
 
   // Metrics State
   const [totalProfiles, setTotalProfiles] = useState<number | null>(null);
@@ -251,16 +428,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsCheckingHealth(false);
   }, []);
 
-  // Sync cloud announcement when opening dashboard
+  // Sync cloud announcement & reports when opening dashboard
   useEffect(() => {
     fetchMetrics();
     checkHealth();
+    fetchReports();
     fetchActiveAnnouncementFromCloud().then((cloud) => {
       if (cloud) {
         setAnnouncement(cloud);
       }
     });
-  }, [fetchMetrics, checkHealth]);
+  }, [fetchMetrics, checkHealth, fetchReports]);
+
+  // Refetch reports whenever opening issues tab
+  useEffect(() => {
+    if (activeTab === 'issues') {
+      fetchReports();
+    }
+  }, [activeTab, fetchReports]);
 
   // Update test embed url when parameters change
   useEffect(() => {
@@ -416,12 +601,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 playClick();
                 fetchMetrics();
                 checkHealth();
+                fetchReports();
               }}
               onMouseEnter={playHover}
-              disabled={isLoadingMetrics || isCheckingHealth}
+              disabled={isLoadingMetrics || isCheckingHealth || isLoadingReports}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoadingMetrics || isCheckingHealth || isLoadingReports ? 'animate-spin' : ''}`} />
               <span>{language === 'en' ? 'Refresh Data' : 'Segarkan Data'}</span>
             </button>
 
@@ -458,6 +644,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               label: language === 'en' ? 'Announcement Banner' : 'Pengumuman Banner',
               icon: Megaphone,
               highlight: announcement.active,
+            },
+            {
+              id: 'issues',
+              label: language === 'en' ? 'Stream Issues' : 'Laporan Masalah',
+              icon: AlertTriangle,
+              badge: openIssuesCount > 0 ? openIssuesCount : undefined,
+              highlight: openIssuesCount > 0,
             },
             {
               id: 'stream-tester',
@@ -507,7 +700,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {activeTab === 'overview' && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Top Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {/* Metric 1: Profiles */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 rounded-full blur-2xl group-hover:bg-red-600/20 transition-all pointer-events-none" />
@@ -577,6 +770,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
                   <span className="text-emerald-400">● 5/5 Providers ready</span>
                   <span>{language === 'en' ? '• zero downtime' : '• tanpa kendala'}</span>
+                </p>
+              </div>
+
+              {/* Metric 5: Issue Reports */}
+              <div
+                onClick={() => {
+                  playClick();
+                  setActiveTab('issues');
+                }}
+                className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-xl relative overflow-hidden group cursor-pointer hover:border-amber-500/40 transition-all"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/10 rounded-full blur-2xl group-hover:bg-red-600/20 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {language === 'en' ? 'Stream Issue Reports' : 'Laporan Masalah'}
+                  </span>
+                  <AlertTriangle className={`w-4 h-4 ${openIssuesCount > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+                </div>
+                <div className="text-3xl font-display font-black text-white flex items-center gap-2">
+                  <span>{isLoadingReports ? '...' : openIssuesCount}</span>
+                  {openIssuesCount > 0 && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                      {language === 'en' ? 'PENDING' : 'PERLU CEK'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
+                  <span className={openIssuesCount > 0 ? 'text-amber-400 font-bold' : 'text-emerald-400'}>
+                    {openIssuesCount > 0 ? `⚠ ${openIssuesCount} unhandled` : '✓ All clear'}
+                  </span>
+                  <span>{language === 'en' ? '• click to view' : '• klik untuk pantau'}</span>
                 </p>
               </div>
             </div>
@@ -1137,6 +1361,327 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
             </form>
+          </div>
+        )}
+
+        {/* ════════════════ TAB: STREAM ISSUES TRACKER ════════════════ */}
+        {activeTab === 'issues' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header & Quick Action */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <span>
+                    {language === 'en'
+                      ? 'Stream Issue Tracker & Viewer Reports'
+                      : 'Pelacak Masalah Video & Laporan Penonton'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {language === 'en'
+                    ? 'Monitor viewer reports for broken mirrors, missing subtitles, audio desync, or high buffering. Test and fix streams directly.'
+                    : 'Pantau laporan kendala dari penonton untuk server mati, subtitle hilang, desync suara, atau buffering parah. Uji dan selesaikan langsung.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    playClick();
+                    fetchReports();
+                  }}
+                  disabled={isLoadingReports}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 text-amber-400 ${isLoadingReports ? 'animate-spin' : ''}`} />
+                  <span>{language === 'en' ? 'Refresh Reports' : 'Segarkan Laporan'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                {[
+                  { id: 'all', labelId: 'Semua', labelEn: 'All', count: reports.length, color: '' },
+                  { id: 'open', labelId: 'Terbuka / Perlu Cek', labelEn: 'Open', count: reports.filter((r) => r.status === 'open').length, color: 'text-red-400 bg-red-500/20 border-red-500/40' },
+                  { id: 'investigating', labelId: 'Sedang Diperiksa', labelEn: 'Investigating', count: reports.filter((r) => r.status === 'investigating').length, color: 'text-amber-300 bg-amber-500/20 border-amber-500/40' },
+                  { id: 'resolved', labelId: 'Terselesaikan', labelEn: 'Resolved', count: reports.filter((r) => r.status === 'resolved').length, color: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40' },
+                  { id: 'rejected', labelId: 'Ditolak', labelEn: 'Rejected', count: reports.filter((r) => r.status === 'rejected').length, color: 'text-slate-400 bg-white/5 border-white/10' },
+                ].map((f) => {
+                  const isSelected = reportFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        playClick();
+                        setReportFilter(f.id as any);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer border ${
+                        isSelected
+                          ? 'bg-white/15 text-white border-white/30 shadow-sm'
+                          : 'bg-white/[0.02] text-slate-400 hover:text-white border-transparent hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <span>{language === 'en' ? f.labelEn : f.labelId}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${f.color || 'bg-white/10 text-slate-300'}`}>
+                        {f.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search input */}
+              <div className="relative w-full md:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={reportSearchQuery}
+                  onChange={(e) => setReportSearchQuery(e.target.value)}
+                  placeholder={language === 'en' ? 'Search title, server...' : 'Cari judul, server...'}
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-red-500/50"
+                />
+              </div>
+            </div>
+
+            {/* Reports List */}
+            {isLoadingReports ? (
+              <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                <span className="text-xs">{language === 'en' ? 'Loading stream reports...' : 'Memuat laporan kendala...'}</span>
+              </div>
+            ) : filteredReports.length === 0 ? (
+              <div className="p-12 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">
+                    {language === 'en' ? 'No reports found' : 'Tidak ada laporan masalah'}
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {reportFilter === 'all'
+                      ? (language === 'en' ? 'All streaming servers and content are running smoothly.' : 'Seluruh server streaming dan tayangan berjalan normal tanpa kendala.')
+                      : (language === 'en' ? `No reports with status "${reportFilter}".` : `Tidak ada laporan dengan status "${reportFilter}".`)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredReports.map((report) => {
+                  const isUpdating = updatingReportId === report.id;
+                  const issueBadge = getIssueBadge(report.issueType, language);
+                  const statusBadge = getStatusBadge(report.status, language);
+
+                  return (
+                    <div
+                      key={report.id}
+                      className={`p-5 rounded-2xl border transition-all duration-200 space-y-4 ${
+                        report.status === 'open'
+                          ? 'bg-gradient-to-r from-red-950/25 via-white/[0.02] to-white/[0.01] border-red-500/35 shadow-lg shadow-red-950/20'
+                          : report.status === 'investigating'
+                          ? 'bg-gradient-to-r from-amber-950/20 via-white/[0.02] to-white/[0.01] border-amber-500/35'
+                          : report.status === 'resolved'
+                          ? 'bg-white/[0.02] border-emerald-500/20 opacity-80 hover:opacity-100'
+                          : 'bg-white/[0.01] border-white/5 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {/* Top Row: Title, Badges, Status */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            {report.mediaType === 'movie' ? (
+                              <Film className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            ) : (
+                              <Tv className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            )}
+                            <span className="text-sm font-semibold tracking-wide">{report.mediaTitle}</span>
+                          </span>
+
+                          <span className="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] font-mono uppercase font-bold">
+                            {report.mediaType}
+                          </span>
+
+                          {(report.seasonNumber !== undefined || report.episodeNumber !== undefined) && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">
+                              S{report.seasonNumber ?? 1}:E{report.episodeNumber ?? 1}
+                            </span>
+                          )}
+
+                          {/* Issue Type Chip */}
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border flex items-center gap-1 ${issueBadge.className}`}>
+                            <span>{issueBadge.icon}</span>
+                            <span>{issueBadge.label}</span>
+                          </span>
+                        </div>
+
+                        {/* Status Tag & Relative Time */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border uppercase tracking-wider ${statusBadge.className}`}>
+                            {statusBadge.label}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            {new Date(report.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Middle Row: Server, Reporter, Description */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+                        {/* Server Info */}
+                        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                            <Server className="w-3 h-3 text-cyan-400" />
+                            <span>{language === 'en' ? 'Reported Server' : 'Server Bermasalah'}</span>
+                          </span>
+                          <div className="font-semibold text-white truncate">{report.serverName}</div>
+                          <div className="text-[10px] font-mono text-slate-400">ID: {report.serverId}</div>
+                        </div>
+
+                        {/* Reporter Info */}
+                        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                            <Users className="w-3 h-3 text-emerald-400" />
+                            <span>{language === 'en' ? 'Reporter' : 'Pelapor'}</span>
+                          </span>
+                          <div className="font-semibold text-white truncate">{report.reportedBy}</div>
+                          <div className="text-[10px] font-mono text-slate-400 truncate">
+                            {report.userEmail || (language === 'en' ? 'Unregistered Guest' : 'Tamu Pengunjung')}
+                          </div>
+                        </div>
+
+                        {/* Notes / Description */}
+                        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1 md:col-span-1">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3 text-amber-400" />
+                            <span>{language === 'en' ? 'Viewer Note' : 'Catatan Penonton'}</span>
+                          </span>
+                          <p className="text-slate-300 italic line-clamp-2">
+                            {report.description ? `"${report.description}"` : (
+                              <span className="text-slate-500 not-italic">
+                                {language === 'en' ? 'No extra description provided' : 'Tidak ada keterangan tambahan'}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bottom Actions Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                        {/* 🚀 Quick Jump to Stream Inspector */}
+                        <button
+                          onClick={() => handleTestReportStream(report)}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:brightness-110 active:scale-95 text-white font-bold text-xs shadow-md shadow-red-950/40 transition-all cursor-pointer"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>{language === 'en' ? 'Test Stream in Inspector ↗' : 'Uji Stream di Inspector ↗'}</span>
+                        </button>
+
+                        {/* Status Change Buttons & Delete */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {report.status !== 'investigating' && (
+                            <button
+                              onClick={() => handleUpdateStatus(report.id, 'investigating')}
+                              disabled={isUpdating}
+                              className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {language === 'en' ? 'Mark Investigating' : 'Tandai Sedang Diperiksa'}
+                            </button>
+                          )}
+
+                          {report.status !== 'resolved' && (
+                            <button
+                              onClick={() => handleUpdateStatus(report.id, 'resolved')}
+                              disabled={isUpdating}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>{language === 'en' ? 'Mark Resolved' : 'Tandai Selesai'}</span>
+                            </button>
+                          )}
+
+                          {report.status !== 'rejected' && (
+                            <button
+                              onClick={() => handleUpdateStatus(report.id, 'rejected')}
+                              disabled={isUpdating}
+                              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-400 hover:text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {language === 'en' ? 'Reject' : 'Tolak'}
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteReport(report.id)}
+                            disabled={isUpdating}
+                            className="p-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 hover:text-red-300 transition-all cursor-pointer disabled:opacity-50"
+                            title={language === 'en' ? 'Delete report permanently' : 'Hapus laporan secara permanen'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── SQL Setup Box for Supabase stream_reports table ── */}
+            <div className="mt-8 p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    {language === 'en'
+                      ? 'Supabase Database Schema: stream_reports'
+                      : 'Skema Database Supabase: stream_reports'}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    navigator.clipboard.writeText(SUPABASE_STREAM_REPORTS_SQL);
+                    setCopiedReportSql(true);
+                    playSuccess();
+                    setTimeout(() => setCopiedReportSql(false), 2500);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer transition-all shrink-0"
+                >
+                  {copiedReportSql ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">
+                        {language === 'en' ? 'Copied SQL!' : 'SQL Disalin!'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-300" />
+                      <span>{language === 'en' ? 'Copy SQL Script' : 'Salin Skrip SQL'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {language === 'en'
+                  ? 'Run this SQL script in Supabase SQL Editor to create the stream_reports table with RLS security policies, allowing visitors to submit reports and admins to manage them.'
+                  : 'Jalankan skrip SQL ini di SQL Editor Supabase untuk membuat tabel stream_reports beserta aturan keamanan RLS, sehingga penonton bisa melapor dan admin bisa mengelolanya.'}
+              </p>
+
+              <pre className="p-3.5 rounded-xl bg-black/60 border border-white/10 text-[11px] font-mono text-cyan-300 overflow-x-auto max-h-44 no-scrollbar">
+                <code>{SUPABASE_STREAM_REPORTS_SQL}</code>
+              </pre>
+            </div>
           </div>
         )}
 

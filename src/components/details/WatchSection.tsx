@@ -24,11 +24,13 @@ import {
   ShieldAlert,
   SkipBack,
   SkipForward,
+  Flag,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode, Season, Review } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
 import { type CurationTarget, splitMultipleNames } from '../../services/curation';
 import { CinematicPlayer, appendSubtitleParams } from '../player/CinematicPlayer';
+import { ReportIssueModal } from '../player/ReportIssueModal';
 import { ServerSelector } from '../player/ServerSelector';
 import { EpisodeList } from '../player/EpisodeList';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
@@ -234,6 +236,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Auto Mini Player on Scroll State
   const [isScrolledMiniPlayer, setIsScrolledMiniPlayer] = useState(false);
@@ -1298,6 +1301,19 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                         <span>{language === 'en' ? 'VPN / DNS Tips' : 'Tips VPN / DNS'}</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => {
+                        playClick();
+                        setIsReportModalOpen(true);
+                      }}
+                      onMouseEnter={playHover}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 hover:bg-red-600/35 text-red-200 hover:text-white border border-red-500/40 text-[11px] font-bold transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                      title={language === 'en' ? 'Report broken stream, audio or subtitle issue' : 'Laporkan masalah video, audio, atau subtitle'}
+                    >
+                      <Flag className="w-3.5 h-3.5 text-red-400" />
+                      <span>{language === 'en' ? 'Report Stream' : 'Lapor Masalah'}</span>
+                    </button>
                   </div>
                   <p className="text-xs text-white/70 mt-1 leading-relaxed">
                     {language === 'en'
@@ -2392,6 +2408,19 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
           }}
         />
       )}
+
+      {/* Stream Issue Report Modal */}
+      <ReportIssueModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        media={activeMedia}
+        currentEpisode={currentEpisode}
+        activeServer={activeServer}
+        onSwitchServerPrompt={() => {
+          const el = document.getElementById('theatrical-server-selector');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+      />
     </div>
   );
 };
