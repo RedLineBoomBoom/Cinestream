@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Megaphone, AlertTriangle, CheckCircle2, X, ExternalLink } from 'lucide-react';
 import {
   getActiveAnnouncement,
@@ -166,6 +166,49 @@ export const BroadcastBanner: React.FC = () => {
     }
   };
 
+  // Dynamic Overflow & Auto-Marquee Detection
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const textMeasurerRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [scrollDuration, setScrollDuration] = useState(16);
+
+  useEffect(() => {
+    if (!announcement || !announcement.active || isDismissed) return;
+
+    const checkOverflow = () => {
+      if (scrollContainerRef.current && textMeasurerRef.current) {
+        const containerWidth = scrollContainerRef.current.clientWidth;
+        const contentWidth = textMeasurerRef.current.scrollWidth;
+        // Trigger auto-marquee if text exceeds available container width by 4px or more
+        const overflows = contentWidth > containerWidth + 4;
+        setIsOverflowing(overflows);
+
+        if (overflows) {
+          // Dynamic smooth scroll speed (~36px/sec, min 12s)
+          const duration = Math.max(12, Math.round((contentWidth + 64) / 36));
+          setScrollDuration(duration);
+        }
+      }
+    };
+
+    const timer = setTimeout(checkOverflow, 60);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && scrollContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        checkOverflow();
+      });
+      resizeObserver.observe(scrollContainerRef.current);
+    }
+
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkOverflow);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, [announcement?.id, announcement?.message, announcement?.title, announcement?.linkText, isDismissed]);
+
   const style = getStyle();
 
   return (
@@ -176,29 +219,89 @@ export const BroadcastBanner: React.FC = () => {
       <div
         className={`relative z-40 w-full rounded-xl sm:rounded-2xl border backdrop-blur-xl px-3.5 sm:px-4 py-2 sm:py-2.5 shadow-xl flex items-center justify-between gap-3 text-xs sm:text-sm ${style.bg}`}
       >
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
           {style.icon}
           {announcement.title && (
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border shrink-0 ${style.badgeBg}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider border shrink-0 select-none ${style.badgeBg}`}
             >
               {announcement.title}
             </span>
           )}
-          <p className="truncate text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
-            {announcement.message}
-          </p>
-          {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
-            <a
-              href={sanitizeUrl(announcement.linkUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs"
-            >
-              <span>{announcement.linkText}</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
+
+          {/* Marquee Viewport */}
+          <div
+            ref={scrollContainerRef}
+            className={`min-w-0 flex-1 overflow-hidden relative ${
+              isOverflowing
+                ? 'group cursor-default [mask-image:linear-gradient(to_right,transparent_0%,black_8px,black_calc(100%-12px),transparent_100%)]'
+                : ''
+            }`}
+          >
+            {isOverflowing ? (
+              <div
+                className="flex items-center whitespace-nowrap will-change-transform group-hover:[animation-play-state:paused] group-active:[animation-play-state:paused]"
+                style={{
+                  animation: `marqueeScroll ${scrollDuration}s linear infinite`,
+                  width: 'max-content',
+                }}
+              >
+                {/* Primary Content Block */}
+                <div ref={textMeasurerRef} className="inline-flex items-center gap-2 pr-12">
+                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+                    {announcement.message}
+                  </span>
+                  {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
+                    <a
+                      href={sanitizeUrl(announcement.linkUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs text-white"
+                    >
+                      <span>{announcement.linkText}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Duplicate Block for Seamless Continuous Infinite Scrolling */}
+                <div className="inline-flex items-center gap-2 pr-12" aria-hidden="true">
+                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+                    {announcement.message}
+                  </span>
+                  {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
+                    <a
+                      href={sanitizeUrl(announcement.linkUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      tabIndex={-1}
+                      className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs text-white"
+                    >
+                      <span>{announcement.linkText}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div ref={textMeasurerRef} className="inline-flex items-center gap-2 max-w-full">
+                <p className="truncate text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+                  {announcement.message}
+                </p>
+                {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
+                  <a
+                    href={sanitizeUrl(announcement.linkUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:opacity-80 transition-opacity ml-1 shrink-0 text-xs text-white"
+                  >
+                    <span>{announcement.linkText}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <button

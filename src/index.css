@@ -320,4 +320,18 @@ input[type=range].video-scrubber:hover::-webkit-slider-thumb {
   animation: bannerFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Continuous Marquee Scrolling Animation for Notice Banners */
+@keyframes marqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-scroll {
+  animation: marqueeScroll var(--marquee-duration, 15s) linear infinite;
+}
+
 
