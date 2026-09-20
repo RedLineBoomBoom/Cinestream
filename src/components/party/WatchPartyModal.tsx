@@ -5,13 +5,14 @@ import {
   Send, Crown, WifiOff, Play, Pause,
   AlertCircle, AlertTriangle, Radio, Loader2, Film, Tv, ChevronDown, ChevronUp, Minus,
   Move, GripHorizontal, Share2, RefreshCw, UserMinus, Shield, Smile, MessageSquare, ExternalLink,
-  Globe, Search,
+  Globe, Search, Lock,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import type { PartyMediaInfo, PartyMessage } from '../../types/party';
 
 interface WatchPartyModalProps {
@@ -320,6 +321,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     inviteLink, roomCode,
   } = useWatchParty();
   const { profile } = useUserProfile();
+  const { user, openAuthModal } = useAuth();
   const { t, language } = useLanguage();
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
@@ -429,12 +431,20 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   };
 
   const handleCreate = async () => {
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     if (!myName.trim() || !mediaInfo) return;
     playClick();
     await createParty(myName.trim(), mediaInfo, profile?.id, isPublicRoom);
   };
 
   const handleJoin = async () => {
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     if (!myName.trim() || !joinCode.trim()) return;
     playClick();
     await joinParty(joinCode.trim().toUpperCase(), myName.trim(), profile?.id);
@@ -442,6 +452,10 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
   const handleJoinFromLobby = async (roomItem: (typeof publicRooms)[0]) => {
     playClick();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     const nameToUse = myName.trim() || profile?.name || (language === 'en' ? 'Viewer' : 'Penonton');
     if (!myName.trim()) {
       handleNameChange(nameToUse);
@@ -1082,11 +1096,18 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                         </div>
                         <button
                           type="button"
-                          onClick={() => { playClick(); setTab('create'); }}
+                          onClick={() => {
+                            playClick();
+                            if (!user) {
+                              openAuthModal('signin');
+                              return;
+                            }
+                            setTab('create');
+                          }}
                           className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-violet-900/30 flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>{t('partyCreatePublicRoom')}</span>
+                          {!user ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <Plus className="w-3.5 h-3.5" />}
+                          <span>{!user ? t('partyLoginToHost') : t('partyCreatePublicRoom')}</span>
                         </button>
                       </div>
                     );
@@ -1134,15 +1155,30 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                       </div>
 
                       {/* Join Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleJoinFromLobby(r)}
-                        className="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-900/40 hover:scale-105 active:scale-95 transition-all shrink-0 flex items-center gap-1 cursor-pointer"
-                        title={t('partyJoinLive')}
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                        <span className="hidden xs:inline">{t('partyJoinLive')}</span>
-                      </button>
+                      {!user ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playClick();
+                            openAuthModal('signin');
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-white/[0.08] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 text-xs font-semibold border border-white/10 hover:border-amber-500/30 transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                          title={t('partyLoginToJoin')}
+                        >
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span className="hidden xs:inline">{t('partyLoginToJoin')}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleJoinFromLobby(r)}
+                          className="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-900/40 hover:scale-105 active:scale-95 transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                          title={t('partyJoinLive')}
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          <span className="hidden xs:inline">{t('partyJoinLive')}</span>
+                        </button>
+                      )}
                     </div>
                   ));
                 })()}
@@ -1152,112 +1188,139 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
 
           {/* ── TAB 2 & 3: CREATE / JOIN VIEWS ── */}
           {tab !== 'lobby' && (
-            <div className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto">
-              {/* Film info strip */}
-              {mediaInfo && tab === 'create' && (
-                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <img
-                    src={mediaInfo.mediaPoster}
-                    alt={mediaInfo.mediaTitle}
-                    className="w-8 h-11 rounded-lg object-cover shrink-0 shadow-md"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      {mediaInfo.mediaType === 'movie'
-                        ? <Film className="w-2.5 h-2.5 text-slate-500" />
-                        : <Tv className="w-2.5 h-2.5 text-slate-500" />}
-                      <span className="text-[9px] text-slate-500 uppercase tracking-wider">
-                        {mediaInfo.mediaType === 'movie' ? t('partyMovie') : t('partySeries')}
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-white truncate leading-tight">{mediaInfo.mediaTitle}</p>
-                    {mediaInfo.episodeTitle && (
-                      <p className="text-[10px] text-slate-400 truncate">{mediaInfo.episodeTitle}</p>
-                    )}
-                  </div>
+            !user ? (
+              <div className="px-4 pb-6 pt-6 space-y-4 flex-1 flex flex-col items-center justify-center text-center animate-in fade-in duration-200">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-lg shadow-amber-500/20">
+                  <Lock className="w-7 h-7" />
                 </div>
-              )}
-
-              {/* Display name */}
-              <div>
-                <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyDisplayName')}</label>
-                <input
-                  type="text"
-                  value={myName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder={t('partyDisplayNamePlaceholder')}
-                  maxLength={24}
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:bg-violet-500/5 transition-all"
-                />
+                <div className="space-y-1 max-w-xs">
+                  <h3 className="text-sm font-bold text-white">
+                    {tab === 'create' ? t('partyLoginToHost') : t('partyLoginToJoin')}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-light leading-relaxed">
+                    {t('partyAuthRequiredDesc')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    openAuthModal('signin');
+                  }}
+                  className="w-full max-w-xs py-2.5 px-4 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4 stroke-[2.5]" />
+                  <span>{t('partySignInButton')}</span>
+                </button>
               </div>
+            ) : (
+              <div className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto">
+                {/* Film info strip */}
+                {mediaInfo && tab === 'create' && (
+                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <img
+                      src={mediaInfo.mediaPoster}
+                      alt={mediaInfo.mediaTitle}
+                      className="w-8 h-11 rounded-lg object-cover shrink-0 shadow-md"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        {mediaInfo.mediaType === 'movie'
+                          ? <Film className="w-2.5 h-2.5 text-slate-500" />
+                          : <Tv className="w-2.5 h-2.5 text-slate-500" />}
+                        <span className="text-[9px] text-slate-500 uppercase tracking-wider">
+                          {mediaInfo.mediaType === 'movie' ? t('partyMovie') : t('partySeries')}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-white truncate leading-tight">{mediaInfo.mediaTitle}</p>
+                      {mediaInfo.episodeTitle && (
+                        <p className="text-[10px] text-slate-400 truncate">{mediaInfo.episodeTitle}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-              {/* Join code */}
-              {tab === 'join' && (
+                {/* Display name */}
                 <div>
-                  <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyRoomCode')}</label>
+                  <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyDisplayName')}</label>
                   <input
                     type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    placeholder={t('partyRoomCodePlaceholder')}
-                    maxLength={6}
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-all tracking-[0.25em] uppercase"
+                    value={myName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder={t('partyDisplayNamePlaceholder')}
+                    maxLength={24}
+                    className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:bg-violet-500/5 transition-all"
                   />
                 </div>
-              )}
 
-              {/* Public Lobby Switch Toggle (Create Tab) */}
-              {tab === 'create' && (
-                <div
-                  onClick={() => setIsPublicRoom(!isPublicRoom)}
-                  className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-violet-500/40 transition-colors cursor-pointer"
+                {/* Join code */}
+                {tab === 'join' && (
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyRoomCode')}</label>
+                    <input
+                      type="text"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      placeholder={t('partyRoomCodePlaceholder')}
+                      maxLength={6}
+                      className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-all tracking-[0.25em] uppercase"
+                    />
+                  </div>
+                )}
+
+                {/* Public Lobby Switch Toggle (Create Tab) */}
+                {tab === 'create' && (
+                  <div
+                    onClick={() => setIsPublicRoom(!isPublicRoom)}
+                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-violet-500/40 transition-colors cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      id="party-public-toggle"
+                      checked={isPublicRoom}
+                      onChange={(e) => setIsPublicRoom(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded text-violet-500 accent-violet-500 cursor-pointer"
+                    />
+                    <label htmlFor="party-public-toggle" className="flex-1 text-xs cursor-pointer select-none">
+                      <span className="font-semibold text-white flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5 text-violet-400" />
+                        {t('partyPublishToggle')}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5 leading-tight">
+                        {t('partyPublishHint')}
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Error */}
+                {errorMsg && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-300">
+                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
+                    <span>{errorMsg === 'host_left' ? t('partyHostLeft') : errorMsg}</span>
+                  </div>
+                )}
+
+                {/* Action */}
+                <button
+                  onClick={tab === 'create' ? handleCreate : handleJoin}
+                  disabled={isLoading || !myName.trim() || (tab === 'join' && !joinCode.trim())}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-violet-500 hover:bg-violet-400 text-white transition-all shadow-lg shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <input
-                    type="checkbox"
-                    id="party-public-toggle"
-                    checked={isPublicRoom}
-                    onChange={(e) => setIsPublicRoom(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded text-violet-500 accent-violet-500 cursor-pointer"
-                  />
-                  <label htmlFor="party-public-toggle" className="flex-1 text-xs cursor-pointer select-none">
-                    <span className="font-semibold text-white flex items-center gap-1">
-                      <Globe className="w-3.5 h-3.5 text-violet-400" />
-                      {t('partyPublishToggle')}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5 leading-tight">
-                      {t('partyPublishHint')}
-                    </span>
-                  </label>
-                </div>
-              )}
+                  {isLoading
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('partyConnecting')}</>
+                    : tab === 'create'
+                      ? <><Plus className="w-3.5 h-3.5" /> {t('partyCreateTab')}</>
+                      : <><LogIn className="w-3.5 h-3.5" /> {t('partyJoinTab')}</>
+                  }
+                </button>
 
-              {/* Error */}
-              {errorMsg && (
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-300">
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
-                  <span>{errorMsg === 'host_left' ? t('partyHostLeft') : errorMsg}</span>
-                </div>
-              )}
-
-              {/* Action */}
-              <button
-                onClick={tab === 'create' ? handleCreate : handleJoin}
-                disabled={isLoading || !myName.trim() || (tab === 'join' && !joinCode.trim())}
-                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-violet-500 hover:bg-violet-400 text-white transition-all shadow-lg shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isLoading
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('partyConnecting')}</>
-                  : tab === 'create'
-                    ? <><Plus className="w-3.5 h-3.5" /> {t('partyCreateTab')}</>
-                    : <><LogIn className="w-3.5 h-3.5" /> {t('partyJoinTab')}</>
-                }
-              </button>
-
-              <p className="text-center text-[10px] text-slate-500">
-                {tab === 'create' ? t('partyCreateHint') : t('partyJoinHint')}
-              </p>
-            </div>
+                <p className="text-center text-[10px] text-slate-500">
+                  {tab === 'create' ? t('partyCreateHint') : t('partyJoinHint')}
+                </p>
+              </div>
+            )
           )}
         </div>
       )}

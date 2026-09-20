@@ -14,6 +14,7 @@ import {
   Check,
   AlertCircle,
   ChevronRight,
+  LogIn,
 } from 'lucide-react';
 import type { MediaItem, Episode } from '../../types/media';
 import type { PublicPartyRoom, LobbyFilter } from '../../types/party';
@@ -22,6 +23,7 @@ import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import { verifyPrivateRoomCode } from '../../services/partyLobbyService';
 
 interface WatchPartyLobbyViewProps {
@@ -35,6 +37,7 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   onPlayMedia,
   onGoHome,
 }) => {
+  const { user, openAuthModal } = useAuth();
   const { publicRooms, refreshPublicRooms, joinParty, createParty } = useWatchParty();
   const { profile } = useUserProfile();
   const { historyItems, watchlist } = useWatchlist();
@@ -109,6 +112,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   // Handle 1-click Join for Public Room
   const handleJoinPublic = async (room: PublicPartyRoom) => {
     playClick();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     setIsJoining(true);
     try {
       const myNameToUse = hostName.trim() || profile?.name || (language === 'en' ? 'Viewer' : 'Penonton');
@@ -138,6 +145,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   // Open Passcode Modal for Private Room
   const handleOpenPrivatePrompt = (room: PublicPartyRoom) => {
     playClick();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     setUnlockRoomTarget(room);
     setPasscode('');
     setPasscodeError('');
@@ -146,6 +157,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   // Verify and Join Private Room
   const handleVerifyAndJoinPrivate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     if (!unlockRoomTarget) return;
 
     playClick();
@@ -191,6 +206,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   // Quick Join Direct Code Form
   const handleQuickJoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     const clean = quickJoinCode.trim().toUpperCase();
     if (!clean || clean.length < 4) {
       setQuickJoinError(t('partyInvalidCode'));
@@ -242,6 +261,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   // Create Room Handler
   const handleCreateRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
     if (!selectedMedia) {
       setHostError(t('partyNoMediaSelected'));
       return;
@@ -318,6 +341,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
             <button
               onClick={() => {
                 playClick();
+                if (!user) {
+                  openAuthModal('signin');
+                  return;
+                }
                 setHostName(profile?.name || '');
                 setSelectedMedia(recentMediaCandidates[0] || null);
                 setIsHostModalOpen(true);
@@ -332,6 +359,10 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
             <button
               onClick={() => {
                 playClick();
+                if (!user) {
+                  openAuthModal('signin');
+                  return;
+                }
                 setQuickJoinCode('');
                 setQuickJoinError('');
                 setIsQuickJoinOpen(true);
@@ -353,6 +384,42 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Guest Preview Notice Banner */}
+        {!user && (
+          <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/25 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-inner">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white tracking-wide">
+                    {t('partyGuestNoticeTitle')}
+                  </h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 uppercase tracking-wider">
+                    {language === 'en' ? 'Guest Preview' : 'Pratinjau Tamu'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 font-light leading-relaxed max-w-2xl">
+                  {t('partyGuestNoticeDesc')}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                playClick();
+                openAuthModal('signin');
+              }}
+              onMouseEnter={playHover}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+            >
+              <LogIn className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>{t('partySignInButton')}</span>
+            </button>
+          </div>
+        )}
 
         {/* Live Counters Banner */}
         <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -593,7 +660,20 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
 
                   {/* Action Button */}
                   <div className="pt-1">
-                    {isPrivate ? (
+                    {!user ? (
+                      <button
+                        onClick={() => {
+                          playClick();
+                          openAuthModal('signin');
+                        }}
+                        onMouseEnter={playHover}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 font-semibold text-xs border border-white/10 hover:border-amber-500/30 transition-all cursor-pointer group/btn"
+                        title={t('partyLoginToJoin')}
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-400 group-hover/btn:scale-110 transition-transform" />
+                        <span>{t('partyLoginToJoin')}</span>
+                      </button>
+                    ) : isPrivate ? (
                       <button
                         onClick={() => handleOpenPrivatePrompt(room)}
                         onMouseEnter={playHover}
@@ -636,14 +716,18 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
             <button
               onClick={() => {
                 playClick();
+                if (!user) {
+                  openAuthModal('signin');
+                  return;
+                }
                 setHostName(profile?.name || '');
                 setSelectedMedia(recentMediaCandidates[0] || null);
                 setIsHostModalOpen(true);
               }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-lg shadow-violet-600/30 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>{t('partyCreatePublicRoom')}</span>
+              {!user ? <Lock className="w-4 h-4 text-amber-400" /> : <Plus className="w-4 h-4" />}
+              <span>{!user ? t('partyLoginToHost') : t('partyCreatePublicRoom')}</span>
             </button>
           )}
         </div>

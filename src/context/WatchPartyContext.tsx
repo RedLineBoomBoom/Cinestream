@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useAuth } from './AuthContext';
 import { watchPartyService } from '../services/watchParty';
 import { soundFX } from '../utils/soundEffects';
 import { subscribeToPublicLobby, fetchActivePublicRooms } from '../services/partyLobbyService';
@@ -72,6 +73,7 @@ export function useWatchParty() {
 
 // ── Provider ───────────────────────────────────────────────
 export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [status, setStatus] = useState<PartyStatus>('idle');
   const [room, setRoom] = useState<PartyRoom | null>(null);
   const [members, setMembers] = useState<PartyMember[]>([]);
@@ -219,10 +221,16 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const createParty = useCallback(async (name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic: boolean = true) => {
+    const effectiveUserId = userId || user?.id;
+    if (!user && !effectiveUserId) {
+      setErrorMsg('Login diperlukan untuk membuat room Watch Party.');
+      setStatus('error');
+      return;
+    }
     setStatus('creating');
     setErrorMsg('');
     try {
-      const r = await watchPartyService.createRoom(name, mediaInfo, userId, isPublic);
+      const r = await watchPartyService.createRoom(name, mediaInfo, effectiveUserId, isPublic);
       setMyId(watchPartyService.getMyId());
       setIsHost(true);
       setRoom({ ...r });
@@ -235,20 +243,26 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setErrorMsg(String(err));
       setStatus('error');
     }
-  }, []);
+  }, [user]);
 
   const joinParty = useCallback(async (roomCode: string, name: string, userId?: string) => {
+    const effectiveUserId = userId || user?.id;
+    if (!user && !effectiveUserId) {
+      setErrorMsg('Login diperlukan untuk bergabung ke room Watch Party.');
+      setStatus('error');
+      return;
+    }
     setStatus('joining');
     setErrorMsg('');
     try {
-      await watchPartyService.joinRoom(roomCode, name, userId);
+      await watchPartyService.joinRoom(roomCode, name, effectiveUserId);
       setMyId(watchPartyService.getMyId());
       setIsHost(false);
     } catch (err) {
       setErrorMsg(String(err));
       setStatus('error');
     }
-  }, []);
+  }, [user]);
 
   const leaveParty = useCallback(() => {
     watchPartyService.leave();
