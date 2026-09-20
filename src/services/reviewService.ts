@@ -28,6 +28,7 @@ export interface CommunityRatingSummary {
 }
 
 export interface ReviewInput {
+  reviewId?: string; // ID ulasan yang sudah ada (jika dalam mode edit)
   mediaId: string;
   mediaTitle: string;
   mediaType: 'movie' | 'tv' | 'series' | 'anime' | 'drama';
@@ -62,10 +63,11 @@ CREATE TABLE IF NOT EXISTS public.media_reviews (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 2. Index Pencarian Cepat
+-- 2. Index Pencarian Cepat & Batasan 1 Pengguna = 1 Ulasan
 CREATE INDEX IF NOT EXISTS idx_media_reviews_media_id ON public.media_reviews(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_reviews_user_id ON public.media_reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_media_reviews_created_at ON public.media_reviews(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_media_reviews_user_media ON public.media_reviews(media_id, user_id);
 
 -- 3. Aktifkan Keamanan Baris (Row Level Security)
 ALTER TABLE public.media_reviews ENABLE ROW LEVEL SECURITY;
@@ -166,13 +168,51 @@ function recordHelpfulVote(reviewId: string, add: boolean): void {
 }
 
 /**
+ * Memastikan setiap pengguna hanya memiliki maksimal 1 ulasan per judul film/serial.
+ * Jika terdapat ulasan ganda dari pengguna yang sama, pertahankan versi yang paling baru.
+ */
+export function deduplicateUserReviews(list: MediaReview[]): MediaReview[] {
+  const sorted = [...list].sort((a, b) => {
+    const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+    const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+    return timeB - timeA;
+  });
+
+  const seenUsers = new Set<string>();
+  const result: MediaReview[] = [];
+
+  for (const item of sorted) {
+    const userKey = item.userId || item.userEmail?.toLowerCase() || item.userName?.toLowerCase();
+    if (!userKey) {
+      result.push(item);
+      continue;
+    }
+    const dedupeKey = `${item.mediaId}::${userKey}`;
+    if (!seenUsers.has(dedupeKey)) {
+      seenUsers.add(dedupeKey);
+      result.push(item);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Mengambil seluruh ulasan untuk suatu judul film/series tertentu.
  * Menggabungkan ulasan dari Supabase dengan ulasan offline lokal.
+ * Menerapkan deduplikasi agar 1 user hanya memiliki 1 ulasan.
  */
 export async function fetchMediaReviews(mediaId: string): Promise<MediaReview[]> {
-  const localList = getLocalReviews().filter(
-    (r) => r.mediaId === mediaId && r.status === 'published'
+  const allLocal = getLocalReviews();
+  const localList = deduplicateUserReviews(
+    allLocal.filter((r) => r.mediaId === mediaId && r.status === 'published')
   );
+
+  // Self-healing: jika ada ulasan ganda di localStorage, bersihkan sekarang
+  const deduplicatedAll = deduplicateUserReviews(allLocal);
+  if (deduplicatedAll.length !== allLocal.length) {
+    saveLocalReviews(deduplicatedAll);
+  }
 
   if (!isSupabaseConfigured) {
     return localList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -217,7 +257,9 @@ export async function fetchMediaReviews(mediaId: string): Promise<MediaReview[]>
       }
     }
 
-    return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Pastikan 1 pengguna hanya memiliki 1 ulasan setelah digabung
+    const finalDeduplicated = deduplicateUserReviews(merged);
+    return finalDeduplicated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (err) {
     console.warn('Gagal memuat ulasan dari Supabase:', err);
     return localList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -258,67 +300,106 @@ export function calculateCommunityRating(reviews: MediaReview[]): CommunityRatin
 }
 
 /**
- * Mengirimkan ulasan dan skor rating baru dari pengguna.
+ * Mengirimkan ulasan atau memperbarui ulasan yang sudah ada dari pengguna.
+ * Menjamin 1 pengguna hanya memiliki maksimal 1 ulasan per judul film/serial.
  */
 export async function submitMediaReview(input: ReviewInput): Promise<MediaReview> {
   const sanitizedContent = sanitizeText(input.content, 2000);
   const sanitizedUserName = sanitizeText(input.userName, 80) || 'Penonton Cinestream';
   const clampedRating = Math.max(1, Math.min(10, Math.round(input.rating)));
+  const now = new Date().toISOString();
 
-  const newReview: MediaReview = {
-    id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+  // Cari apakah pengguna sudah memiliki ulasan sebelumnya di cache lokal
+  const allLocal = getLocalReviews();
+  const existingLocal = allLocal.find(
+    (r) =>
+      r.mediaId === input.mediaId &&
+      (Boolean(input.reviewId && r.id === input.reviewId) ||
+        r.userId === input.userId ||
+        (Boolean(input.userEmail) && r.userEmail?.toLowerCase() === input.userEmail?.toLowerCase()))
+  );
+
+  const reviewId =
+    input.reviewId ||
+    existingLocal?.id ||
+    `rev-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  const finalReview: MediaReview = {
+    id: reviewId,
     mediaId: input.mediaId,
     mediaTitle: input.mediaTitle,
     mediaType: input.mediaType,
     userId: input.userId,
     userName: sanitizedUserName,
-    userEmail: input.userEmail,
-    userAvatar: input.userAvatar,
+    userEmail: input.userEmail || existingLocal?.userEmail,
+    userAvatar: input.userAvatar || existingLocal?.userAvatar,
     rating: clampedRating,
     content: sanitizedContent,
     hasSpoilers: Boolean(input.hasSpoilers),
-    helpfulCount: 0,
+    helpfulCount: existingLocal?.helpfulCount || 0,
     status: 'published',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: existingLocal?.createdAt || now,
+    updatedAt: now,
   };
 
-  // Simpan ke cache lokal terlebih dahulu
-  const localList = getLocalReviews();
-  const existingIdx = localList.findIndex((r) => r.mediaId === input.mediaId && r.userId === input.userId);
-  if (existingIdx >= 0) {
-    localList[existingIdx] = newReview;
-  } else {
-    localList.unshift(newReview);
-  }
-  saveLocalReviews(localList);
+  // Simpan ke cache lokal: bersihkan seluruh entri duplikat milik user ini, lalu masukkan ulasan terbaru
+  const cleanedList = allLocal.filter(
+    (r) =>
+      !(
+        r.mediaId === input.mediaId &&
+        (r.id === reviewId ||
+          r.userId === input.userId ||
+          (Boolean(input.userEmail) && r.userEmail?.toLowerCase() === input.userEmail?.toLowerCase()))
+      )
+  );
+  cleanedList.unshift(finalReview);
+  saveLocalReviews(cleanedList);
 
-  // Jika Supabase terhubung, simpan ke Cloud
+  // Jika Supabase terhubung, simpan / sinkronkan ke Cloud
   if (isSupabaseConfigured) {
     try {
-      await supabase.from('media_reviews').insert({
-        id: newReview.id,
-        media_id: newReview.mediaId,
-        media_title: newReview.mediaTitle,
-        media_type: newReview.mediaType,
-        user_id: newReview.userId,
-        user_name: newReview.userName,
-        user_email: newReview.userEmail,
-        user_avatar: newReview.userAvatar,
-        rating: newReview.rating,
-        content: newReview.content,
-        has_spoilers: newReview.hasSpoilers,
-        helpful_count: 0,
-        status: 'published',
-        created_at: newReview.createdAt,
-        updated_at: newReview.updatedAt,
-      });
+      // Gunakan upsert dengan acuan unique constraint (media_id, user_id)
+      const { error: upsertError } = await supabase.from('media_reviews').upsert(
+        {
+          id: finalReview.id,
+          media_id: finalReview.mediaId,
+          media_title: finalReview.mediaTitle,
+          media_type: finalReview.mediaType,
+          user_id: finalReview.userId,
+          user_name: finalReview.userName,
+          user_email: finalReview.userEmail,
+          user_avatar: finalReview.userAvatar,
+          rating: finalReview.rating,
+          content: finalReview.content,
+          has_spoilers: finalReview.hasSpoilers,
+          helpful_count: finalReview.helpfulCount,
+          status: 'published',
+          created_at: finalReview.createdAt,
+          updated_at: finalReview.updatedAt,
+        },
+        { onConflict: 'media_id,user_id' }
+      );
+
+      if (upsertError) {
+        // Fallback jika onConflict constraint belum di-apply di Supabase: coba update manual berdasarkan ID
+        await supabase
+          .from('media_reviews')
+          .update({
+            rating: finalReview.rating,
+            content: finalReview.content,
+            has_spoilers: finalReview.hasSpoilers,
+            user_name: finalReview.userName,
+            user_avatar: finalReview.userAvatar,
+            updated_at: finalReview.updatedAt,
+          })
+          .eq('id', reviewId);
+      }
     } catch (err) {
       console.warn('Gagal sinkronisasi ulasan ke Supabase:', err);
     }
   }
 
-  return newReview;
+  return finalReview;
 }
 
 /**

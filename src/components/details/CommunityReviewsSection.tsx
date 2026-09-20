@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Star,
   MessageSquare,
@@ -12,6 +12,9 @@ import {
   Lock,
   CheckCircle2,
   TrendingUp,
+  Pencil,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import {
@@ -45,6 +48,10 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
   const { language } = useLanguage();
   const { playClick, playHover, playSuccess } = useSound();
 
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const hasPopulatedInitialRef = useRef(false);
+
   const [reviews, setReviews] = useState<MediaReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,6 +68,53 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
   const [revealedSpoilers, setRevealedSpoilers] = useState<Record<string, boolean>>({});
 
   const isAdmin = isAdminUser(user, profile);
+
+  // Deteksi ulasan milik pengguna yang sedang login untuk film ini (jika ada)
+  const myExistingReview = useMemo(() => {
+    if (!user) return null;
+    const userEmail = user.email ? user.email.toLowerCase() : null;
+    return (
+      reviews.find(
+        (r) =>
+          r.userId === user.id ||
+          (userEmail !== null && r.userEmail?.toLowerCase() === userEmail)
+      ) || null
+    );
+  }, [reviews, user]);
+
+  // Otomatis isi form jika user sudah memiliki ulasan sebelumnya pada judul ini
+  useEffect(() => {
+    if (myExistingReview && !hasPopulatedInitialRef.current) {
+      setUserRating(myExistingReview.rating);
+      setReviewContent(myExistingReview.content);
+      setHasSpoilers(myExistingReview.hasSpoilers);
+      hasPopulatedInitialRef.current = true;
+    } else if (!myExistingReview) {
+      hasPopulatedInitialRef.current = false;
+    }
+  }, [myExistingReview]);
+
+  // Mulai mode edit dari tombol kartu ulasan
+  const handleStartEditReview = (review: MediaReview) => {
+    playClick();
+    setUserRating(review.rating);
+    setReviewContent(review.content);
+    setHasSpoilers(review.hasSpoilers);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 300);
+  };
+
+  // Reset ke nilai ulasan yang tersimpan
+  const handleResetToSavedReview = () => {
+    playClick();
+    if (myExistingReview) {
+      setUserRating(myExistingReview.rating);
+      setReviewContent(myExistingReview.content);
+      setHasSpoilers(myExistingReview.hasSpoilers);
+    }
+  };
 
   // Fetch reviews on mount or media change
   const loadReviews = async () => {
@@ -165,7 +219,8 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
       const authorName = profile?.name || user?.user_metadata?.name || user.email?.split('@')[0] || 'Penonton Cinestream';
       const authorAvatar = user?.user_metadata?.avatar_url || (profile?.avatarType === 'emoji' ? profile?.emoji : undefined);
 
-      const created = await submitMediaReview({
+      const saved = await submitMediaReview({
+        reviewId: myExistingReview?.id,
         mediaId: media.id,
         mediaTitle: media.title,
         mediaType: media.type,
@@ -178,18 +233,21 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
         hasSpoilers: hasSpoilers,
       });
 
-      // Update state
+      // Update state: bersihkan versi lama milik user ini dan masukkan versi terbaru
       setReviews((prev) => {
-        const filtered = prev.filter((r) => r.id !== created.id);
-        return [created, ...filtered];
+        const filtered = prev.filter(
+          (r) =>
+            r.id !== saved.id &&
+            r.userId !== saved.userId &&
+            (!saved.userEmail || r.userEmail?.toLowerCase() !== saved.userEmail.toLowerCase())
+        );
+        return [saved, ...filtered];
       });
 
-      setReviewContent('');
-      setHasSpoilers(false);
       setSubmitSuccess(true);
       playSuccess();
 
-      setTimeout(() => setSubmitSuccess(false), 3500);
+      setTimeout(() => setSubmitSuccess(false), 4000);
     } finally {
       setIsSubmitting(false);
     }
@@ -212,6 +270,14 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
     playClick();
     await deleteReview(reviewId);
     setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+
+    // Jika yang dihapus adalah ulasan milik pengguna yang sedang login, reset formulir
+    if (myExistingReview?.id === reviewId) {
+      setUserRating(8);
+      setReviewContent('');
+      setHasSpoilers(false);
+      hasPopulatedInitialRef.current = false;
+    }
   };
 
   // Spoiler toggle per review
@@ -310,18 +376,31 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
         </div>
       </div>
 
-      {/* ── 2. Write Review Form ── */}
+      {/* ── 2. Write / Edit Review Form ── */}
       <form
+        ref={formRef}
         onSubmit={handleSubmitReview}
-        className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-4 shadow-xl"
+        className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-4 shadow-xl relative"
       >
         {/* Header: Form Title & Live Rating Status Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-red-500 shrink-0" />
+            <MessageSquare className={`w-4 h-4 shrink-0 ${myExistingReview ? 'text-amber-400' : 'text-red-500'}`} />
             <h4 className="text-sm font-bold text-white">
-              {language === 'en' ? 'Your Review & Star Rating' : 'Rating Bintang & Ulasan Anda'}
+              {myExistingReview
+                ? language === 'en'
+                  ? 'Edit Your Review & Star Rating'
+                  : 'Edit Ulasan & Rating Bintang Anda'
+                : language === 'en'
+                ? 'Your Review & Star Rating'
+                : 'Rating Bintang & Ulasan Anda'}
             </h4>
+            {myExistingReview && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1">
+                <Pencil className="w-2.5 h-2.5" />
+                <span>{language === 'en' ? 'Edit Mode' : 'Mode Edit'}</span>
+              </span>
+            )}
           </div>
 
           {/* Live Score Badge with Descriptor */}
@@ -339,6 +418,29 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
             </span>
           </div>
         </div>
+
+        {/* Banner Info Ulasan Sebelumnya (Mode Edit) */}
+        {myExistingReview && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-wrap items-center justify-between gap-2.5 text-xs animate-in fade-in">
+            <div className="flex items-center gap-2 text-amber-300">
+              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="font-medium">
+                {language === 'en'
+                  ? 'You already reviewed this title. Submitting will update your existing review.'
+                  : 'Anda sudah pernah mengulas judul ini. Mengirimkan formulir akan memperbarui ulasan Anda.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetToSavedReview}
+              className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white underline cursor-pointer transition-colors"
+              title={language === 'en' ? 'Reset to saved review' : 'Kembalikan ke teks tersimpan'}
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>{language === 'en' ? 'Reset to saved' : 'Kembalikan ke awal'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Dedicated 10-Star Interactive Bar */}
         <div className="p-3 sm:p-3.5 rounded-xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-3">
@@ -384,6 +486,7 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
         {/* Text Input */}
         <div className="space-y-2">
           <textarea
+            ref={textareaRef}
             value={reviewContent}
             onChange={(e) => setReviewContent(e.target.value)}
             maxLength={2000}
@@ -425,25 +528,37 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4" />
               <span>
-                {language === 'en'
+                {myExistingReview
+                  ? language === 'en'
+                    ? 'Review updated successfully!'
+                    : 'Ulasan Anda berhasil diperbarui!'
+                  : language === 'en'
                   ? 'Review published successfully! Thank you.'
                   : 'Ulasan Anda berhasil diterbitkan! Terima kasih.'}
               </span>
             </div>
           )}
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             {user ? (
               <button
                 type="submit"
                 disabled={isSubmitting || !reviewContent.trim()}
                 className="px-5 py-2.5 rounded-full bg-[#E50914] hover:bg-red-600 disabled:opacity-40 disabled:hover:bg-[#E50914] text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-red-950/50 transition-all cursor-pointer"
               >
-                <Send className="w-3.5 h-3.5" />
+                {myExistingReview ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
                 <span>
                   {isSubmitting
-                    ? language === 'en' ? 'Publishing...' : 'Menerbitkan...'
-                    : language === 'en' ? 'Publish Review' : 'Terbitkan Ulasan'}
+                    ? language === 'en'
+                      ? 'Saving...'
+                      : 'Menyimpan...'
+                    : myExistingReview
+                    ? language === 'en'
+                      ? 'Update Review'
+                      : 'Perbarui Ulasan'
+                    : language === 'en'
+                    ? 'Publish Review'
+                    : 'Terbitkan Ulasan'}
                 </span>
               </button>
             ) : (
@@ -527,7 +642,12 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
           <div className="space-y-3">
             {sortedReviews.map((rev) => {
               const isSpoilerRevealed = revealedSpoilers[rev.id];
-              const isAuthor = user?.id === rev.userId;
+              const authorEmail = user?.email ? user.email.toLowerCase() : null;
+              const isAuthor = Boolean(
+                user &&
+                  (user.id === rev.userId ||
+                    (authorEmail !== null && rev.userEmail?.toLowerCase() === authorEmail))
+              );
               const canDelete = isAuthor || isAdmin;
               const hasVoted = hasVotedHelpful(rev.id);
 
@@ -536,7 +656,7 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
                   key={rev.id}
                   className="p-4 rounded-2xl bg-white/[0.025] hover:bg-white/[0.04] border border-white/[0.06] transition-all space-y-3 shadow-md"
                 >
-                  {/* Top Bar: User, Date, Rating, Delete */}
+                  {/* Top Bar: User, Date, Rating, Edit, Delete */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       {rev.userAvatar ? (
@@ -559,14 +679,26 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
                               Admin
                             </span>
                           )}
+                          {isAuthor && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/30">
+                              {language === 'en' ? 'You' : 'Anda'}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[10px] text-slate-500 block">
-                          {new Date(rev.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                          <span>
+                            {new Date(rev.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                          {rev.updatedAt && rev.updatedAt !== rev.createdAt && (
+                            <span className="text-[9px] text-amber-400/90 font-medium italic">
+                              • {language === 'en' ? 'Edited' : 'Diedit'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -577,12 +709,24 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
                         <span>{rev.rating}/10</span>
                       </div>
 
+                      {/* Edit button (Author only) */}
+                      {isAuthor && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditReview(rev)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors cursor-pointer"
+                          title={language === 'en' ? 'Edit review' : 'Edit ulasan Anda'}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       {/* Delete button (Author or Admin) */}
                       {canDelete && (
                         <button
                           type="button"
                           onClick={() => handleDeleteReview(rev.id)}
-                          className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                           title={language === 'en' ? 'Delete review' : 'Hapus ulasan'}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
