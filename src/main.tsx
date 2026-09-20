@@ -4,27 +4,35 @@ import { useRegisterSW } from 'virtual:pwa-register/react'
 import './index.css'
 import App from './App.tsx'
 
-// PWA Service Worker — auto-update every hour in the background
+// PWA Service Worker — auto-update manager
 function ServiceWorkerManager() {
-  useRegisterSW({
-    onRegisteredSW(swUrl, r) {
+  const { updateServiceWorker } = useRegisterSW({
+    onRegisteredSW(_swUrl, r) {
       if (!r) return;
-      // Poll for updates every 60 minutes
-      setInterval(async () => {
-        if (!(!r.installing && navigator.onLine)) return;
-        const res = await fetch(swUrl, { cache: 'no-store', headers: { cache: 'no-store' } }).catch(() => null);
-        if (res?.status === 200) r.update();
-      }, 60 * 60 * 1000);
+      // Immediately check for updates
+      const checkForUpdate = () => {
+        if (navigator.onLine && !r.installing) {
+          r.update().catch(() => {});
+        }
+      };
+
+      checkForUpdate();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+
+      // Poll every 30 seconds
+      setInterval(checkForUpdate, 30 * 1000);
     },
     onNeedRefresh() {
-      // Auto-apply new SW without interrupting the user
-      // The new SW will activate on next navigation
+      // Auto-reload immediately when a new SW version is waiting
+      updateServiceWorker(true);
     },
     onOfflineReady() {
-      // App is fully cached and ready to work offline
       console.info('[Cinestream PWA] Ready to work offline.');
     },
   });
+
   return null;
 }
 

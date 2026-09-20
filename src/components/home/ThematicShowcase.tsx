@@ -858,27 +858,27 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
-                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] drop-shadow-[0_0_50px_rgba(0,0,0,0.4)] brightness-[0.97] contrast-[1.01] saturate-[0.95]
-                      blur-[3px] opacity-25
-                      sm:blur-[2.5px] sm:opacity-35
-                      md:blur-[1.5px] md:opacity-55
-                      lg:blur-[1px] lg:opacity-75
-                      xl:blur-[0.7px] xl:opacity-85
-                      2xl:blur-[0.4px] 2xl:opacity-90"
+                    className="h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] brightness-[0.97] contrast-[1.01] saturate-[0.95]
+                      blur-[4px] opacity-25
+                      sm:blur-[5px] sm:opacity-35
+                      md:blur-[6px] md:opacity-45
+                      lg:blur-[6px] lg:opacity-50
+                      xl:blur-[7px] xl:opacity-55"
                   />
                 </div>
               </div>
 
               {/* All screen sizes: left-side dark scrim so text stays legible over the blurred cutout */}
-              <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-[14]"
+              <div
+                className="absolute inset-y-0 left-0 w-full sm:w-[80%] lg:w-[65%] pointer-events-none z-[14]"
                 style={{
-                  background: 'linear-gradient(to right, #141414 25%, #141414dd 55%, #141414aa 72%, transparent 100%)',
+                  background: 'linear-gradient(to right, rgba(15,15,18,0.96) 0%, rgba(15,15,18,0.85) 45%, rgba(15,15,18,0.4) 75%, transparent 100%)',
                 }}
               />
 
               <div className="relative max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 space-y-3.5 sm:space-y-4.5 z-20">
                 {/* Banner Header: Prestigious Category Title, Spotlight Show Logo, & Tagline / Synopsis */}
-                <div className="space-y-2 sm:space-y-2.5 max-w-[85%] sm:max-w-xl lg:max-w-2xl min-h-[125px] sm:min-h-[150px] lg:min-h-[175px] flex flex-col justify-end">
+                <div className="space-y-2 sm:space-y-2.5 max-w-[85%] sm:max-w-xl lg:max-w-2xl min-h-[125px] sm:min-h-[150px] lg:min-h-[175px] flex flex-col justify-end drop-shadow-[0_4px_24px_rgba(0,0,0,1)]">
                   {/* Category Eyebrow & Glowing Badge */}
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border border-amber-400/35 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/20 w-fit">
