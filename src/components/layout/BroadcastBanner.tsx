@@ -178,32 +178,52 @@ export const BroadcastBanner: React.FC = () => {
     const checkOverflow = () => {
       if (scrollContainerRef.current && textMeasurerRef.current) {
         const containerWidth = scrollContainerRef.current.clientWidth;
-        const contentWidth = textMeasurerRef.current.scrollWidth;
-        // Trigger auto-marquee if text exceeds available container width by 4px or more
-        const overflows = contentWidth > containerWidth + 4;
+        // Unconstrained bounding client rect ensures we measure true text width on all devices
+        const contentWidth =
+          textMeasurerRef.current.getBoundingClientRect().width ||
+          textMeasurerRef.current.scrollWidth;
+
+        // Trigger auto-marquee if text exceeds available container width by even 1px
+        const overflows = contentWidth > containerWidth;
         setIsOverflowing(overflows);
 
         if (overflows) {
-          // Dynamic smooth scroll speed (~36px/sec, min 12s)
-          const duration = Math.max(12, Math.round((contentWidth + 64) / 36));
+          // Dynamic smooth scroll speed (~32px/sec)
+          // Each block has pr-12 (48px gap)
+          const blockWidth = contentWidth + 48;
+          const duration = Math.max(8, Math.round(blockWidth / 32));
           setScrollDuration(duration);
         }
       }
     };
 
-    const timer = setTimeout(checkOverflow, 60);
+    checkOverflow();
+    const rafId = requestAnimationFrame(checkOverflow);
+    const timer1 = setTimeout(checkOverflow, 40);
+    const timer2 = setTimeout(checkOverflow, 200);
+
+    if (typeof document !== 'undefined' && (document as any).fonts?.ready) {
+      (document as any).fonts.ready.then(checkOverflow).catch(() => {});
+    }
 
     let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && scrollContainerRef.current) {
+    if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
         checkOverflow();
       });
-      resizeObserver.observe(scrollContainerRef.current);
+      if (scrollContainerRef.current) {
+        resizeObserver.observe(scrollContainerRef.current);
+      }
+      if (textMeasurerRef.current) {
+        resizeObserver.observe(textMeasurerRef.current);
+      }
     }
 
     window.addEventListener('resize', checkOverflow);
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       window.removeEventListener('resize', checkOverflow);
       if (resizeObserver) resizeObserver.disconnect();
     };
@@ -214,8 +234,23 @@ export const BroadcastBanner: React.FC = () => {
   return (
     <div
       role="alert"
-      className="w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 pt-2.5 sm:pt-3 animate-in fade-in slide-in-from-top-2 duration-300"
+      className="w-full max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 pt-2.5 sm:pt-3 animate-in fade-in slide-in-from-top-2 duration-300 relative"
     >
+      {/* Permanent Invisible Text Measurer (Zero constraints to measure natural text width accurately) */}
+      <div
+        ref={textMeasurerRef}
+        aria-hidden="true"
+        className="absolute -top-[9999px] left-0 invisible pointer-events-none whitespace-nowrap inline-flex items-center gap-2 text-[11px] sm:text-xs md:text-sm font-medium"
+      >
+        <span>{announcement.message}</span>
+        {announcement.linkText && (
+          <span className="inline-flex items-center gap-1 font-bold ml-1 text-xs">
+            <span>{announcement.linkText}</span>
+            <ExternalLink className="w-3 h-3" />
+          </span>
+        )}
+      </div>
+
       <div
         className={`relative z-40 w-full rounded-xl sm:rounded-2xl border backdrop-blur-xl px-3.5 sm:px-4 py-2 sm:py-2.5 shadow-xl flex items-center justify-between gap-3 text-xs sm:text-sm ${style.bg}`}
       >
@@ -233,9 +268,7 @@ export const BroadcastBanner: React.FC = () => {
           <div
             ref={scrollContainerRef}
             className={`min-w-0 flex-1 overflow-hidden relative ${
-              isOverflowing
-                ? 'group cursor-default [mask-image:linear-gradient(to_right,transparent_0%,black_8px,black_calc(100%-12px),transparent_100%)]'
-                : ''
+              isOverflowing ? 'group cursor-default marquee-mask' : ''
             }`}
           >
             {isOverflowing ? (
@@ -247,8 +280,8 @@ export const BroadcastBanner: React.FC = () => {
                 }}
               >
                 {/* Primary Content Block */}
-                <div ref={textMeasurerRef} className="inline-flex items-center gap-2 pr-12">
-                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+                <div className="inline-flex items-center gap-2 pr-12">
+                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm whitespace-nowrap">
                     {announcement.message}
                   </span>
                   {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
@@ -266,7 +299,7 @@ export const BroadcastBanner: React.FC = () => {
 
                 {/* Duplicate Block for Seamless Continuous Infinite Scrolling */}
                 <div className="inline-flex items-center gap-2 pr-12" aria-hidden="true">
-                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+                  <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm whitespace-nowrap">
                     {announcement.message}
                   </span>
                   {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
@@ -284,10 +317,10 @@ export const BroadcastBanner: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div ref={textMeasurerRef} className="inline-flex items-center gap-2 max-w-full">
-                <p className="truncate text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm">
+              <div className="inline-flex items-center gap-2">
+                <span className="text-slate-100 font-medium leading-tight text-[11px] sm:text-xs md:text-sm whitespace-nowrap">
                   {announcement.message}
-                </p>
+                </span>
                 {announcement.linkUrl && announcement.linkText && sanitizeUrl(announcement.linkUrl) !== '#' && (
                   <a
                     href={sanitizeUrl(announcement.linkUrl)}

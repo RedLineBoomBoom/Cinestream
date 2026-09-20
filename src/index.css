@@ -334,4 +334,10 @@ input[type=range].video-scrubber:hover::-webkit-slider-thumb {
   animation: marqueeScroll var(--marquee-duration, 15s) linear infinite;
 }
 
+/* Cross-browser mask for smooth marquee edge fading on iOS Safari and Chrome */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+}
+
 
