@@ -315,18 +315,37 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
         onSubmit={handleSubmitReview}
         className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-4 shadow-xl"
       >
+        {/* Header: Form Title & Live Rating Status Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-red-500" />
+            <MessageSquare className="w-4 h-4 text-red-500 shrink-0" />
             <h4 className="text-sm font-bold text-white">
               {language === 'en' ? 'Your Review & Star Rating' : 'Rating Bintang & Ulasan Anda'}
             </h4>
           </div>
 
-          {/* 10-Star Interactive Selector */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-            <div className="flex items-center gap-1 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((starNum) => (
+          {/* Live Score Badge with Descriptor */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 shadow-sm shrink-0">
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+              <span className="text-sm font-black font-mono text-amber-300">
+                {activeHoverScore}
+                <span className="text-xs font-normal text-slate-400">/10</span>
+              </span>
+            </div>
+            <span className="w-px h-3.5 bg-white/15" />
+            <span className={`text-xs font-semibold ${activeDescriptor.color}`}>
+              {language === 'en' ? activeDescriptor.en : activeDescriptor.id}
+            </span>
+          </div>
+        </div>
+
+        {/* Dedicated 10-Star Interactive Bar */}
+        <div className="p-3 sm:p-3.5 rounded-xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-0.5 max-w-full">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((starNum) => {
+              const isFilled = starNum <= activeHoverScore;
+              return (
                 <button
                   type="button"
                   key={starNum}
@@ -339,26 +358,26 @@ export const CommunityReviewsSection: React.FC<CommunityReviewsSectionProps> = (
                     setHoverRating(starNum);
                   }}
                   onMouseLeave={() => setHoverRating(null)}
-                  className="p-0.5 hover:scale-125 transition-transform cursor-pointer"
+                  className="p-1 sm:p-1.5 rounded-lg hover:bg-white/10 active:scale-95 transition-all cursor-pointer group shrink-0"
                   title={`${starNum} / 10`}
                 >
                   <Star
-                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${
-                      starNum <= activeHoverScore
-                        ? 'fill-amber-400 text-amber-400'
+                    className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-150 group-hover:scale-110 ${
+                      isFilled
+                        ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.45)]'
                         : 'text-slate-600 hover:text-slate-400'
                     }`}
                   />
                 </button>
-              ))}
-              <span className="ml-1 text-xs font-black font-mono text-white">
-                {activeHoverScore}/10
-              </span>
-            </div>
+              );
+            })}
+          </div>
 
-            <span className={`text-xs font-semibold ${activeDescriptor.color} whitespace-nowrap`}>
-              {language === 'en' ? activeDescriptor.en : activeDescriptor.id}
+          <div className="text-[11px] text-slate-400 font-light flex items-center gap-1.5">
+            <span className="hidden sm:inline">
+              {language === 'en' ? 'Click any star to rate' : 'Pilih bintang untuk memberi nilai'}
             </span>
+            <span className="text-amber-400 font-mono font-medium">({activeHoverScore}/10)</span>
           </div>
         </div>
 

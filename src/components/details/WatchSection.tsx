@@ -2255,7 +2255,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                   })}
 
                 {/* Empty State when no reviews match or none available */}
-                {portalReviews.filter((rev) => selectedPortalFilter === 'all' || selectedPortalFilter === rev.portalId).length === 0 && !loadingPortalReviews && (
+                {portalReviews.filter((rev) => selectedPortalFilter === 'all' || selectedPortalFilter === rev.portalId).length === 0 && !loadingPortalReviews && selectedPortalFilter !== 'user' && (
                   <div className="py-12 px-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] text-center max-w-xl mx-auto space-y-4">
                     <div className="w-12 h-12 rounded-2xl bg-brand-gold/10 border border-brand-gold/25 flex items-center justify-center mx-auto text-brand-gold">
                       <Globe className="w-6 h-6" />
