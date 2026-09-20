@@ -102,6 +102,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: 'cinestream-pwa',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/privacy/, /^\/terms/],
