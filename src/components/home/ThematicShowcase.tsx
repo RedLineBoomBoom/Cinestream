@@ -827,19 +827,25 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                 />
               </div>
 
-              {/* High-Impact Character Cutout PNG with Seamless Gradient Blur Transition */}
+              {/* High-Impact Character Cutout PNG with Ultra-Seamless Multi-Directional Gradient Transition */}
               <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3.5 sm:px-6 lg:px-12 3xl:px-16 pointer-events-none overflow-visible z-[12]">
+                {/* Outer: Cascading Vertical Mask (Fades bottom & top smoothly into dark environment without harsh edges) */}
                 <div
                   className={`absolute ${banner.cutoutPosition || 'right-4 sm:right-8 md:right-14 lg:right-20 xl:right-28 2xl:right-32'} top-1 sm:top-2 md:top-3 lg:top-4 h-[370px] sm:h-[490px] md:h-[570px] lg:h-[650px] xl:h-[730px] 2xl:h-[800px] pointer-events-none select-none flex items-start`}
                   style={{
-                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 78%, transparent 100%), linear-gradient(to left, transparent 0%, black 12%, black 100%)',
-                    maskComposite: 'intersect',
-                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 78%, transparent 100%), linear-gradient(to left, transparent 0%, black 12%, black 100%)',
-                    WebkitMaskComposite: 'source-in',
+                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 45%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.1) 85%, transparent 95%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 45%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.1) 85%, transparent 95%)',
                   }}
                 >
-                  <div className="relative h-full flex items-start">
-                    {/* Layer 1: Ambient Gradient Blur Depth Layer (Blurry behind the cards/left, seamlessly fading out towards right) */}
+                  {/* Inner: Cascading Horizontal Mask (Feathers from cards/text on left, cleanly into character on right) */}
+                  <div
+                    className="relative h-full flex items-start"
+                    style={{
+                      maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 12%, rgba(0,0,0,0.45) 28%, black 52%, black 90%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 12%, rgba(0,0,0,0.45) 28%, black 52%, black 90%, transparent 100%)',
+                    }}
+                  >
+                    {/* Layer 1: Ambient Gradient Blur Depth Layer (Rich, cinematic blur behind cards/left, seamlessly dissolving) */}
                     <img
                       src={banner.cutoutArt}
                       alt=""
@@ -848,16 +854,16 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
-                      className="h-full w-auto object-contain object-top filter brightness-[0.92] contrast-[1.02] saturate-[0.95]
-                        blur-[8px] sm:blur-[12px] md:blur-[15px] lg:blur-[18px]
-                        opacity-35 sm:opacity-45 md:opacity-55 lg:opacity-65"
+                      className="h-full w-auto object-contain object-top filter brightness-[0.92] contrast-[1.05] saturate-[1.05]
+                        blur-[10px] sm:blur-[14px] md:blur-[20px] lg:blur-[24px]
+                        opacity-60 sm:opacity-70 md:opacity-80"
                       style={{
-                        maskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.2) 60%, transparent 85%)',
-                        WebkitMaskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.2) 60%, transparent 85%)',
+                        maskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.2) 65%, transparent 88%)',
+                        WebkitMaskImage: 'linear-gradient(to right, black 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.2) 65%, transparent 88%)',
                       }}
                     />
 
-                    {/* Layer 2: High-Def Character Focus Layer (Emerges via smooth gradient transition into crisp focus) */}
+                    {/* Layer 2: High-Def Character Focus Layer (Emerges seamlessly from blur into crisp, stunning definition) */}
                     <img
                       src={banner.cutoutArt}
                       alt={banner.cutoutAlt}
@@ -866,21 +872,29 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                         e.currentTarget.style.display = 'none';
                       }}
                       className="absolute top-0 left-0 h-full w-auto object-contain object-top filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] brightness-[0.99] contrast-[1.04] saturate-[1.03]
-                        opacity-60 sm:opacity-75 md:opacity-85 lg:opacity-95"
+                        opacity-80 sm:opacity-90 md:opacity-95 lg:opacity-100"
                       style={{
-                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.65) 45%, black 75%)',
-                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.65) 45%, black 75%)',
+                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.04) 15%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.85) 60%, black 78%)',
+                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.04) 15%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.85) 60%, black 78%)',
                       }}
                     />
                   </div>
                 </div>
               </div>
 
+              {/* Seamless Bottom Vignette Scrim (Guarantees zero harsh bottom lines across all resolutions) */}
+              <div
+                className="absolute inset-x-0 bottom-0 h-24 sm:h-32 lg:h-40 pointer-events-none z-[13]"
+                style={{
+                  background: 'linear-gradient(to top, #141414 0%, rgba(20,20,20,0.85) 35%, rgba(20,20,20,0.3) 70%, transparent 100%)',
+                }}
+              />
+
               {/* All screen sizes: left-side dark scrim so text stays legible over the blurred cutout */}
               <div
                 className="absolute inset-y-0 left-0 w-full sm:w-[80%] lg:w-[65%] pointer-events-none z-[14]"
                 style={{
-                  background: 'linear-gradient(to right, rgba(15,15,18,0.96) 0%, rgba(15,15,18,0.85) 45%, rgba(15,15,18,0.4) 75%, transparent 100%)',
+                  background: 'linear-gradient(to right, rgba(15,15,18,0.98) 0%, rgba(15,15,18,0.90) 35%, rgba(15,15,18,0.45) 65%, transparent 100%)',
                 }}
               />
 
