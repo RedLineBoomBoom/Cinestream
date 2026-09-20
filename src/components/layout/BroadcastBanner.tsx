@@ -3,6 +3,8 @@ import { Megaphone, AlertTriangle, CheckCircle2, X, ExternalLink } from 'lucide-
 import {
   getActiveAnnouncement,
   fetchActiveAnnouncementFromCloud,
+  getAnnouncementChannel,
+  BROADCAST_STORAGE_KEY,
   type BroadcastAnnouncement,
 } from '../../utils/admin';
 
@@ -27,7 +29,7 @@ export const BroadcastBanner: React.FC = () => {
 
     const checkAnnouncement = async () => {
       try {
-        // 1. Check local storage cache
+        // 1. Check local storage cache first for 0ms latency
         const local = getActiveAnnouncement();
         if (local && local.active && isMounted) {
           const dismissedKey = `cinestream_dismissed_announcement_${local.id}`;
@@ -51,7 +53,7 @@ export const BroadcastBanner: React.FC = () => {
             setIsDismissed(false);
             setAnnouncement(cloud);
           }
-        } else {
+        } else if (!local || !local.active) {
           setAnnouncement(null);
         }
       } catch (err) {
@@ -59,9 +61,36 @@ export const BroadcastBanner: React.FC = () => {
       }
     };
 
+    // Initial check on mount
     checkAnnouncement();
 
-    // 3. Listen for real-time updates dispatched locally from AdminDashboard
+    // 3. Listen for real-time WebSocket push updates from Supabase channel
+    const ch = getAnnouncementChannel();
+    if (ch) {
+      ch.on('broadcast', { event: 'announcement_sync' }, ({ payload }) => {
+        if (!isMounted) return;
+        const incoming = payload as BroadcastAnnouncement | null;
+        if (incoming && incoming.active) {
+          const dismissedKey = `cinestream_dismissed_announcement_${incoming.id}`;
+          if (sessionStorage.getItem(dismissedKey) === 'true') {
+            setIsDismissed(true);
+          } else {
+            setIsDismissed(false);
+            setAnnouncement(incoming);
+            try {
+              localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(incoming));
+            } catch {}
+          }
+        } else {
+          setAnnouncement(null);
+          try {
+            localStorage.removeItem(BROADCAST_STORAGE_KEY);
+          } catch {}
+        }
+      });
+    }
+
+    // 4. Listen for real-time updates dispatched locally from AdminDashboard
     const handleLocalUpdate = (e: CustomEvent<BroadcastAnnouncement | null>) => {
       const active = e.detail;
       if (active && active.active) {
@@ -72,7 +101,7 @@ export const BroadcastBanner: React.FC = () => {
       }
     };
 
-    // 4. Check on window focus or visibility change (user reopens mobile browser / PWA)
+    // 5. Check on window focus or visibility change (user reopens mobile browser / PWA)
     const handleFocus = () => {
       checkAnnouncement();
     };
@@ -82,8 +111,8 @@ export const BroadcastBanner: React.FC = () => {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleFocus);
 
-    // Periodic check every 45 seconds to keep all devices synchronized
-    const interval = setInterval(checkAnnouncement, 45000);
+    // Periodic check every 30 seconds to keep all devices synchronized
+    const interval = setInterval(checkAnnouncement, 30000);
 
     return () => {
       isMounted = false;

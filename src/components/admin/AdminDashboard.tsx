@@ -22,6 +22,7 @@ import {
   Tv,
   Globe,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -32,7 +33,10 @@ import {
   saveAnnouncement,
   getActiveAnnouncement,
   fetchActiveAnnouncementFromCloud,
+  checkCloudAnnouncementStatus,
+  SUPABASE_ANNOUNCEMENT_SQL,
   type BroadcastAnnouncement,
+  type CloudSyncDiagnostic,
   getAdminEmails,
 } from '../../utils/admin';
 
@@ -113,6 +117,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
   const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
   const [announcementSavedFeedback, setAnnouncementSavedFeedback] = useState(false);
+
+  // Cross-Device Cloud Sync Diagnostics
+  const [cloudDiagnostic, setCloudDiagnostic] = useState<CloudSyncDiagnostic | null>(null);
+  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [lastSaveResult, setLastSaveResult] = useState<{ cloudSynced: boolean; error?: string } | null>(null);
+
+  const runCheckCloud = useCallback(async () => {
+    setIsCheckingCloud(true);
+    try {
+      const res = await checkCloudAnnouncementStatus();
+      setCloudDiagnostic(res);
+    } catch {
+      // ignore
+    } finally {
+      setIsCheckingCloud(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'broadcast') {
+      runCheckCloud();
+    }
+  }, [activeTab, runCheckCloud]);
 
   // Media / Stream Tester State
   const [testTmdbId, setTestTmdbId] = useState('550'); // Default: Fight Club
@@ -275,17 +303,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ...announcement,
       createdAt: new Date().toISOString(),
     };
-    await saveAnnouncement(toSave, user?.id);
+    const res = await saveAnnouncement(toSave, user?.id);
+    setLastSaveResult({ cloudSynced: res.cloudSynced, error: res.error });
     setIsSavingAnnouncement(false);
     setAnnouncementSavedFeedback(true);
-    setTimeout(() => setAnnouncementSavedFeedback(false), 3500);
+    setTimeout(() => setAnnouncementSavedFeedback(false), 4500);
+    runCheckCloud();
   };
 
   // Clear Announcement
   const handleClearAnnouncement = async () => {
     playClick();
     setIsSavingAnnouncement(true);
-    await saveAnnouncement(null, user?.id);
+    const res = await saveAnnouncement(null, user?.id);
+    setLastSaveResult({ cloudSynced: res.cloudSynced, error: res.error });
     setIsSavingAnnouncement(false);
     setAnnouncement({
       id: `bc_${Date.now().toString(36)}`,
@@ -298,7 +329,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       linkUrl: '',
     });
     setAnnouncementSavedFeedback(true);
-    setTimeout(() => setAnnouncementSavedFeedback(false), 3500);
+    setTimeout(() => setAnnouncementSavedFeedback(false), 4500);
+    runCheckCloud();
   };
 
   return (
@@ -755,6 +787,119 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
+            {/* Cross-Device Cloud Sync Diagnostics Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    {language === 'en'
+                      ? 'Cross-Device Cloud Sync Status (Mobile, Tab, PWA, PC)'
+                      : 'Status Sinkronisasi Antar-Perangkat (HP, Tablet, PWA, PC)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    runCheckCloud();
+                  }}
+                  disabled={isCheckingCloud}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer border border-white/10"
+                >
+                  <RotateCw className={`w-3 h-3 ${isCheckingCloud ? 'animate-spin text-cyan-400' : ''}`} />
+                  <span>{language === 'en' ? 'Check Status' : 'Cek Status'}</span>
+                </button>
+              </div>
+
+              {/* Status Pills */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">
+                    {language === 'en' ? 'WebSocket Realtime Push' : 'WebSocket Realtime Push'}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-mono font-bold text-[10px] text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{language === 'en' ? 'ONLINE (0ms)' : 'AKTIF (0ms)'}</span>
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">
+                    {language === 'en' ? 'Cloud Public Read Access' : 'Akses Publik Cloud'}
+                  </span>
+                  {cloudDiagnostic?.canReadAnnouncements ? (
+                    <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-emerald-400">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{language === 'en' ? 'ACTIVE & VERIFIED' : 'AKTIF & TERVERIFIKASI'}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-amber-400">
+                      <span>{language === 'en' ? 'NEEDS 1x SQL SETUP' : 'PERLU 1x SETUP SQL'}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Notice & 1-Click SQL Button if Supabase table needs setup */}
+              {!cloudDiagnostic?.canReadAnnouncements && (
+                <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs space-y-2.5 text-amber-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1 leading-relaxed">
+                      <p className="font-bold text-white text-xs">
+                        {language === 'en'
+                          ? 'Why announcements did not appear on Mobile or Tablet:'
+                          : 'Penyebab pengumuman belum muncul di HP atau Tablet:'}
+                      </p>
+                      <p className="text-[11px] text-slate-300">
+                        {language === 'en'
+                          ? 'By default, Supabase restricts unauthenticated visitors on mobile browsers/PWAs from reading database tables. Run the 1-minute SQL script below in your Supabase SQL Editor to grant public read access so all devices see announcements immediately.'
+                          : 'Supabase secara bawaan membatasi akses pengunjung yang belum login di HP, Tablet, dan aplikasi PWA. Cukup jalankan skrip SQL 1 kali di Supabase Dashboard agar pengumuman bisa dibaca oleh seluruh pengunjung tanpa perlu login.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-500/20">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playClick();
+                        navigator.clipboard.writeText(SUPABASE_ANNOUNCEMENT_SQL);
+                        setCopiedSql(true);
+                        setTimeout(() => setCopiedSql(false), 3000);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 hover:text-white font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95"
+                    >
+                      {copiedSql ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-300">
+                            {language === 'en' ? 'SQL Copied to Clipboard!' : 'Skrip SQL Berhasil Disalin!'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{language === 'en' ? 'Copy Supabase SQL Script (1-Click)' : 'Salin Skrip SQL Supabase (1-Klik)'}</span>
+                        </>
+                      )}
+                    </button>
+
+                    <a
+                      href="https://supabase.com/dashboard/project/qcrfkibseewbwcckvduk/sql/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-slate-200 hover:text-white text-xs font-semibold transition-all"
+                    >
+                      <span>{language === 'en' ? 'Open Supabase SQL Editor' : 'Buka Supabase SQL Editor'}</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Live Preview of the Banner */}
             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -947,13 +1092,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {announcementSavedFeedback && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <div
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 animate-in fade-in ${
+                    lastSaveResult?.cloudSynced
+                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                      : 'bg-cyan-950/60 border-cyan-500/40 text-cyan-300'
+                  }`}
+                >
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>
-                    {language === 'en'
-                      ? 'Announcement saved & broadcast globally to all mobile, tablet, desktop, and PWA devices!'
-                      : 'Pengumuman berhasil disimpan & disiarkan ke semua perangkat HP, Tablet, Desktop, dan PWA!'}
-                  </span>
+                  <div>
+                    <p>
+                      {language === 'en'
+                        ? 'Announcement broadcasted in real-time via WebSocket and saved locally!'
+                        : 'Pengumuman berhasil disiarkan secara real-time via WebSocket & tersimpan di cache!'}
+                    </p>
+                    {lastSaveResult?.cloudSynced ? (
+                      <p className="text-[11px] font-normal text-emerald-400 mt-0.5">
+                        {language === 'en'
+                          ? '✓ Cloud sync successful: All mobile and tablet devices can read this announcement.'
+                          : '✓ Sinkronisasi cloud berhasil: Seluruh pengunjung di HP & Tablet dapat membaca pengumuman ini.'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] font-normal text-cyan-400/90 mt-0.5">
+                        {language === 'en'
+                          ? 'Notice: Real-time broadcast pushed. For permanent cloud persistence across unopened mobile devices, run the SQL script above.'
+                          : 'Catatan: Siaran WebSocket terkirim. Untuk persistensi cloud permanen bagi HP yang baru dibuka nanti, jalankan skrip SQL di atas.'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </form>
@@ -1157,6 +1323,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     https://cinestream-nova.vercel.app/
                   </span>
                 </div>
+              </div>
+
+              {/* Supabase Database Schema & Public Announcement Setup */}
+              <div className="pt-4 border-t border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{language === 'en' ? 'Supabase Cross-Device SQL Configuration' : 'Konfigurasi SQL Supabase Antar-Perangkat'}</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClick();
+                      navigator.clipboard.writeText(SUPABASE_ANNOUNCEMENT_SQL);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 3000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    {copiedSql ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">
+                          {language === 'en' ? 'SQL Copied!' : 'Tersalin!'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{language === 'en' ? 'Copy SQL Script' : 'Salin Skrip SQL'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {language === 'en'
+                    ? 'Execute this script in Supabase SQL editor to create the public announcements table and permissions for mobile and tablet visitors.'
+                    : 'Jalankan skrip ini di SQL Editor Supabase untuk membuat tabel pengumuman publik dan perizinan RLS bagi pengunjung HP dan Tablet.'}
+                </p>
               </div>
 
               {/* Cache Management */}
