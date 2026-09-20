@@ -164,6 +164,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
+
+          {/* Watch Party & Live Public Lobby (Nav Bar Bagian Tengah) */}
+          {onOpenWatchParty && (
+            <div className="flex items-center pl-1 xl:pl-1.5 shrink-0">
+              <WatchPartyButton onClick={onOpenWatchParty} variant="nav" />
+            </div>
+          )}
         </nav>
 
         {/* Right Controls */}
@@ -201,11 +208,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               ⌘K
             </kbd>
           </button>
-
-          {/* Watch Party & Live Public Lobby Quick Access */}
-          {onOpenWatchParty && (
-            <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
-          )}
 
           {/* Language Selector Toggle (ID / EN) */}
           <button
