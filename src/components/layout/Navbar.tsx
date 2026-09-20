@@ -108,13 +108,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
           </div>
 
-          <span className="font-display font-black text-xl sm:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
+          <span className="font-display font-black text-xl lg:text-xl xl:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
             CINESTREAM
           </span>
         </a>
 
-        {/* Desktop Navigation Links - Modern Minimalist Streaming Menu */}
-        <nav className="hidden lg:flex items-center gap-1">
+        {/* Desktop Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0 overflow-hidden">
           {navLinks.map((link) => {
             const isActive = activeTab === link.id;
             const targetUrl = getTabUrl(link.id);
@@ -129,19 +129,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSelectTab(link.id);
                 }}
                 onMouseEnter={playHover}
-                className={`relative px-3.5 py-1.5 rounded text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 no-underline cursor-pointer ${
+                className={`relative px-2 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'text-white font-bold bg-white/10 shadow-sm'
                     : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
                 }`}
               >
                 {link.id === 'advanced-search' && (
-                  <SlidersHorizontal className={`w-3.5 h-3.5 ${isActive ? 'text-[#E50914]' : 'text-slate-400'}`} />
+                  <SlidersHorizontal className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-slate-400'}`} />
                 )}
                 <span>{link.label}</span>
                 {link.count !== undefined && link.count > 0 && (
                   <span
-                    className={`text-[9.5px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+                    className={`text-[9px] px-1 py-0.5 rounded-full font-bold leading-none ${
                       isActive ? 'bg-[#E50914] text-white' : 'bg-white/20 text-white'
                     }`}
                   >
@@ -149,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
                 {isActive && (
-                  <span className="absolute bottom-0 inset-x-3.5 h-[2px] bg-[#E50914] rounded-full" />
+                  <span className="absolute bottom-0 inset-x-2 xl:inset-x-3 h-[2px] bg-[#E50914] rounded-full" />
                 )}
               </a>
             );
@@ -157,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex items-center gap-1 lg:gap-1.5 xl:gap-2">
           {/* AI Search Quick Button */}
           <button
             onClick={() => {
@@ -167,10 +167,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={t('aiSearchTab')}
             title={t('aiSearchTab')}
-            className="flex items-center justify-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
+            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 xl:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            <span className="hidden sm:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold">
+            <span className="hidden xl:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold whitespace-nowrap">
               {t('aiSearchTab')}
             </span>
           </button>
@@ -183,11 +183,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             onMouseEnter={playHover}
             aria-label={t('searchQuick')}
-            className="flex items-center justify-center gap-2 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs"
+            className="flex items-center justify-center gap-1.5 w-8 h-8 lg:w-auto lg:h-auto lg:px-2.5 lg:py-1.5 xl:px-3 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs"
           >
             <Search className="w-3.5 h-3.5 text-white" />
-            <span className="hidden sm:inline font-normal text-slate-200">{t('searchQuick')}</span>
-            <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-slate-400 font-mono border border-white/10">
+            <span className="hidden xl:inline font-normal text-slate-200 whitespace-nowrap">{t('searchQuick')}</span>
+            <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-slate-400 font-mono border border-white/10">
               ⌘K
             </kbd>
           </button>
@@ -200,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             onMouseEnter={playHover}
             aria-label={t('switchLang')}
-            className="flex items-center justify-center gap-1 sm:gap-1.5 h-8 px-2 sm:px-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group"
+            className="flex items-center justify-center gap-1 h-8 px-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group"
             title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
           >
             <Globe className="w-3.5 h-3.5 text-white/90 group-hover:rotate-12 transition-transform duration-300" />
