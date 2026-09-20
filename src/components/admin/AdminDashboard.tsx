@@ -402,8 +402,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const start = performance.now();
         try {
           if (server.id === 'tmdb') {
-            const res = await fetch('https://api.themoviedb.org/3/movie/550?api_key=e4b78912d7658d519b7d8d21da765278', {
-              method: 'HEAD',
+            const res = await fetch('https://api.themoviedb.org/3/movie/550?api_key=4e44d9029b1270a757cddc766a1bcb63', {
+              method: 'GET',
               signal: AbortSignal.timeout(4000),
             }).catch(() => null);
             const latency = Math.round(performance.now() - start);
