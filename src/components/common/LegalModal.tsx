@@ -123,7 +123,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white transition-all cursor-pointer border border-white/10 hidden sm:flex items-center justify-center"
+              className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center"
               title={language === 'en' ? 'Open in new tab' : 'Buka di tab baru'}
             >
               <ExternalLink className="w-4 h-4" />
@@ -449,32 +449,16 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <span>&copy; {new Date().getFullYear()} CINESTREAM • All Rights Reserved</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <a
-              href={
-                activeTab === 'privacy'
-                  ? `/privacy.html?lang=${language}`
-                  : `/terms.html?lang=${language}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>{language === 'en' ? 'Open Standalone' : 'Buka Halaman Penuh'}</span>
-            </a>
-
-            <button
-              type="button"
-              onClick={() => {
-                playClick();
-                onClose();
-              }}
-              className="px-4 py-1.5 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold transition-all shadow-md shadow-red-950/40 cursor-pointer"
-            >
-              {language === 'en' ? 'Close' : 'Tutup'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              onClose();
+            }}
+            className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold transition-all shadow-md shadow-red-950/40 cursor-pointer"
+          >
+            {language === 'en' ? 'Close' : 'Tutup'}
+          </button>
         </div>
       </div>
     </div>
