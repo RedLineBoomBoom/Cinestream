@@ -9,6 +9,14 @@ export interface PartyMember {
   joinedAt: number;
   isActive: boolean;
   userId?: string;
+  isSpeaking?: boolean;
+}
+
+export interface VoiceChatState {
+  isActive: boolean;
+  isMuted: boolean;
+  isDeafened: boolean;
+  activeSpeakers: string[];
 }
 
 export type PlaybackSignalType = 'play' | 'pause' | 'seek';
@@ -126,6 +134,8 @@ export type PeerMessage =
   | { event: 'reaction';      emoji: string; senderName: string; id: string; xOffset?: number }
   | { event: 'kick';          memberId: string }
   | { event: 'host_left' }
+  | { event: 'speaking_state'; memberId: string; isSpeaking: boolean }
+  | { event: 'voice_toggle';   memberId: string; isVoiceActive: boolean }
   | { event: 'ping' }
   | { event: 'pong' };
 

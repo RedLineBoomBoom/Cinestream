@@ -9,6 +9,7 @@ import type {
   PeerMessage,
   ControlMode,
   FloatingReaction,
+  VoiceChatState,
 } from '../types/party';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -33,6 +34,7 @@ export interface WatchPartyCallbacks {
   onMediaChange?: (mediaInfo: PartyMediaInfo) => void;
   onControlModeChange?: (mode: ControlMode) => void;
   onReaction?: (reaction: FloatingReaction) => void;
+  onVoiceStateChange?: (voiceState: VoiceChatState) => void;
   onKicked?: () => void;
   onHostLeft?: () => void;
   onError?: (err: string) => void;
@@ -52,6 +54,20 @@ export class WatchPartyService {
   private hostConn: DataConnection | null = null;
   private cbs: WatchPartyCallbacks = {};
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Voice Chat WebRTC state
+  private localAudioStream: MediaStream | null = null;
+  private mediaCalls: Map<string, any> = new Map();
+  private remoteAudios: Map<string, HTMLAudioElement> = new Map();
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private speechTimer: ReturnType<typeof setInterval> | null = null;
+  private voiceState: VoiceChatState = {
+    isActive: false,
+    isMuted: false,
+    isDeafened: false,
+    activeSpeakers: [],
+  };
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -523,6 +539,7 @@ export class WatchPartyService {
 
   /** Leave / destroy the party */
   leave() {
+    this.stopVoiceChat();
     this._stopHeartbeat();
     if (this.isHost) {
       if (this.room?.roomCode) {
@@ -542,6 +559,178 @@ export class WatchPartyService {
   getRoom() { return this.room; }
   getMyId() { return this.myId; }
   getIsHost() { return this.isHost; }
+
+  // ── Voice Chat ────────────────────────────────────────────
+
+  /** Start WebRTC voice chat — requests mic permission, calls all peers */
+  async startVoiceChat(): Promise<void> {
+    if (this.voiceState.isActive) return;
+    if (!this.peer || !this.room) throw new Error('Not in a room');
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.localAudioStream = stream;
+
+    // Register incoming call listener on the peer
+    this.peer.on('call', (call) => {
+      call.answer(this.localAudioStream!);
+      call.on('stream', (remoteStream) => {
+        this._attachRemoteAudio(call.peer, remoteStream);
+      });
+      this.mediaCalls.set(call.peer, call);
+      call.on('close', () => {
+        this._detachRemoteAudio(call.peer);
+        this.mediaCalls.delete(call.peer);
+      });
+    });
+
+    // Call all connected peers
+    if (this.isHost) {
+      this.guestConns.forEach((_conn, peerId) => {
+        this._callPeer(peerId);
+      });
+    } else if (this.room.hostId) {
+      this._callPeer(this.room.hostId);
+    }
+
+    this.voiceState = { isActive: true, isMuted: false, isDeafened: false, activeSpeakers: [] };
+    this._startSpeakingDetection();
+    this._broadcastVoiceState();
+    this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+  }
+
+  /** Toggle mic mute on/off */
+  toggleMuteMic(): void {
+    if (!this.localAudioStream) return;
+    const track = this.localAudioStream.getAudioTracks()[0];
+    if (!track) return;
+    track.enabled = !track.enabled;
+    this.voiceState = { ...this.voiceState, isMuted: !track.enabled };
+    this._broadcastVoiceState();
+    this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+  }
+
+  /** Stop voice chat — closes all media connections and releases mic */
+  stopVoiceChat(): void {
+    if (this.speechTimer) {
+      clearInterval(this.speechTimer);
+      this.speechTimer = null;
+    }
+    if (this.analyser) {
+      try { this.analyser.disconnect(); } catch { /* ignore */ }
+      this.analyser = null;
+    }
+    if (this.audioContext) {
+      try { this.audioContext.close(); } catch { /* ignore */ }
+      this.audioContext = null;
+    }
+    this.mediaCalls.forEach((call) => { try { call.close(); } catch { /* ignore */ } });
+    this.mediaCalls.clear();
+    this.remoteAudios.forEach((audio) => {
+      audio.pause();
+      audio.srcObject = null;
+    });
+    this.remoteAudios.clear();
+    if (this.localAudioStream) {
+      this.localAudioStream.getTracks().forEach((t) => t.stop());
+      this.localAudioStream = null;
+    }
+    this.voiceState = { isActive: false, isMuted: false, isDeafened: false, activeSpeakers: [] };
+    this._broadcastVoiceState();
+    this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+  }
+
+  private _callPeer(peerId: string): void {
+    if (!this.peer || !this.localAudioStream) return;
+    try {
+      const call = this.peer.call(peerId, this.localAudioStream);
+      if (!call) return;
+      this.mediaCalls.set(peerId, call);
+      call.on('stream', (remoteStream) => {
+        this._attachRemoteAudio(peerId, remoteStream);
+      });
+      call.on('close', () => {
+        this._detachRemoteAudio(peerId);
+        this.mediaCalls.delete(peerId);
+      });
+      call.on('error', () => {
+        this._detachRemoteAudio(peerId);
+        this.mediaCalls.delete(peerId);
+      });
+    } catch { /* ignore */ }
+  }
+
+  private _attachRemoteAudio(peerId: string, stream: MediaStream): void {
+    let audio = this.remoteAudios.get(peerId);
+    if (!audio) {
+      audio = new Audio();
+      audio.autoplay = true;
+      this.remoteAudios.set(peerId, audio);
+    }
+    audio.srcObject = stream;
+    audio.play().catch(() => { /* autoplay policy */ });
+  }
+
+  private _detachRemoteAudio(peerId: string): void {
+    const audio = this.remoteAudios.get(peerId);
+    if (audio) {
+      audio.pause();
+      audio.srcObject = null;
+      this.remoteAudios.delete(peerId);
+    }
+  }
+
+  private _broadcastVoiceState(): void {
+    if (!this.room) return;
+    const payload: PeerMessage = {
+      event: 'voice_toggle',
+      memberId: this.myId,
+      isVoiceActive: this.voiceState.isActive,
+    };
+    if (this.isHost) {
+      this._broadcast(payload);
+    } else {
+      this._sendToHost(payload);
+    }
+  }
+
+  private _startSpeakingDetection(): void {
+    if (!this.localAudioStream) return;
+    try {
+      this.audioContext = new AudioContext();
+      const source = this.audioContext.createMediaStreamSource(this.localAudioStream);
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      source.connect(this.analyser);
+
+      const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      let isSpeaking = false;
+
+      this.speechTimer = setInterval(() => {
+        if (!this.analyser) return;
+        this.analyser.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        const nowSpeaking = avg > 15;
+
+        if (nowSpeaking !== isSpeaking) {
+          isSpeaking = nowSpeaking;
+          const speakMsg: PeerMessage = { event: 'speaking_state', memberId: this.myId, isSpeaking };
+          if (this.isHost) {
+            this._broadcast(speakMsg);
+          } else {
+            this._sendToHost(speakMsg);
+          }
+          // Also update local voice state activeSpeakers
+          this.voiceState = {
+            ...this.voiceState,
+            activeSpeakers: isSpeaking
+              ? [...new Set([...this.voiceState.activeSpeakers, this.myId])]
+              : this.voiceState.activeSpeakers.filter((id) => id !== this.myId),
+          };
+          this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+        }
+      }, 100);
+    } catch { /* AudioContext not supported */ }
+  }
 
   // ── Private: Host ─────────────────────────────────────────
 
@@ -758,6 +947,25 @@ export class WatchPartyService {
           timestamp: Date.now(),
           xOffset: msg.xOffset ?? (Math.random() * 70 + 15),
         });
+      } else if (msg.event === 'speaking_state') {
+        // Broadcast speaking state to other guests and update host voice state
+        this._broadcastExcept(msg, conn.peer);
+        this.voiceState = {
+          ...this.voiceState,
+          activeSpeakers: msg.isSpeaking
+            ? [...new Set([...this.voiceState.activeSpeakers, msg.memberId])]
+            : this.voiceState.activeSpeakers.filter((id) => id !== msg.memberId),
+        };
+        this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+      } else if (msg.event === 'voice_toggle') {
+        this._broadcastExcept(msg, conn.peer);
+        if (!msg.isVoiceActive) {
+          this.voiceState = {
+            ...this.voiceState,
+            activeSpeakers: this.voiceState.activeSpeakers.filter((id) => id !== msg.memberId),
+          };
+          this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+        }
       } else if (msg.event === 'ping') {
         conn.send({ event: 'pong' } satisfies PeerMessage);
       }
@@ -765,6 +973,13 @@ export class WatchPartyService {
 
     conn.on('close', () => {
       this._handleGuestDisconnect(conn.peer);
+    });
+
+    // If voice is already active when this guest connects, call them automatically
+    conn.on('open', () => {
+      if (this.voiceState.isActive && this.localAudioStream) {
+        setTimeout(() => this._callPeer(conn.peer), 500);
+      }
     });
   }
 
@@ -843,6 +1058,25 @@ export class WatchPartyService {
         break;
       case 'host_left':
         this.cbs.onHostLeft?.();
+        break;
+      case 'speaking_state':
+        this.voiceState = {
+          ...this.voiceState,
+          activeSpeakers: msg.isSpeaking
+            ? [...new Set([...this.voiceState.activeSpeakers, msg.memberId])]
+            : this.voiceState.activeSpeakers.filter((id) => id !== msg.memberId),
+        };
+        this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+        break;
+      case 'voice_toggle':
+        // A peer toggled voice on/off — update local voice state if relevant
+        if (!msg.isVoiceActive) {
+          this.voiceState = {
+            ...this.voiceState,
+            activeSpeakers: this.voiceState.activeSpeakers.filter((id) => id !== msg.memberId),
+          };
+          this.cbs.onVoiceStateChange?.({ ...this.voiceState });
+        }
         break;
       case 'ping':
         this.hostConn?.send({ event: 'pong' } satisfies PeerMessage);

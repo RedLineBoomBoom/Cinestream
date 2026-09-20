@@ -20,6 +20,7 @@ import type {
   PlaybackSignal,
   ControlMode,
   FloatingReaction,
+  VoiceChatState,
 } from '../types/party';
 
 // ── Context Value ──────────────────────────────────────────
@@ -39,6 +40,7 @@ interface WatchPartyContextValue {
   unreadCount: number;
   isMinimized: boolean;
   publicRooms: PublicPartyRoom[];
+  voiceState: VoiceChatState;
 
   // Actions
   createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic?: boolean) => Promise<void>;
@@ -58,6 +60,9 @@ interface WatchPartyContextValue {
   clearError: () => void;
   resetUnreadCount: () => void;
   setIsMinimized: (minimized: boolean) => void;
+  startVoiceChat: () => Promise<void>;
+  toggleMuteMic: () => void;
+  stopVoiceChat: () => void;
 
   // Popup open/close state
   isPartyOpen: boolean;
@@ -99,6 +104,9 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [publicRooms, setPublicRooms] = useState<PublicPartyRoom[]>([]);
+  const [voiceState, setVoiceState] = useState<VoiceChatState>({
+    isActive: false, isMuted: false, isDeafened: false, activeSpeakers: [],
+  });
 
   const isPartyOpenRef = useRef(isPartyOpen);
   isPartyOpenRef.current = isPartyOpen;
@@ -206,6 +214,9 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       onHostLeft: () => {
         setStatus('disconnected');
         setErrorMsg('host_left');
+      },
+      onVoiceStateChange: (vs) => {
+        setVoiceState({ ...vs });
       },
       onError: (err) => {
         setErrorMsg(err);
@@ -359,6 +370,7 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setHostTimeSync(null);
     setReactions([]);
     setUnreadCount(0);
+    setVoiceState({ isActive: false, isMuted: false, isDeafened: false, activeSpeakers: [] });
   }, []);
 
   const closePartyRoom = useCallback(async (roomCodeToClose: string) => {
@@ -439,6 +451,22 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setMembers((prev) => prev.filter((m) => m.id !== memberId));
   }, []);
 
+  const startVoiceChat = useCallback(async () => {
+    try {
+      await watchPartyService.startVoiceChat();
+    } catch (err) {
+      setErrorMsg(String(err));
+    }
+  }, []);
+
+  const toggleMuteMic = useCallback(() => {
+    watchPartyService.toggleMuteMic();
+  }, []);
+
+  const stopVoiceChat = useCallback(() => {
+    watchPartyService.stopVoiceChat();
+  }, []);
+
   const clearSignal = useCallback(() => setLatestSignal(null), []);
   const clearError = useCallback(() => setErrorMsg(''), []);
 
@@ -483,11 +511,12 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     <WatchPartyContext.Provider value={{
       status, room, members, messages, myId, isHost, errorMsg, latestSignal,
       controlMode, hostTimeSync, reactions, unreadCount, isMinimized,
-      publicRooms, refreshPublicRooms,
+      publicRooms, refreshPublicRooms, voiceState,
       createParty, reclaimPartyHost, joinParty, leaveParty, closePartyRoom,
       sendChat, sendSignal, sendTimeSync,
       changeMedia, setControlMode, sendReaction, kickMember,
       clearSignal, clearError, resetUnreadCount, setIsMinimized,
+      startVoiceChat, toggleMuteMic, stopVoiceChat,
       isPartyOpen, setIsPartyOpen, togglePartyOpen, autoJoinCode, setAutoJoinCode,
       inviteLink, roomCode,
     }}>

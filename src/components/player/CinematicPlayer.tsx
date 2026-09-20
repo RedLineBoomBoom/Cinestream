@@ -26,6 +26,7 @@ import {
   SkipBack,
   SkipForward,
   Flag,
+  Moon,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { formatTime, parseDurationToSeconds, formatServerName, getDefaultServer } from '../../utils/formatters';
@@ -37,6 +38,8 @@ import { WatchPartyButton } from '../party/WatchPartyButton';
 import { PartyReactionsOverlay } from '../party/PartyReactionsOverlay';
 import { resolveBestServer } from '../../services/serverResolver';
 import { ReportIssueModal } from './ReportIssueModal';
+import { SleepTimerModal, type SleepTimerOption } from './SleepTimerModal';
+import { DanmakuOverlay } from './DanmakuOverlay';
 
 export type SnapCorner = 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
 
@@ -417,6 +420,44 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasVerifiedTime, setHasVerifiedTime] = useState(false);
   const hasVerifiedTimeRef = useRef(false);
+
+  // Sleep Timer State & Countdown
+  const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
+  const [sleepTimerOption, setSleepTimerOption] = useState<SleepTimerOption>(null);
+  const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
+  const [isSleeping, setIsSleeping] = useState(false);
+
+  useEffect(() => {
+    if (!sleepTimerOption) {
+      setSleepRemaining(null);
+      return;
+    }
+    if (typeof sleepTimerOption === 'number') {
+      setSleepRemaining(sleepTimerOption * 60);
+    }
+  }, [sleepTimerOption]);
+
+  useEffect(() => {
+    if (sleepRemaining === null || sleepRemaining <= 0) return;
+
+    const interval = setInterval(() => {
+      setSleepRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          if (videoRef.current) {
+            videoRef.current.pause();
+          }
+          setIsPlaying(false);
+          setIsSleeping(true);
+          setSleepTimerOption(null);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sleepRemaining]);
 
   useEffect(() => {
     hasVerifiedTimeRef.current = false;
@@ -2459,6 +2500,44 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             : undefined
         }
       >
+      {/* ── Danmaku Floating Timed Comments ── */}
+      {!isMiniPlayer && (
+        <DanmakuOverlay
+          mediaId={media.id}
+          seasonEpisodeKey={currentEpisode ? `s${currentEpisode.seasonNumber ?? 1}e${currentEpisode.episodeNumber}` : 'movie'}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+        />
+      )}
+
+      {/* ── Sleep Mode Screen Overlay ── */}
+      {isSleeping && (
+        <div className="absolute inset-0 z-[80] flex flex-col items-center justify-center p-6 bg-black/95 backdrop-blur-2xl text-center text-white select-none">
+          <div className="w-16 h-16 rounded-3xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 mb-4 animate-pulse shadow-2xl shadow-indigo-950/50">
+            <Moon className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold mb-2 tracking-tight">
+            {language === 'en' ? 'Sleep Timer Active' : 'Waktu Tidur Selesai'}
+          </h3>
+          <p className="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
+            {language === 'en'
+              ? 'Playback was paused automatically so you can sleep peacefully.'
+              : 'Tayangan dijeda otomatis untuk kenyamanan istirahat Anda.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsSleeping(false);
+              togglePlay();
+            }}
+            className="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xl shadow-indigo-900/40 transition-all cursor-pointer"
+          >
+            {language === 'en' ? 'Resume Watching' : 'Lanjutkan Menonton'}
+          </button>
+        </div>
+      )}
+
       {/* Floating Mini Player Header Overlay (Draggable Bar) */}
       {isMiniPlayer && !isFullscreen && (
         <div
@@ -3034,6 +3113,27 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
               <span className="font-light">Episode</span>
             </button>
           )}
+
+          {/* Sleep Timer Button */}
+          <button
+            type="button"
+            onClick={() => {
+              playClick();
+              setIsSleepTimerOpen(true);
+            }}
+            onMouseEnter={playHover}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all backdrop-blur-md cursor-pointer ${
+              sleepRemaining !== null
+                ? 'bg-indigo-600/35 border-indigo-400/60 text-indigo-200 shadow-lg shadow-indigo-950/40'
+                : 'bg-black/60 hover:bg-white/15 border-white/[0.12] text-slate-300'
+            }`}
+            title={language === 'en' ? 'Sleep Timer' : 'Pengatur Waktu Tidur'}
+          >
+            <Moon className={`w-3 h-3 ${sleepRemaining !== null ? 'text-indigo-400 animate-pulse' : 'text-slate-400'}`} />
+            <span className="hidden sm:inline font-light">
+              {sleepRemaining !== null ? `${Math.ceil(sleepRemaining / 60)}m` : 'Sleep'}
+            </span>
+          </button>
         </div>
       </div>
       )}
@@ -3585,6 +3685,23 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       currentEpisode={currentEpisode}
       activeServer={activeServer}
       onSwitchServerPrompt={handleSmartFailover}
+    />
+
+    {/* Sleep Timer Modal */}
+    <SleepTimerModal
+      isOpen={isSleepTimerOpen}
+      onClose={() => setIsSleepTimerOpen(false)}
+      activeOption={sleepTimerOption}
+      remainingSeconds={sleepRemaining}
+      onSelectOption={(opt) => {
+        setSleepTimerOption(opt);
+        if (opt === null) {
+          setSleepRemaining(null);
+        } else if (typeof opt === 'number') {
+          setSleepRemaining(opt * 60);
+        }
+      }}
+      hasEpisode={Boolean(media.seasons)}
     />
   </div>
   );

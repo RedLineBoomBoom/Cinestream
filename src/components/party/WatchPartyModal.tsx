@@ -5,7 +5,7 @@ import {
   Send, Crown, WifiOff, Play, Pause,
   AlertCircle, AlertTriangle, Radio, Loader2, Film, Tv, ChevronDown, ChevronUp, Minus,
   Move, GripHorizontal, Share2, RefreshCw, UserMinus, Shield, ShieldCheck, Smile, MessageSquare, ExternalLink,
-  Globe, Search, Lock, Trash2,
+  Globe, Search, Lock, Trash2, Mic, MicOff, PhoneCall, PhoneOff,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
@@ -250,8 +250,8 @@ export function getLocalizedSystemMessage(
 }
 
 // ── Avatar initial ─────────────────────────────────────────
-function AvatarInitial({ name, isHost, isActive, size = 'md' }: {
-  name: string; isHost: boolean; isActive: boolean; size?: 'sm' | 'md';
+function AvatarInitial({ name, isHost, isActive, isSpeaking = false, size = 'md' }: {
+  name: string; isHost: boolean; isActive: boolean; isSpeaking?: boolean; size?: 'sm' | 'md';
 }) {
   const colors = [
     'bg-violet-500', 'bg-sky-500', 'bg-emerald-500', 'bg-rose-500',
@@ -260,7 +260,7 @@ function AvatarInitial({ name, isHost, isActive, size = 'md' }: {
   const colorIdx = name.charCodeAt(0) % colors.length;
   const dim = size === 'sm' ? 'w-6 h-6 text-[9px]' : 'w-7 h-7 text-xs';
   return (
-    <div className={`relative rounded-full flex items-center justify-center font-bold text-white shrink-0 ${dim} ${colors[colorIdx]} ${!isActive ? 'opacity-40' : ''}`}>
+    <div className={`relative rounded-full flex items-center justify-center font-bold text-white shrink-0 ${dim} ${colors[colorIdx]} ${!isActive ? 'opacity-40' : ''} ${isSpeaking ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-cinema-950' : ''}`}>
       {name[0]?.toUpperCase() ?? '?'}
       {isHost && (
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-gold rounded-full flex items-center justify-center shadow-sm">
@@ -268,6 +268,7 @@ function AvatarInitial({ name, isHost, isActive, size = 'md' }: {
         </span>
       )}
       {isActive && <span className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-emerald-400 rounded-full border border-cinema-950" />}
+      {isSpeaking && <span className="absolute inset-0 rounded-full ring-2 ring-emerald-400/60 animate-ping" />}
     </div>
   );
 }
@@ -315,10 +316,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const {
     status, room, members, messages, myId, isHost, errorMsg,
     controlMode, hostTimeSync, unreadCount, isMinimized,
-    publicRooms, refreshPublicRooms,
+    publicRooms, refreshPublicRooms, voiceState,
     createParty, reclaimPartyHost, joinParty, leaveParty, closePartyRoom, sendChat, sendSignal,
     setControlMode, sendReaction, kickMember,
     clearError, resetUnreadCount, setIsMinimized,
+    startVoiceChat, toggleMuteMic, stopVoiceChat,
     inviteLink, roomCode,
   } = useWatchParty();
   const { profile } = useUserProfile();
@@ -1560,7 +1562,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                 {activeMembers.map((m) => (
                   <div key={m.id} className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.05]">
                     <div className="flex items-center gap-2 min-w-0">
-                      <AvatarInitial name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
+                      <AvatarInitial name={m.name} isHost={m.isHost} isActive={m.isActive} isSpeaking={voiceState.activeSpeakers.includes(m.id)} size="sm" />
                       <span className={`text-[11px] truncate max-w-[120px] ${m.id === myId ? 'text-violet-300 font-semibold' : 'text-slate-300'}`}>
                         {m.id === myId ? t('partyYou') : m.name}
                       </span>
@@ -1568,6 +1570,9 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                         <span className="text-[9px] text-amber-300 bg-amber-400/15 px-1.5 py-0.5 rounded font-bold border border-amber-400/30 flex items-center gap-0.5">
                           <Crown className="w-2 h-2 text-amber-400" /> Host
                         </span>
+                      )}
+                      {voiceState.activeSpeakers.includes(m.id) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Speaking" />
                       )}
                     </div>
 
@@ -1589,7 +1594,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
             ) : (
               <div className="flex items-center gap-1.5 mt-1">
                 {activeMembers.slice(0, 8).map((m) => (
-                  <AvatarInitial key={m.id} name={m.name} isHost={m.isHost} isActive={m.isActive} size="sm" />
+                  <AvatarInitial key={m.id} name={m.name} isHost={m.isHost} isActive={m.isActive} isSpeaking={voiceState.activeSpeakers.includes(m.id)} size="sm" />
                 ))}
                 {activeMembers.length > 8 && (
                   <span className="text-[9px] text-slate-500">+{activeMembers.length - 8}</span>
@@ -1597,6 +1602,62 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
               </div>
             )}
           </div>
+
+          {/* ── Voice Chat Controls ────────────────────────── */}
+          {isConnected && (
+            <div className="px-3 py-2 border-b border-white/[0.05] shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <PhoneCall className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Voice Chat
+                  </span>
+                  {voiceState.isActive && (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                      Live
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {voiceState.isActive ? (
+                    <>
+                      {/* Mute/Unmute */}
+                      <button
+                        onClick={() => { playClick(); toggleMuteMic(); }}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                          voiceState.isMuted
+                            ? 'bg-rose-500/20 border-rose-400/40 text-rose-300'
+                            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                        }`}
+                        title={voiceState.isMuted ? 'Unmute Mic' : 'Mute Mic'}
+                      >
+                        {voiceState.isMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                      </button>
+                      {/* End voice */}
+                      <button
+                        onClick={() => { playClick(); stopVoiceChat(); }}
+                        className="p-1.5 rounded-lg border bg-rose-500/20 border-rose-400/40 text-rose-300 hover:bg-rose-500/30 transition-all cursor-pointer"
+                        title="End Voice Chat"
+                      >
+                        <PhoneOff className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => { playClick(); startVoiceChat(); }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/30 text-[10px] font-semibold transition-all cursor-pointer"
+                      title="Start Voice Chat"
+                    >
+                      <Mic className="w-3 h-3" />
+                      <span>Join Voice</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Real-time Playback Sync Controls ────────────── */}
           {isConnected && (

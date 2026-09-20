@@ -340,4 +340,26 @@ input[type=range].video-scrubber:hover::-webkit-slider-thumb {
   mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
 }
 
+/* Danmaku Floating Timed Comments Animation across player width */
+@keyframes danmakuFly {
+  0% {
+    transform: translate3d(100vw, 0, 0);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-100%, 0, 0);
+    opacity: 0;
+  }
+}
+
+.animate-danmaku-fly {
+  animation: danmakuFly 9s linear forwards;
+}
+
 
