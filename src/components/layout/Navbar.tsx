@@ -7,13 +7,17 @@ import {
   Globe,
   SlidersHorizontal,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useAuth } from '../../context/AuthContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ProfileDropdown } from '../profile/ProfileDropdown';
+import { BroadcastBanner } from './BroadcastBanner';
 import { getTabUrl } from '../../utils/navigation';
+import { isAdminUser } from '../../utils/admin';
 import type { ModalSearchSource } from '../search/SearchModal';
 
 interface NavbarProps {
@@ -35,8 +39,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { watchlist, historyItems } = useWatchlist();
   const { profile, activePalette } = useUserProfile();
+  const { user } = useAuth();
   const { playClick, playHover } = useSound();
   const { language, toggleLanguage, t } = useLanguage();
+  const isAdmin = isAdminUser(user, profile as any);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -209,6 +215,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </button>
 
+          {/* Exclusive Admin Quick Access (ONLY for Verified Admins) */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                playClick();
+                onSelectTab('admin');
+              }}
+              onMouseEnter={playHover}
+              className={`flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                activeTab === 'admin'
+                  ? 'bg-[#E50914] text-white border-[#E50914] shadow-lg shadow-red-950/40'
+                  : 'bg-red-950/40 hover:bg-red-900/60 text-red-200 border-red-500/40 hover:border-red-500/70'
+              }`}
+              title="Admin Command Center"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden xl:inline text-[11px] uppercase tracking-wider font-mono">Admin</span>
+            </button>
+          )}
+
           {/* Unique Per-Device Profile Avatar Button */}
           <div className="relative">
             <button
@@ -255,6 +281,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Global Broadcast Announcement Banner */}
+      <BroadcastBanner />
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
@@ -328,6 +357,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
+
+          {/* Exclusive Admin Quick Access (Mobile Drawer, ONLY for Admins) */}
+          {isAdmin && (
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                playClick();
+                onSelectTab('admin');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-sm transition-all no-underline cursor-pointer border ${
+                activeTab === 'admin'
+                  ? 'bg-[#E50914] text-white font-bold shadow-md border-red-600'
+                  : 'bg-red-950/30 text-red-200 border-red-500/30 hover:bg-red-900/40'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4 text-amber-400" />
+                <span className="font-bold">Admin Command Center</span>
+              </div>
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
+                PRO
+              </span>
+            </a>
+          )}
 
           {/* Mobile Language Switcher */}
           <button

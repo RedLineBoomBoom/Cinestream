@@ -13,6 +13,7 @@ export const VALID_TABS = [
   'watchlist',
   'history',
   'watched',
+  'admin',
 ] as const;
 
 export type ValidTab = (typeof VALID_TABS)[number];
@@ -29,6 +30,7 @@ const TAB_ALIASES: Record<string, ValidTab> = {
   filter: 'advanced-search',
   filters: 'advanced-search',
   riwayat: 'history',
+  dashboard: 'admin',
 };
 
 /**

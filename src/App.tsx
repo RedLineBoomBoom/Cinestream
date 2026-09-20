@@ -16,9 +16,10 @@ import { HomeFaqSection } from './components/home/HomeFaqSection';
 import { HistoryView } from './components/history/HistoryView';
 import { WatchedView } from './components/history/WatchedView';
 import { AdvancedSearchView } from './components/search/AdvancedSearchView';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { WatchlistProvider, useWatchlist } from './context/WatchlistContext';
-import { UserProfileProvider } from './context/UserProfileContext';
-import { AuthProvider } from './context/AuthContext';
+import { UserProfileProvider, useUserProfile } from './context/UserProfileContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 import { SoundProvider, useSound } from './context/SoundContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -41,6 +42,7 @@ import {
 } from './utils/navigation';
 import { Bookmark, Users, ShieldAlert } from 'lucide-react';
 import { initCapacitorApp } from './utils/capacitorApp';
+import { isAdminUser } from './utils/admin';
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'home';
@@ -76,8 +78,24 @@ const MainContent: React.FC = () => {
     togglePartyOpen,
   } = useWatchParty();
 
+  // User Profile & Admin Verification
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { profile } = useUserProfile();
+  const isAdmin = isAdminUser(user, profile as any);
+
   // Navigation & Modals State (Persistent on refresh)
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+
+  // Route Guard: If activeTab is 'admin' and user is not an admin, immediately redirect to 'home'
+  useEffect(() => {
+    if (activeTab === 'admin' && !isAuthLoading && !isAdmin) {
+      setActiveTab('home');
+      try {
+        localStorage.setItem('cinestream_active_tab', 'home');
+        window.history.replaceState({ type: 'tab', tab: 'home' }, '', '/');
+      } catch {}
+    }
+  }, [activeTab, isAdmin, isAuthLoading]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInitialSource, setSearchInitialSource] = useState<ModalSearchSource>('all');
   const [isCustomStreamOpen, setIsCustomStreamOpen] = useState(false);
@@ -245,6 +263,10 @@ const MainContent: React.FC = () => {
 
   // Switch tab and persist state to URL and localStorage
   const handleSelectTab = (tab: string, pushHistory = true) => {
+    // Route Guard for admin tab
+    if (tab === 'admin' && !isAdmin) {
+      return;
+    }
     playClick();
     if (selectedMedia) {
       // Transition to floating mini player so playback continues uninterrupted while browsing
@@ -641,6 +663,15 @@ const MainContent: React.FC = () => {
           setSelectedMedia(null);
           setIsMiniPlayer(false);
         }
+        // Admin tab route guard for popstate / URL changes
+        if (route.tab === 'admin' && !isAdmin) {
+          setActiveTab('home');
+          try {
+            localStorage.setItem('cinestream_active_tab', 'home');
+            window.history.replaceState({ type: 'tab', tab: 'home' }, '', '/');
+          } catch {}
+          return;
+        }
         setActiveTab(route.tab);
         try {
           localStorage.setItem('cinestream_active_tab', route.tab);
@@ -659,7 +690,7 @@ const MainContent: React.FC = () => {
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener('hashchange', handleNavigation);
     };
-  }, [selectedMedia?.id, setAutoJoinCode, setIsPartyOpen]);
+  }, [selectedMedia?.id, setAutoJoinCode, setIsPartyOpen, isAdmin]);
 
   // Persist activeTab whenever it changes
   useEffect(() => {
@@ -1091,6 +1122,14 @@ const MainContent: React.FC = () => {
             onGoHome={() => handleSelectTab('home')}
           />
         )}
+
+        {/* VIEW 7: EXCLUSIVE ADMIN DASHBOARD (ADMINS ONLY) */}
+        {activeTab === 'admin' && isAdmin && (
+          <AdminDashboard
+            onBackToHome={() => handleSelectTab('home')}
+            onPlayMedia={(mediaId) => resolveAndPlayMedia(mediaId)}
+          />
+        )}
           </>
         )}
 
@@ -1144,7 +1183,7 @@ const MainContent: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Nav */}
-      {(!selectedMedia || isMiniPlayer) && !isFullscreen && (
+      {(!selectedMedia || isMiniPlayer) && !isFullscreen && activeTab !== 'admin' && (
         <MobileNav
           activeTab={activeTab}
           onSelectTab={handleSelectTab}

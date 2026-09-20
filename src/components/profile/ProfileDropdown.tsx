@@ -15,12 +15,14 @@ import {
   LogOut,
   Sparkles,
   Cloud,
+  Shield,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { isAdminUser } from '../../utils/admin';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
@@ -47,6 +49,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const { watchlist, historyItems } = useWatchlist();
   const { playClick, playHover, playSuccess, playWhoosh } = useSound();
   const { language, t } = useLanguage();
+
+  const isAdmin = isAdminUser(user, profile as any);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile.name);
@@ -134,7 +138,12 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <div className="absolute inset-0 bg-black/25" />
         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-        {user ? (
+        {isAdmin ? (
+          <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-950/80 backdrop-blur-md border border-red-500/50 text-red-200 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-md shadow-red-950/50">
+            <Shield className="w-3.5 h-3.5 text-amber-400" />
+            <span>Admin Verified</span>
+          </div>
+        ) : user ? (
           <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/70 backdrop-blur-md border border-emerald-500/35 text-emerald-300 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-sm">
             <Cloud className="w-3.5 h-3.5 text-emerald-400" />
             <span>{language === 'en' ? 'Cloud Synced' : 'Cloud Sync'}</span>
@@ -297,6 +306,35 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                   {language === 'en' ? 'Sign In / Register' : 'Masuk / Daftar Akun'}
                 </button>
               </div>
+            )}
+
+            {/* Exclusive Admin Dashboard Button (ONLY for Verified Admins) */}
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  playClick();
+                  onSelectTab('admin');
+                  onClose();
+                }}
+                onMouseEnter={playHover}
+                className="w-full p-3 rounded-xl bg-gradient-to-r from-red-950/70 via-rose-950/50 to-black/80 hover:from-red-900/80 hover:via-rose-900/60 hover:to-black/90 border border-red-500/40 hover:border-red-500/70 shadow-lg shadow-red-950/40 transition-all cursor-pointer group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-red-600/30 border border-red-500/40 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                    <Shield className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>Admin Command Center</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#E50914] text-white">PRO</span>
+                    </div>
+                    <div className="text-[10px] text-red-200/80 font-mono">
+                      {language === 'en' ? 'Exclusive Admin Dashboard' : 'Panel Khusus Administrator'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </button>
             )}
 
             {/* Quick Stats Grid */}
