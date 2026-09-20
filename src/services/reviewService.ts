@@ -198,6 +198,13 @@ export function deduplicateUserReviews(list: MediaReview[]): MediaReview[] {
 }
 
 /**
+ * Mengambil seluruh ulasan lokal yang tersimpan di localStorage (terdeduplikasi).
+ */
+export function getAllLocalReviews(): MediaReview[] {
+  return deduplicateUserReviews(getLocalReviews());
+}
+
+/**
  * Mengambil seluruh ulasan untuk suatu judul film/series tertentu.
  * Menggabungkan ulasan dari Supabase dengan ulasan offline lokal.
  * Menerapkan deduplikasi agar 1 user hanya memiliki 1 ulasan.

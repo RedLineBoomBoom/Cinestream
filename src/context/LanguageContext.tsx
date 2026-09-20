@@ -41,6 +41,22 @@ export const translations = {
     lastWatched: 'Terakhir ditonton',
     episodeProgress: 'Episode',
 
+    // Smart Recommendations & Because You Watched
+    recBecauseYouWatched: 'Karena Anda Menonton',
+    recBecauseYouWatchedDesc: 'Rekomendasi pilihan cerdas berdasarkan tayangan terakhir yang Anda tonton',
+    recTopPicks: 'Pilihan Rekomendasi Spesial',
+    recTopPicksDesc: 'Dipersonalisasi khusus berdasarkan genre favorit dan selera sinematik Anda',
+    recCommunityTrending: 'Rekomendasi Populer Komunitas',
+    recCommunityTrendingDesc: 'Koleksi sinema terbaik yang paling banyak disukai dan direkomendasikan penonton lain',
+    recMatchScore: 'Cocok',
+    recAiReasonBadge: 'Alasan AI',
+    recWhyRecommended: 'Mengapa Direkomendasikan?',
+    recBasedOn: 'Berdasarkan',
+    recSwitchAnchor: 'Ganti Acuan',
+    recCalibrateTaste: 'Tonton atau beri rating judul untuk menyempurnakan rekomendasi AI Anda',
+    recAiBadge: 'AI Match Engine',
+    recRefresh: 'Segarkan Rekomendasi',
+
     // Watched Tab
     watchedTitle: 'Sudah Ditonton',
     watchedSubtitle: 'Film dan serial yang telah Anda tandai selesai.',
@@ -461,6 +477,22 @@ export const translations = {
     historyCount: 'Recorded Titles',
     lastWatched: 'Last watched',
     episodeProgress: 'Episode',
+
+    // Smart Recommendations & Because You Watched
+    recBecauseYouWatched: 'Because You Watched',
+    recBecauseYouWatchedDesc: 'Handpicked smart recommendations based on what you recently watched',
+    recTopPicks: 'Top Picks For You',
+    recTopPicksDesc: 'Personalized specially based on your favorite genres and cinema taste',
+    recCommunityTrending: 'Community Trending Recommendations',
+    recCommunityTrendingDesc: 'Top cinema gems most praised and recommended by fellow viewers',
+    recMatchScore: 'Match',
+    recAiReasonBadge: 'AI Insight',
+    recWhyRecommended: 'Why Recommended?',
+    recBasedOn: 'Based on',
+    recSwitchAnchor: 'Switch Anchor',
+    recCalibrateTaste: 'Watch or rate titles to refine your AI recommendations',
+    recAiBadge: 'AI Match Engine',
+    recRefresh: 'Refresh Recommendations',
 
     // Watched Tab
     watchedTitle: 'Watched',
