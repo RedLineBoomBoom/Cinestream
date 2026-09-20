@@ -421,6 +421,8 @@ export const translations = {
     backToTop: 'Kembali ke Atas',
     copyrightDedication: 'Dedikasi kurasi visual sinema kelas dunia • Hak cipta dilindungi.',
     edition: 'Edition Prestigious.',
+    privacyPolicy: 'Kebijakan Privasi',
+    termsOfService: 'Ketentuan Layanan',
   },
   en: {
     // Navbar
@@ -840,6 +842,8 @@ export const translations = {
     backToTop: 'Back to Top',
     copyrightDedication: 'Dedicated to world-class cinema curation • All rights reserved.',
     edition: 'Edition Prestigious.',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
   },
 };
 

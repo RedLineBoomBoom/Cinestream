@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Shield } from 'lucide-react';
+import { Play, Shield, Lock, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const Footer: React.FC = () => {
@@ -29,8 +29,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Disclaimer */}
-          <div className="space-y-3 md:flex md:flex-col md:items-end md:text-right">
+          {/* Disclaimer & Legal Links */}
+          <div className="space-y-3.5 md:flex md:flex-col md:items-end md:text-right">
             <h5 className="font-sans font-bold text-white text-xs tracking-wider uppercase flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-[#E50914]" />
               {t('eduNotice')}
@@ -38,13 +38,54 @@ export const Footer: React.FC = () => {
             <p className="text-[11px] text-slate-500 leading-relaxed max-w-md">
               {t('eduDesc')}
             </p>
+
+            {/* Privacy Policy & Terms Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <a
+                href="/privacy.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#E50914]/15 hover:border-[#E50914]/50 hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
+              >
+                <Lock className="w-3 h-3 text-[#E50914] group-hover:scale-110 transition-transform" />
+                <span>{t('privacyPolicy')}</span>
+              </a>
+
+              <a
+                href="/terms.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
+              >
+                <FileText className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform" />
+                <span>{t('termsOfService')}</span>
+              </a>
+            </div>
           </div>
         </div>
 
         {/* Bottom copyright line */}
         <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 font-normal">
-          <div>
-            {t('copyrightDedication')}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span>{t('copyrightDedication')}</span>
+            <span className="hidden sm:inline text-white/10">•</span>
+            <a
+              href="/privacy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-[#E50914] transition-colors"
+            >
+              {t('privacyPolicy')}
+            </a>
+            <span className="text-white/10">•</span>
+            <a
+              href="/terms.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              {t('termsOfService')}
+            </a>
           </div>
           <div>
             &copy; {new Date().getFullYear()} CINESTREAM • {t('edition')}
