@@ -16,6 +16,7 @@ import {
   Sparkles,
   Cloud,
   Shield,
+  RefreshCw,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -23,6 +24,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdminUser } from '../../utils/admin';
+import { APP_VERSION, checkForAppUpdate, forceHardRefresh } from '../../utils/pwaUpdate';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
@@ -56,8 +58,24 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const [nameInput, setNameInput] = useState(profile.name);
   const [activeTab, setActiveTab] = useState<'overview' | 'customize'>('overview');
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateStatusMsg, setUpdateStatusMsg] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCheckUpdate = async () => {
+    playClick();
+    setIsCheckingUpdate(true);
+    setUpdateStatusMsg(null);
+    try {
+      const res = await checkForAppUpdate();
+      setUpdateStatusMsg(res.message);
+    } catch {
+      setUpdateStatusMsg(language === 'en' ? 'Update check failed' : 'Gagal memeriksa pembaruan');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   // Track viewport size to switch positioning strategy
   useEffect(() => {
@@ -397,6 +415,51 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 ? 'Your data is saved locally. Sign in to backup and sync across devices.'
                 : 'Data Anda tersimpan di perangkat ini. Masuk untuk mencadangkan ke cloud.'}
             </p>
+
+            {/* App Version & PWA Update Section */}
+            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white tracking-wide">
+                    Cinestream v{APP_VERSION}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  PWA / Web
+                </span>
+              </div>
+
+              {updateStatusMsg && (
+                <p className="text-[11px] text-emerald-400 font-medium leading-tight">
+                  {updateStatusMsg}
+                </p>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleCheckUpdate}
+                  disabled={isCheckingUpdate}
+                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-slate-200 text-[11px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCheckingUpdate ? 'animate-spin text-emerald-400' : 'text-slate-400'}`} />
+                  <span>{isCheckingUpdate ? (language === 'en' ? 'Checking...' : 'Memeriksa...') : (language === 'en' ? 'Check Update' : 'Cek Update')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    forceHardRefresh();
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-slate-300 hover:text-white text-[11px] font-semibold transition-all cursor-pointer"
+                  title={language === 'en' ? 'Hard reload and clear local caches' : 'Muat ulang paksa dan bersihkan cache'}
+                >
+                  <span>{language === 'en' ? 'Hard Reload' : 'Muat Ulang'}</span>
+                </button>
+              </div>
+            </div>
 
             {/* Sign Out Button if Logged In */}
             {user && (

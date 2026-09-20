@@ -30,6 +30,7 @@ import { WatchPartyLobbyView } from './components/party/WatchPartyLobbyView';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
+import { PwaUpdateToast } from './components/layout/PwaUpdateToast';
 import { OfflineBanner } from './components/layout/OfflineBanner';
 import { VpnDnsNoticeModal } from './components/player/VpnDnsNoticeModal';
 import { MOCK_CATALOG } from './data/mockCatalog';
@@ -1395,6 +1396,9 @@ const MainContent: React.FC = () => {
 
       {/* ── PWA Install Prompt (Floating Banner) ────────── */}
       <PwaInstallPrompt />
+
+      {/* ── PWA Update Available Toast (Floating Toast) ── */}
+      <PwaUpdateToast />
 
       {/* ── Watch Party FAB (floating button) ──────────── */}
       {!isPartyOpen && (!selectedMedia || isMiniPlayer) && !isFullscreen && (

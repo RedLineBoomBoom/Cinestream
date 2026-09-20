@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Shield, Lock, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { APP_VERSION, checkForAppUpdate } from '../../utils/pwaUpdate';
 
 interface FooterProps {
   onOpenLegal?: (tab: 'privacy' | 'terms') => void;
@@ -115,8 +116,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
               {t('termsOfService')}
             </a>
           </div>
-          <div>
-            &copy; {new Date().getFullYear()} CINESTREAM • {t('edition')}
+          <div className="flex items-center gap-2">
+            <span>&copy; {new Date().getFullYear()} CINESTREAM • {t('edition')}</span>
+            <span className="text-white/10">•</span>
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await checkForAppUpdate();
+                alert(res.message);
+              }}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.05] hover:bg-emerald-500/20 hover:text-emerald-300 text-slate-400 border border-white/[0.08] transition-colors cursor-pointer"
+              title="Cinestream Version - Klik untuk cek pembaruan"
+            >
+              v{APP_VERSION}
+            </button>
           </div>
         </div>
       </div>
