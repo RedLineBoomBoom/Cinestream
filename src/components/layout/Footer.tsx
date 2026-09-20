@@ -3,7 +3,7 @@ import { Play, Shield, Lock, FileText } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const Footer: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <footer className="relative bg-[#0c0c0c] border-t border-white/[0.08] pt-16 pb-24 sm:pb-16 text-slate-400 text-xs mt-0">
@@ -42,7 +42,7 @@ export const Footer: React.FC = () => {
             {/* Privacy Policy & Terms Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <a
-                href="/privacy.html"
+                href={`/privacy.html?lang=${language}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#E50914]/15 hover:border-[#E50914]/50 hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
@@ -52,7 +52,7 @@ export const Footer: React.FC = () => {
               </a>
 
               <a
-                href="/terms.html"
+                href={`/terms.html?lang=${language}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group no-underline"
@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
             <span>{t('copyrightDedication')}</span>
             <span className="hidden sm:inline text-white/10">•</span>
             <a
-              href="/privacy.html"
+              href={`/privacy.html?lang=${language}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-slate-400 hover:text-[#E50914] transition-colors"
@@ -79,7 +79,7 @@ export const Footer: React.FC = () => {
             </a>
             <span className="text-white/10">•</span>
             <a
-              href="/terms.html"
+              href={`/terms.html?lang=${language}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-slate-400 hover:text-white transition-colors"

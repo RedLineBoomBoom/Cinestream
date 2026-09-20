@@ -3,37 +3,313 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kebijakan Privasi - Cinestream</title>
+  <title id="page-title">Kebijakan Privasi - Cinestream</title>
+  <link rel="icon" type="image/png" href="/cinestream-icon.png">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #141414; color: #e2e8f0; line-height: 1.6; padding: 2rem; max-width: 800px; margin: auto; }
-    h1, h2 { color: #E50914; }
-    a { color: #E50914; text-decoration: none; }
-    .card { background: #1f1f1f; padding: 2rem; border-radius: 8px; border: 1px solid #333; margin-top: 1.5rem; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0c0c0c;
+      color: #cbd5e1;
+      line-height: 1.7;
+      padding: 1.5rem 1rem 4rem;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    /* Top Header */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: white;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: 0.05em;
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: #E50914;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);
+    }
+    .brand-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+      margin-left: 2px;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+    }
+    .btn-home:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .lang-switcher {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.3rem 0.75rem;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lang-btn.active {
+      background: #E50914;
+      color: white;
+      box-shadow: 0 2px 8px rgba(229, 9, 20, 0.45);
+    }
+    /* Main Content */
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #E50914;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .last-updated {
+      color: #64748b;
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 2.2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    h2 {
+      color: #f1f5f9;
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2:first-of-type {
+      margin-top: 0;
+    }
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: #E50914;
+      border-radius: 2px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+    strong {
+      color: #f8fafc;
+    }
+    a {
+      color: #E50914;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer-note {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
   </style>
 </head>
 <body>
-  <h1>Kebijakan Privasi Cinestream</h1>
-  <p>Terakhir diperbarui: 20 September 2026</p>
+  <div class="container">
+    <!-- Navigation Header -->
+    <header class="top-nav">
+      <a href="/" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+        </div>
+        <span>CINE<span style="color:#E50914">STREAM</span></span>
+      </a>
 
-  <div class="card">
-    <h2>1. Informasi yang Kami Kumpulkan</h2>
-    <p>Ketika Anda menggunakan fitur login Google di Cinestream, kami hanya mengakses informasi dasar akun Anda berupa nama, alamat email, dan foto profil yang disediakan oleh Google OAuth. Kami tidak mengakses kontak, file Google Drive, atau data sensitif lainnya.</p>
+      <div class="nav-actions">
+        <a href="/" class="btn-home" id="btn-home">
+          <span id="btn-home-text">← Kembali ke Beranda</span>
+        </a>
+        <div class="lang-switcher">
+          <button type="button" class="lang-btn" id="btn-id" onclick="setLanguage('id')">ID</button>
+          <button type="button" class="lang-btn" id="btn-en" onclick="setLanguage('en')">EN</button>
+        </div>
+      </div>
+    </header>
 
-    <h2>2. Penggunaan Informasi</h2>
-    <p>Informasi akun Anda hanya digunakan untuk:</p>
-    <ul>
-      <li>Mengidentifikasi profil pengguna Anda di Cinestream.</li>
-      <li>Menyimpan dan menyinkronkan daftar tonton (Watchlist) dan riwayat tontonan (Watch History) Anda secara pribadi dan aman.</li>
-    </ul>
+    <!-- Indonesian Content -->
+    <main id="content-id">
+      <h1>Kebijakan Privasi Cinestream</h1>
+      <p class="last-updated">Terakhir diperbarui: 20 September 2026</p>
 
-    <h2>3. Penyimpanan dan Keamanan Data</h2>
-    <p>Data Anda disimpan secara terenkripsi menggunakan infrastruktur basis data cloud PostgreSQL yang aman dari Supabase dengan standar keamanan Row Level Security (RLS). Kami tidak membagikan, menyewakan, atau menjual data pribadi Anda kepada pihak ketiga.</p>
+      <div class="card">
+        <h2>1. Informasi yang Kami Kumpulkan</h2>
+        <p>Ketika Anda menggunakan fitur login Google di Cinestream, kami hanya mengakses informasi profil dasar akun Anda berupa nama, alamat email, dan foto profil yang disediakan oleh Google OAuth. Kami tidak mengakses kontak, file Google Drive, atau data sensitif pribadi lainnya.</p>
 
-    <h2>4. Hak Pengguna & Penghapusan Akun</h2>
-    <p>Anda dapat memutuskan akses aplikasi Cinestream kapan saja melalui pengaturan akun Google Anda atau menghubungi pengembang untuk menghapus seluruh data yang tersimpan.</p>
+        <h2>2. Penggunaan Informasi</h2>
+        <p>Informasi akun Anda hanya digunakan untuk kebutuhan fungsional aplikasi:</p>
+        <ul>
+          <li>Mengidentifikasi profil pengguna Anda di platform Cinestream.</li>
+          <li>Menyimpan dan menyinkronkan daftar tontonan (Watchlist) serta riwayat tontonan (Watch History) Anda secara pribadi lintas perangkat (HP, tablet, komputer).</li>
+        </ul>
 
-    <h2>5. Kontak Pengembang & Dukungan</h2>
-    <p>Jika ada pertanyaan atau permintaan terkait kebijakan privasi ini, Anda dapat menghubungi tim pengembang melalui email: <strong>support@cinestream.app</strong> atau melalui repositori resmi Cinestream.</p>
+        <h2>3. Penyimpanan dan Keamanan Data</h2>
+        <p>Data Anda disimpan secara terenkripsi menggunakan infrastruktur basis data cloud PostgreSQL dari <strong>Supabase</strong> dengan standar keamanan <strong>Row Level Security (RLS)</strong>. Setiap pengguna hanya memiliki akses ke datanya masing-masing. Kami tidak membagikan, menyewakan, atau menjual data pribadi Anda kepada pihak ketiga mana pun.</p>
+
+        <h2>4. Hak Pengguna & Penghapusan Akun</h2>
+        <p>Anda memiliki kontrol penuh atas data Anda. Anda dapat memutuskan izin akses aplikasi Cinestream kapan saja melalui pengaturan keamanan Akun Google Anda, atau meminta penghapusan seluruh riwayat data yang tersimpan dengan menghubungi tim dukungan kami.</p>
+
+        <h2>5. Kontak & Dukungan</h2>
+        <p>Jika Anda memiliki pertanyaan mengenai kebijakan privasi ini atau ingin mengajukan permohonan terkait data akun Anda, silakan hubungi tim kami melalui email: <strong>support@cinestream.app</strong>.</p>
+      </div>
+    </main>
+
+    <!-- English Content -->
+    <main id="content-en" style="display: none;">
+      <h1>Cinestream Privacy Policy</h1>
+      <p class="last-updated">Last updated: September 20, 2026</p>
+
+      <div class="card">
+        <h2>1. Information We Collect</h2>
+        <p>When you sign in using Google on Cinestream, we only access your basic account profile information, which includes your display name, email address, and profile photo provided via Google OAuth. We never access your contacts, Google Drive files, or any other sensitive personal data.</p>
+
+        <h2>2. How We Use Your Information</h2>
+        <p>Your account information is solely used for core functional application features:</p>
+        <ul>
+          <li>To identify and manage your user profile across the Cinestream platform.</li>
+          <li>To privately store and securely synchronize your Watchlist and Watch History across all your devices (smartphone, tablet, and PC).</li>
+        </ul>
+
+        <h2>3. Data Storage & Security</h2>
+        <p>Your data is securely stored and encrypted using <strong>Supabase</strong> PostgreSQL cloud infrastructure protected by rigorous <strong>Row Level Security (RLS)</strong> policies. Each user can strictly access only their own data. We never share, rent, or sell your personal data to any third parties.</p>
+
+        <h2>4. User Rights & Data Deletion</h2>
+        <p>You maintain full ownership and control over your personal data. You may revoke Cinestream's access at any time through your Google Account Security Settings, or request complete deletion of all your stored data by contacting our support team.</p>
+
+        <h2>5. Contact & Support</h2>
+        <p>If you have any questions, inquiries, or requests regarding this Privacy Policy, please reach out to our team at: <strong>support@cinestream.app</strong>.</p>
+      </div>
+    </main>
+
+    <footer class="footer-note">
+      &copy; 2026 CINESTREAM • All Rights Reserved.
+    </footer>
   </div>
+
+  <script>
+    function setLanguage(lang) {
+      const contentId = document.getElementById('content-id');
+      const contentEn = document.getElementById('content-en');
+      const btnId = document.getElementById('btn-id');
+      const btnEn = document.getElementById('btn-en');
+      const btnHomeText = document.getElementById('btn-home-text');
+      const pageTitle = document.getElementById('page-title');
+
+      if (lang === 'en') {
+        contentId.style.display = 'none';
+        contentEn.style.display = 'block';
+        btnId.classList.remove('active');
+        btnEn.classList.add('active');
+        btnHomeText.textContent = '← Back to Home';
+        pageTitle.textContent = 'Privacy Policy - Cinestream';
+        document.documentElement.lang = 'en';
+      } else {
+        contentId.style.display = 'block';
+        contentEn.style.display = 'none';
+        btnId.classList.add('active');
+        btnEn.classList.remove('active');
+        btnHomeText.textContent = '← Kembali ke Beranda';
+        pageTitle.textContent = 'Kebijakan Privasi - Cinestream';
+        document.documentElement.lang = 'id';
+      }
+
+      try {
+        localStorage.setItem('cinestream_lang', lang);
+      } catch (e) {}
+    }
+
+    // Auto-detect language from URL param (?lang=en) or localStorage or browser
+    (function initLanguage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get('lang');
+      let targetLang = 'id';
+
+      if (urlLang === 'en' || urlLang === 'id') {
+        targetLang = urlLang;
+      } else {
+        try {
+          const saved = localStorage.getItem('cinestream_lang');
+          if (saved === 'en' || saved === 'id') {
+            targetLang = saved;
+          } else if (navigator.language && navigator.language.toLowerCase().startsWith('en')) {
+            targetLang = 'en';
+          }
+        } catch (e) {}
+      }
+
+      setLanguage(targetLang);
+    })();
+  </script>
 </body>
 </html>
