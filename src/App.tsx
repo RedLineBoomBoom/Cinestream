@@ -930,6 +930,7 @@ const MainContent: React.FC = () => {
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenSearch={handleOpenSearch}
+        onOpenWatchParty={togglePartyOpen}
         isTheaterMode={isTheaterMode}
         watchlistCount={watchlistItems.length}
         isHidden={isFullscreen}

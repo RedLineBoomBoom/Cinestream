@@ -1,4 +1,5 @@
 import Peer, { type DataConnection } from 'peerjs';
+import { publishPublicRoom, heartbeatPublicRoom, removePublicRoom } from './partyLobbyService';
 import type {
   PartyMember,
   PartyMessage,
@@ -59,7 +60,7 @@ export class WatchPartyService {
   }
 
   /** Host: create a new room */
-  createRoom(myName: string, mediaInfo: PartyMediaInfo, userId?: string): Promise<PartyRoom> {
+  createRoom(myName: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic: boolean = true): Promise<PartyRoom> {
     return new Promise((resolve, reject) => {
       const roomCode = nanoid(6);
       this.myName = myName;
@@ -94,7 +95,11 @@ export class WatchPartyService {
           mediaInfo,
           createdAt: Date.now(),
           controlMode: 'all',
+          isPublic,
         };
+        if (isPublic) {
+          publishPublicRoom(this.room);
+        }
         this._startHostHeartbeat();
         this.cbs.onRoomCreated?.(this.room);
         resolve(this.room);
@@ -389,6 +394,9 @@ export class WatchPartyService {
   leave() {
     this._stopHeartbeat();
     if (this.isHost) {
+      if (this.room?.isPublic && this.room.roomCode) {
+        removePublicRoom(this.room.roomCode);
+      }
       this._broadcast({ event: 'host_left' });
     }
     this.guestConns.forEach((c) => c.close());
@@ -421,6 +429,17 @@ export class WatchPartyService {
           }
         }
       });
+
+      // Synchronize public room status and live heartbeat
+      if (this.room.isPublic) {
+        const activeList = Object.values(this.room.members).filter((m) => m.isActive);
+        heartbeatPublicRoom(
+          this.room.roomCode,
+          Math.max(1, activeList.length),
+          activeList.map((m) => ({ name: m.name, isHost: m.isHost })),
+          true
+        );
+      }
     }, 7000);
   }
 
@@ -450,6 +469,15 @@ export class WatchPartyService {
       this.room!.messages.push(sysMsg);
       this._broadcast({ event: 'chat', message: sysMsg });
       this.cbs.onMessage?.(sysMsg);
+
+      if (this.room?.isPublic) {
+        const remaining = Object.values(this.room.members).filter((m) => m.isActive);
+        heartbeatPublicRoom(
+          this.room.roomCode,
+          Math.max(1, remaining.length),
+          remaining.map((m) => ({ name: m.name, isHost: m.isHost }))
+        );
+      }
     }
     const existingConn = this.guestConns.get(peerId);
     if (existingConn) {
@@ -530,6 +558,16 @@ export class WatchPartyService {
         this.room!.messages.push(sysMsg);
         this._broadcast({ event: 'chat', message: sysMsg });
         this.cbs.onMessage?.(sysMsg);
+
+        if (this.room?.isPublic) {
+          const allActive = Object.values(this.room.members).filter((m) => m.isActive);
+          heartbeatPublicRoom(
+            this.room.roomCode,
+            Math.max(1, allActive.length),
+            allActive.map((m) => ({ name: m.name, isHost: m.isHost })),
+            true
+          );
+        }
       } else if (msg.event === 'chat') {
         if (!msg.message || typeof msg.message.text !== 'string') return;
         const sanitizedMsg: PartyMessage = {

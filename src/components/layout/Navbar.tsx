@@ -8,6 +8,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Shield,
+  Users,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -16,6 +17,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ProfileDropdown } from '../profile/ProfileDropdown';
 import { BroadcastBanner } from './BroadcastBanner';
+import { WatchPartyButton } from '../party/WatchPartyButton';
 import { getTabUrl } from '../../utils/navigation';
 import { isAdminUser } from '../../utils/admin';
 import type { ModalSearchSource } from '../search/SearchModal';
@@ -24,6 +26,7 @@ interface NavbarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   onOpenSearch: (source?: ModalSearchSource) => void;
+  onOpenWatchParty?: () => void;
   isTheaterMode?: boolean;
   watchlistCount?: number;
   isHidden?: boolean;
@@ -33,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onOpenSearch,
+  onOpenWatchParty,
   isTheaterMode = false,
   watchlistCount,
   isHidden = false,
@@ -197,6 +201,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               ⌘K
             </kbd>
           </button>
+
+          {/* Watch Party & Live Public Lobby Quick Access */}
+          {onOpenWatchParty && (
+            <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
+          )}
 
           {/* Language Selector Toggle (ID / EN) */}
           <button
@@ -382,6 +391,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 PRO
               </span>
             </a>
+          )}
+
+          {/* Mobile Watch Party / Public Lobby */}
+          {onOpenWatchParty && (
+            <button
+              onClick={() => {
+                playClick();
+                setMobileMenuOpen(false);
+                onOpenWatchParty();
+              }}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all bg-gradient-to-r from-violet-950/40 to-indigo-950/40 text-violet-200 hover:text-white border border-violet-500/25 mt-1 cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-violet-400" />
+                <span className="font-semibold">{t('partyTitle')}</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                {t('partyLobbyTab')}
+              </span>
+            </button>
           )}
 
           {/* Mobile Language Switcher */}

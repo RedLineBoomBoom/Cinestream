@@ -73,6 +73,27 @@ export interface PartyRoom {
   mediaInfo: PartyMediaInfo;
   createdAt: number;
   controlMode: ControlMode;
+  isPublic?: boolean;
+}
+
+export interface PublicPartyRoom {
+  roomCode: string;
+  hostId: string;
+  hostName: string;
+  hostAvatar?: string;
+  mediaId: string;
+  mediaTitle: string;
+  mediaPoster: string;
+  mediaType: string;
+  episodeTitle?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  memberCount: number;
+  membersPreview: { name: string; isHost: boolean }[];
+  controlMode: ControlMode;
+  createdAt: number;
+  lastHeartbeat: number;
+  isPlaying?: boolean;
 }
 
 export type PartyStatus = 'idle' | 'creating' | 'joining' | 'connected' | 'error' | 'disconnected';

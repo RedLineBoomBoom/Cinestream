@@ -5,6 +5,7 @@ import {
   Send, Crown, WifiOff, Play, Pause,
   AlertCircle, AlertTriangle, Radio, Loader2, Film, Tv, ChevronDown, ChevronUp, Minus,
   Move, GripHorizontal, Share2, RefreshCw, UserMinus, Shield, Smile, MessageSquare, ExternalLink,
+  Globe, Search,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
@@ -312,6 +313,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const {
     status, room, members, messages, myId, isHost, errorMsg,
     controlMode, hostTimeSync, unreadCount, isMinimized,
+    publicRooms, refreshPublicRooms,
     createParty, joinParty, leaveParty, sendChat, sendSignal,
     setControlMode, sendReaction, kickMember,
     clearError, resetUnreadCount, setIsMinimized,
@@ -321,7 +323,15 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const { t, language } = useLanguage();
   const locale = language === 'en' ? 'en-US' : 'id-ID';
 
-  const [tab, setTab] = useState<'create' | 'join'>(autoJoinCode ? 'join' : 'create');
+  const [tab, setTab] = useState<'lobby' | 'create' | 'join'>(() => {
+    if (autoJoinCode) return 'join';
+    if (mediaInfo) return 'create';
+    return 'lobby';
+  });
+  const [isPublicRoom, setIsPublicRoom] = useState(true);
+  const [lobbySearch, setLobbySearch] = useState('');
+  const [lobbyCategory, setLobbyCategory] = useState<'all' | 'movie' | 'series'>('all');
+  const [isRefreshingLobby, setIsRefreshingLobby] = useState(false);
   const [myName, setMyName] = useState(() => {
     try {
       const saved = localStorage.getItem('party_display_name');
@@ -421,13 +431,30 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const handleCreate = async () => {
     if (!myName.trim() || !mediaInfo) return;
     playClick();
-    await createParty(myName.trim(), mediaInfo, profile?.id);
+    await createParty(myName.trim(), mediaInfo, profile?.id, isPublicRoom);
   };
 
   const handleJoin = async () => {
     if (!myName.trim() || !joinCode.trim()) return;
     playClick();
     await joinParty(joinCode.trim().toUpperCase(), myName.trim(), profile?.id);
+  };
+
+  const handleJoinFromLobby = async (roomItem: (typeof publicRooms)[0]) => {
+    playClick();
+    const nameToUse = myName.trim() || profile?.name || (language === 'en' ? 'Viewer' : 'Penonton');
+    if (!myName.trim()) {
+      handleNameChange(nameToUse);
+    }
+    setJoinCode(roomItem.roomCode);
+    await joinParty(roomItem.roomCode, nameToUse, profile?.id);
+  };
+
+  const handleRefreshLobby = async () => {
+    playClick();
+    setIsRefreshingLobby(true);
+    await refreshPublicRooms();
+    setTimeout(() => setIsRefreshingLobby(false), 500);
   };
 
   const handleCopy = async (type: 'link' | 'code') => {
@@ -931,106 +958,307 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
         <div className="flex flex-col flex-1 overflow-y-auto min-h-0">
           {/* Tab switcher */}
           <div className="flex gap-1.5 p-3 shrink-0">
-            {(['create', 'join'] as const).map((tabKey) => (
+            {(['lobby', 'create', 'join'] as const).map((tabKey) => (
               <button
                 key={tabKey}
                 onClick={() => { playClick(); setTab(tabKey); clearError(); }}
                 onMouseEnter={playHover}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   tab === tabKey
                     ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25'
                     : 'bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08]'
                 }`}
               >
-                {tabKey === 'create'
-                  ? <><Plus className="inline w-3 h-3 mr-1 -mt-0.5" />{t('partyCreateTab')}</>
-                  : <><LogIn className="inline w-3 h-3 mr-1 -mt-0.5" />{t('partyJoinTab')}</>
-                }
+                {tabKey === 'lobby' && (
+                  <>
+                    <Globe className="w-3 h-3" />
+                    <span>{t('partyLobbyTab')}</span>
+                    {publicRooms.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[9px] font-bold">
+                        {publicRooms.length}
+                      </span>
+                    )}
+                  </>
+                )}
+                {tabKey === 'create' && (
+                  <>
+                    <Plus className="w-3 h-3" />
+                    <span>{t('partyCreateTab')}</span>
+                  </>
+                )}
+                {tabKey === 'join' && (
+                  <>
+                    <LogIn className="w-3 h-3" />
+                    <span>{t('partyJoinTab')}</span>
+                  </>
+                )}
               </button>
             ))}
           </div>
 
-          <div className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto">
-            {/* Film info strip */}
-            {mediaInfo && tab === 'create' && (
-              <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <img
-                  src={mediaInfo.mediaPoster}
-                  alt={mediaInfo.mediaTitle}
-                  className="w-8 h-11 rounded-lg object-cover shrink-0 shadow-md"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    {mediaInfo.mediaType === 'movie'
-                      ? <Film className="w-2.5 h-2.5 text-slate-500" />
-                      : <Tv className="w-2.5 h-2.5 text-slate-500" />}
-                    <span className="text-[9px] text-slate-500 uppercase tracking-wider">
-                      {mediaInfo.mediaType === 'movie' ? t('partyMovie') : t('partySeries')}
-                    </span>
-                  </div>
-                  <p className="text-xs font-semibold text-white truncate leading-tight">{mediaInfo.mediaTitle}</p>
-                  {mediaInfo.episodeTitle && (
-                    <p className="text-[10px] text-slate-400 truncate">{mediaInfo.episodeTitle}</p>
+          {/* ── TAB 1: PUBLIC LOBBY ── */}
+          {tab === 'lobby' && (
+            <div className="px-3.5 pb-4 space-y-2.5 flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Search & Refresh bar */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={lobbySearch}
+                    onChange={(e) => setLobbySearch(e.target.value)}
+                    placeholder={t('partySearchLobby')}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-all"
+                  />
+                  {lobbySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setLobbySearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleRefreshLobby}
+                  disabled={isRefreshingLobby}
+                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors shrink-0 cursor-pointer"
+                  title="Refresh Lobby"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingLobby ? 'animate-spin text-violet-400' : ''}`} />
+                </button>
               </div>
-            )}
 
-            {/* Display name */}
-            <div>
-              <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyDisplayName')}</label>
-              <input
-                type="text"
-                value={myName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder={t('partyDisplayNamePlaceholder')}
-                maxLength={24}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:bg-violet-500/5 transition-all"
-              />
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1 text-[10px]">
+                {(['all', 'movie', 'series'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => { playClick(); setLobbyCategory(cat); }}
+                    className={`px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                      lobbyCategory === cat
+                        ? 'bg-violet-600/30 text-violet-300 border-violet-500/50 font-bold'
+                        : 'bg-white/[0.03] text-slate-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    {cat === 'all' && `${t('partyFilterAll')} (${publicRooms.length})`}
+                    {cat === 'movie' && `${t('partyFilterMovies')} (${publicRooms.filter((r) => r.mediaType === 'movie').length})`}
+                    {cat === 'series' && `${t('partyFilterSeries')} (${publicRooms.filter((r) => r.mediaType !== 'movie').length})`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Scrollable Room List */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
+                {(() => {
+                  const filtered = publicRooms.filter((r) => {
+                    const matchSearch =
+                      !lobbySearch.trim() ||
+                      r.mediaTitle.toLowerCase().includes(lobbySearch.toLowerCase()) ||
+                      r.hostName.toLowerCase().includes(lobbySearch.toLowerCase()) ||
+                      Boolean(r.episodeTitle && r.episodeTitle.toLowerCase().includes(lobbySearch.toLowerCase()));
+                    const matchCat =
+                      lobbyCategory === 'all' ||
+                      (lobbyCategory === 'movie' && r.mediaType === 'movie') ||
+                      (lobbyCategory === 'series' && r.mediaType !== 'movie');
+                    return matchSearch && matchCat;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-52 text-center p-4 space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center text-violet-400 shadow-inner">
+                          <Radio className="w-6 h-6 animate-pulse" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-white">{t('partyNoRoomsTitle')}</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed max-w-[240px]">
+                            {t('partyNoRoomsDesc')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { playClick(); setTab('create'); }}
+                          className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-violet-900/30 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{t('partyCreatePublicRoom')}</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((r) => (
+                    <div
+                      key={r.roomCode}
+                      className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-violet-500/40 transition-all flex items-center gap-3 group"
+                    >
+                      {/* Media Poster Thumbnail */}
+                      <img
+                        src={r.mediaPoster}
+                        alt={r.mediaTitle}
+                        className="w-10 h-14 object-cover rounded-lg shadow-md shrink-0 bg-cinema-900"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-violet-500/20 text-violet-300 font-mono font-bold uppercase">
+                            {r.mediaType}
+                          </span>
+                          <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            {r.memberCount} {t('partyViewersCount')}
+                          </span>
+                        </div>
+
+                        <p className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition-colors">
+                          {r.mediaTitle}
+                        </p>
+
+                        <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                          <Crown className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                          <span>Host: {r.hostName}</span>
+                          {r.episodeTitle && (
+                            <>
+                              <span>•</span>
+                              <span>{r.episodeTitle}</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Join Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleJoinFromLobby(r)}
+                        className="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-900/40 hover:scale-105 active:scale-95 transition-all shrink-0 flex items-center gap-1 cursor-pointer"
+                        title={t('partyJoinLive')}
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span className="hidden xs:inline">{t('partyJoinLive')}</span>
+                      </button>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
+          )}
 
-            {/* Join code */}
-            {tab === 'join' && (
+          {/* ── TAB 2 & 3: CREATE / JOIN VIEWS ── */}
+          {tab !== 'lobby' && (
+            <div className="px-4 pb-4 space-y-3 flex-1 overflow-y-auto">
+              {/* Film info strip */}
+              {mediaInfo && tab === 'create' && (
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <img
+                    src={mediaInfo.mediaPoster}
+                    alt={mediaInfo.mediaTitle}
+                    className="w-8 h-11 rounded-lg object-cover shrink-0 shadow-md"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      {mediaInfo.mediaType === 'movie'
+                        ? <Film className="w-2.5 h-2.5 text-slate-500" />
+                        : <Tv className="w-2.5 h-2.5 text-slate-500" />}
+                      <span className="text-[9px] text-slate-500 uppercase tracking-wider">
+                        {mediaInfo.mediaType === 'movie' ? t('partyMovie') : t('partySeries')}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-white truncate leading-tight">{mediaInfo.mediaTitle}</p>
+                    {mediaInfo.episodeTitle && (
+                      <p className="text-[10px] text-slate-400 truncate">{mediaInfo.episodeTitle}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Display name */}
               <div>
-                <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyRoomCode')}</label>
+                <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyDisplayName')}</label>
                 <input
                   type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder={t('partyRoomCodePlaceholder')}
-                  maxLength={6}
-                  className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-all tracking-[0.25em] uppercase"
+                  value={myName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder={t('partyDisplayNamePlaceholder')}
+                  maxLength={24}
+                  className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 focus:bg-violet-500/5 transition-all"
                 />
               </div>
-            )}
 
-            {/* Error */}
-            {errorMsg && (
-              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-300">
-                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
-                <span>{errorMsg === 'host_left' ? t('partyHostLeft') : errorMsg}</span>
-              </div>
-            )}
+              {/* Join code */}
+              {tab === 'join' && (
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium uppercase tracking-wider block mb-1">{t('partyRoomCode')}</label>
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder={t('partyRoomCodePlaceholder')}
+                    maxLength={6}
+                    className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.1] text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-violet-500/60 transition-all tracking-[0.25em] uppercase"
+                  />
+                </div>
+              )}
 
-            {/* Action */}
-            <button
-              onClick={tab === 'create' ? handleCreate : handleJoin}
-              disabled={isLoading || !myName.trim() || (tab === 'join' && !joinCode.trim())}
-              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-violet-500 hover:bg-violet-400 text-white transition-all shadow-lg shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isLoading
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('partyConnecting')}</>
-                : tab === 'create'
-                  ? <><Plus className="w-3.5 h-3.5" /> {t('partyCreateTab')}</>
-                  : <><LogIn className="w-3.5 h-3.5" /> {t('partyJoinTab')}</>
-              }
-            </button>
+              {/* Public Lobby Switch Toggle (Create Tab) */}
+              {tab === 'create' && (
+                <div
+                  onClick={() => setIsPublicRoom(!isPublicRoom)}
+                  className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 hover:border-violet-500/40 transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    id="party-public-toggle"
+                    checked={isPublicRoom}
+                    onChange={(e) => setIsPublicRoom(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-violet-500 accent-violet-500 cursor-pointer"
+                  />
+                  <label htmlFor="party-public-toggle" className="flex-1 text-xs cursor-pointer select-none">
+                    <span className="font-semibold text-white flex items-center gap-1">
+                      <Globe className="w-3.5 h-3.5 text-violet-400" />
+                      {t('partyPublishToggle')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5 leading-tight">
+                      {t('partyPublishHint')}
+                    </span>
+                  </label>
+                </div>
+              )}
 
-            <p className="text-center text-[10px] text-slate-500">
-              {tab === 'create' ? t('partyCreateHint') : t('partyJoinHint')}
-            </p>
-          </div>
+              {/* Error */}
+              {errorMsg && (
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-300">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
+                  <span>{errorMsg === 'host_left' ? t('partyHostLeft') : errorMsg}</span>
+                </div>
+              )}
+
+              {/* Action */}
+              <button
+                onClick={tab === 'create' ? handleCreate : handleJoin}
+                disabled={isLoading || !myName.trim() || (tab === 'join' && !joinCode.trim())}
+                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-violet-500 hover:bg-violet-400 text-white transition-all shadow-lg shadow-violet-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isLoading
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('partyConnecting')}</>
+                  : tab === 'create'
+                    ? <><Plus className="w-3.5 h-3.5" /> {t('partyCreateTab')}</>
+                    : <><LogIn className="w-3.5 h-3.5" /> {t('partyJoinTab')}</>
+                }
+              </button>
+
+              <p className="text-center text-[10px] text-slate-500">
+                {tab === 'create' ? t('partyCreateHint') : t('partyJoinHint')}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { watchPartyService } from '../services/watchParty';
 import { soundFX } from '../utils/soundEffects';
+import { subscribeToPublicLobby, fetchActivePublicRooms } from '../services/partyLobbyService';
 import type {
   PartyRoom,
+  PublicPartyRoom,
   PartyMember,
   PartyMessage,
   PartyStatus,
@@ -28,11 +30,13 @@ interface WatchPartyContextValue {
   reactions: FloatingReaction[];
   unreadCount: number;
   isMinimized: boolean;
+  publicRooms: PublicPartyRoom[];
 
   // Actions
-  createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string) => Promise<void>;
+  createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic?: boolean) => Promise<void>;
   joinParty: (roomCode: string, name: string, userId?: string) => Promise<void>;
   leaveParty: () => void;
+  refreshPublicRooms: () => Promise<void>;
   sendChat: (text: string) => void;
   sendSignal: (signal: PlaybackSignal, customAlertText?: string) => boolean;
   sendTimeSync: (currentTime: number, isPlaying: boolean) => void;
@@ -83,6 +87,7 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [hostTimeSync, setHostTimeSync] = useState<{ currentTime: number; isPlaying: boolean; timestamp: number } | null>(null);
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [publicRooms, setPublicRooms] = useState<PublicPartyRoom[]>([]);
 
   const isPartyOpenRef = useRef(isPartyOpen);
   isPartyOpenRef.current = isPartyOpen;
@@ -93,6 +98,16 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const resetUnreadCount = useCallback(() => {
     setUnreadCount(0);
+  }, []);
+
+  // Subscribe to real-time public lobby updates
+  useEffect(() => {
+    const unsub = subscribeToPublicLobby((rooms) => {
+      setPublicRooms(rooms);
+    });
+    return () => {
+      unsub();
+    };
   }, []);
 
   // Register PeerJS callbacks once
@@ -194,11 +209,20 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ── Actions ───────────────────────────────────────────────
 
-  const createParty = useCallback(async (name: string, mediaInfo: PartyMediaInfo, userId?: string) => {
+  const refreshPublicRooms = useCallback(async () => {
+    try {
+      const rooms = await fetchActivePublicRooms();
+      setPublicRooms(rooms);
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const createParty = useCallback(async (name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic: boolean = true) => {
     setStatus('creating');
     setErrorMsg('');
     try {
-      const r = await watchPartyService.createRoom(name, mediaInfo, userId);
+      const r = await watchPartyService.createRoom(name, mediaInfo, userId, isPublic);
       setMyId(watchPartyService.getMyId());
       setIsHost(true);
       setRoom({ ...r });
@@ -312,6 +336,7 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     <WatchPartyContext.Provider value={{
       status, room, members, messages, myId, isHost, errorMsg, latestSignal,
       controlMode, hostTimeSync, reactions, unreadCount, isMinimized,
+      publicRooms, refreshPublicRooms,
       createParty, joinParty, leaveParty, sendChat, sendSignal, sendTimeSync,
       changeMedia, setControlMode, sendReaction, kickMember,
       clearSignal, clearError, resetUnreadCount, setIsMinimized,
