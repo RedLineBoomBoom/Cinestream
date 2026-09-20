@@ -962,14 +962,14 @@ const MainContent: React.FC = () => {
                   onPlayMedia={(m, time, epId) => handleOpenMedia(m, time, epId)}
                   onOpenDetails={(m) => handleOpenMedia(m)}
                 />
+                <HomeLiveSearch
+                  onPlayMedia={handleOpenMedia}
+                  onOpenDetails={handleOpenMedia}
+                />
                 <BecauseYouWatchedRow
                   onPlayMedia={handleOpenMedia}
                   onOpenDetails={handleOpenMedia}
                   fullCatalog={fullCatalog}
-                />
-                <HomeLiveSearch
-                  onPlayMedia={handleOpenMedia}
-                  onOpenDetails={handleOpenMedia}
                 />
                 <ThematicShowcase
                   onPlayMedia={handleOpenMedia}
