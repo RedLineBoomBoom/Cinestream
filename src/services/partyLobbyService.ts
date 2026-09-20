@@ -374,9 +374,11 @@ export function subscribeToPublicLobby(listener: LobbyListener): () => void {
 }
 
 /**
-  * Verifikasi apakah kode yang dimasukkan cocok dengan kode room target
+  * Verifikasi apakah kode yang dimasukkan cocok dengan kode room target.
+  * Jika isAdmin = true, verifikasi selalu berhasil (Master Key Bypass).
   */
-export function verifyPrivateRoomCode(enteredCode: string, targetRoomCode: string): boolean {
+export function verifyPrivateRoomCode(enteredCode: string, targetRoomCode: string, isAdmin?: boolean): boolean {
+  if (isAdmin) return true;
   if (!enteredCode || !targetRoomCode) return false;
   return enteredCode.trim().toUpperCase() === targetRoomCode.trim().toUpperCase();
 }

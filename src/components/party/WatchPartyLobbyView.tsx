@@ -15,6 +15,8 @@ import {
   AlertCircle,
   ChevronRight,
   LogIn,
+  Shield,
+  ShieldCheck,
 } from 'lucide-react';
 import type { MediaItem, Episode } from '../../types/media';
 import type { PublicPartyRoom, LobbyFilter } from '../../types/party';
@@ -25,6 +27,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { verifyPrivateRoomCode } from '../../services/partyLobbyService';
+import { isAdminUser } from '../../utils/admin';
 
 interface WatchPartyLobbyViewProps {
   catalog: MediaItem[];
@@ -38,8 +41,9 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   onGoHome,
 }) => {
   const { user, openAuthModal } = useAuth();
-  const { publicRooms, refreshPublicRooms, joinParty, createParty } = useWatchParty();
   const { profile } = useUserProfile();
+  const isAdmin = isAdminUser(user, profile as any);
+  const { publicRooms, refreshPublicRooms, joinParty, createParty } = useWatchParty();
   const { historyItems, watchlist } = useWatchlist();
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
@@ -166,12 +170,12 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
     playClick();
     const cleanCode = passcode.trim().toUpperCase();
 
-    if (!cleanCode) {
+    if (!isAdmin && !cleanCode) {
       setPasscodeError(t('partyInvalidCode'));
       return;
     }
 
-    if (!verifyPrivateRoomCode(cleanCode, unlockRoomTarget.roomCode)) {
+    if (!verifyPrivateRoomCode(cleanCode, unlockRoomTarget.roomCode, isAdmin)) {
       setPasscodeError(t('partyInvalidCode'));
       return;
     }
@@ -179,7 +183,8 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
     setIsJoining(true);
     try {
       const myNameToUse = hostName.trim() || profile?.name || (language === 'en' ? 'Viewer' : 'Penonton');
-      await joinParty(cleanCode, myNameToUse, profile?.id);
+      const codeToJoin = cleanCode || unlockRoomTarget.roomCode;
+      await joinParty(codeToJoin, myNameToUse, profile?.id);
       playSuccess();
       setUnlockRoomTarget(null);
 
@@ -322,9 +327,17 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-400/30 text-violet-300 text-xs font-bold shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>{language === 'en' ? 'LIVE SOCIAL CINEMA HUB' : 'PUSAT NONTON BARENG LIVE'}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-400/30 text-violet-300 text-xs font-bold shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>{language === 'en' ? 'LIVE SOCIAL CINEMA HUB' : 'PUSAT NONTON BARENG LIVE'}</span>
+              </div>
+              {isAdmin && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold shadow-sm animate-in fade-in duration-300">
+                  <Shield className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{language === 'en' ? 'ADMIN ACCESS: ALL ROOMS UNLOCKED' : 'AKSES ADMIN: SEMUA ROOM TERBUKA'}</span>
+                </div>
+              )}
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-white tracking-tight uppercase">
@@ -596,6 +609,11 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 text-[10px] font-bold border border-amber-500/40 backdrop-blur-md">
                         <Lock className="w-3 h-3 text-amber-400" />
                         <span>{t('partyPrivateBadge')}</span>
+                        {isAdmin && (
+                          <span className="ml-1 px-1 py-0.2 rounded bg-amber-400 text-black font-black text-[9px] uppercase tracking-wider">
+                            Admin
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 text-[10px] font-bold border border-cyan-400/40 backdrop-blur-md">
@@ -642,20 +660,27 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                       </span>
                     </div>
 
-                    {/* Member Avatars Stack */}
-                    {room.membersPreview && room.membersPreview.length > 0 && (
-                      <div className="flex -space-x-1.5 overflow-hidden shrink-0">
-                        {room.membersPreview.slice(0, 3).map((m, idx) => (
-                          <div
-                            key={idx}
-                            className="w-5 h-5 rounded-full bg-slate-800 border border-cinema-900 text-[9px] font-bold text-slate-300 flex items-center justify-center uppercase"
-                            title={m.name}
-                          >
-                            {m.name.charAt(0)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {/* Member Avatars Stack or Code */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isAdmin && isPrivate && (
+                        <span className="font-mono text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded" title="Kode Room">
+                          {room.roomCode}
+                        </span>
+                      )}
+                      {room.membersPreview && room.membersPreview.length > 0 && (
+                        <div className="flex -space-x-1.5 overflow-hidden shrink-0">
+                          {room.membersPreview.slice(0, 3).map((m, idx) => (
+                            <div
+                              key={idx}
+                              className="w-5 h-5 rounded-full bg-slate-800 border border-cinema-900 text-[9px] font-bold text-slate-300 flex items-center justify-center uppercase"
+                              title={m.name}
+                            >
+                              {m.name.charAt(0)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Action Button */}
@@ -674,15 +699,38 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                         <span>{t('partyLoginToJoin')}</span>
                       </button>
                     ) : isPrivate ? (
-                      <button
-                        onClick={() => handleOpenPrivatePrompt(room)}
-                        onMouseEnter={playHover}
-                        disabled={isJoining}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-xs border border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer shadow-md"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>{t('partyUnlockAndJoin')}</span>
-                      </button>
+                      isAdmin ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleJoinPublic(room)}
+                            onMouseEnter={playHover}
+                            disabled={isJoining}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-md shadow-amber-950/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                            title={`${t('partyAdminBypass')} (Kode: ${room.roomCode})`}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>{t('partyAdminBypass')}</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenPrivatePrompt(room)}
+                            onMouseEnter={playHover}
+                            title={`Kode Room: ${room.roomCode}`}
+                            className="p-2 rounded-xl bg-black/40 hover:bg-white/[0.1] text-amber-400 border border-amber-500/30 transition-all cursor-pointer shrink-0"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenPrivatePrompt(room)}
+                          onMouseEnter={playHover}
+                          disabled={isJoining}
+                          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-xs border border-amber-500/30 hover:border-amber-400 transition-all cursor-pointer shadow-md"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>{t('partyUnlockAndJoin')}</span>
+                        </button>
+                      )
                     ) : (
                       <button
                         onClick={() => handleJoinPublic(room)}
@@ -779,6 +827,35 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
             <p className="text-xs text-slate-300 font-light leading-relaxed">
               {t('partyPrivateCodeDesc')}
             </p>
+
+            {/* Admin Master Key Section */}
+            {isAdmin && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between font-bold text-white">
+                  <span className="flex items-center gap-1.5 text-amber-400">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Akses Master Administrator</span>
+                  </span>
+                  <span className="font-mono bg-black/60 px-2 py-0.5 rounded text-amber-300 border border-amber-500/30 text-xs tracking-wider">
+                    {unlockRoomTarget.roomCode}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 font-light leading-relaxed">
+                  {t('partyAdminNotice')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleJoinPublic(unlockRoomTarget);
+                    setUnlockRoomTarget(null);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-xs shadow-md shadow-amber-950/40 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
+                  <span>{t('partyAdminDirectJoin')}</span>
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleVerifyAndJoinPrivate} className="space-y-4">
               <div>
