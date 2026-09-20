@@ -100,7 +100,19 @@ export interface PublicPartyRoom {
 export type LobbyPartyRoom = PublicPartyRoom;
 export type LobbyFilter = 'all' | 'public' | 'private' | 'movie' | 'series';
 
-export type PartyStatus = 'idle' | 'creating' | 'joining' | 'connected' | 'error' | 'disconnected';
+export type PartyStatus = 'idle' | 'creating' | 'joining' | 'reconnecting' | 'connected' | 'error' | 'disconnected';
+
+export interface ActivePartySession {
+  roomCode: string;
+  isHost: boolean;
+  myName: string;
+  userId?: string;
+  mediaInfo: PartyMediaInfo;
+  isPublic: boolean;
+  controlMode?: ControlMode;
+  createdAt: number;
+  lastActive: number;
+}
 
 export type PeerMessage =
   | { event: 'welcome';       room: PartyRoom }
@@ -116,4 +128,5 @@ export type PeerMessage =
   | { event: 'host_left' }
   | { event: 'ping' }
   | { event: 'pong' };
+
 

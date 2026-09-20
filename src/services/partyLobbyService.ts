@@ -5,7 +5,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import type { PartyRoom, PublicPartyRoom } from '../types/party';
+import type { PartyRoom, PublicPartyRoom, ActivePartySession } from '../types/party';
 
 const LOCAL_STORAGE_PUBLIC_ROOMS_KEY = 'cinestream_public_party_rooms';
 const REALTIME_LOBBY_CHANNEL = 'cinestream_public_party_lobby';
@@ -382,3 +382,35 @@ export function verifyPrivateRoomCode(enteredCode: string, targetRoomCode: strin
   if (!enteredCode || !targetRoomCode) return false;
   return enteredCode.trim().toUpperCase() === targetRoomCode.trim().toUpperCase();
 }
+
+// ── Sesi Aktif Watch Party (Persistensi Saat Refresh) ───────
+export const ACTIVE_PARTY_SESSION_KEY = 'cinestream_active_party_session';
+const SESSION_TTL_MS = 10 * 60 * 1000; // 10 menit TTL untuk reconnect
+
+export function saveActivePartySession(session: ActivePartySession): void {
+  try {
+    sessionStorage.setItem(ACTIVE_PARTY_SESSION_KEY, JSON.stringify(session));
+  } catch {}
+}
+
+export function getActivePartySession(): ActivePartySession | null {
+  try {
+    const raw = sessionStorage.getItem(ACTIVE_PARTY_SESSION_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as ActivePartySession;
+    if (Date.now() - (session.lastActive || session.createdAt) > SESSION_TTL_MS) {
+      sessionStorage.removeItem(ACTIVE_PARTY_SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export function clearActivePartySession(): void {
+  try {
+    sessionStorage.removeItem(ACTIVE_PARTY_SESSION_KEY);
+  } catch {}
+}
+

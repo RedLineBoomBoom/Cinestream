@@ -53,6 +53,18 @@ export class WatchPartyService {
   private cbs: WatchPartyCallbacks = {};
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        if (this.peer && !this.peer.destroyed) {
+          try {
+            this.peer.destroy();
+          } catch {}
+        }
+      });
+    }
+  }
+
   // ── Public API ────────────────────────────────────────────
 
   setCallbacks(cbs: WatchPartyCallbacks) {
@@ -110,6 +122,126 @@ export class WatchPartyService {
         this.cbs.onError?.(msg.includes('ID taken') ? 'Kode room sudah dipakai, coba lagi.' : msg);
         reject(msg);
       });
+    });
+  }
+
+  /** Host: Reconnect/reclaim an existing room after page refresh or network reconnect */
+  reclaimRoom(
+    roomCode: string,
+    myName: string,
+    mediaInfo: PartyMediaInfo,
+    userId?: string,
+    isPublic: boolean = true
+  ): Promise<PartyRoom> {
+    return new Promise((resolve, reject) => {
+      // 1. Destroy any existing local peer
+      if (this.peer && !this.peer.destroyed) {
+        try {
+          this.peer.destroy();
+        } catch {}
+        this.peer = null;
+      }
+      this._stopHeartbeat();
+      this.guestConns.clear();
+      this.hostConn = null;
+
+      this.myName = myName;
+      this.userId = userId || '';
+      this.isHost = true;
+
+      const targetPeerId = `CINESTREAM-${roomCode.toUpperCase()}`;
+      let attempts = 0;
+      const maxAttempts = 4;
+      let hasResolved = false;
+
+      const tryConnect = () => {
+        attempts++;
+        if (hasResolved) return;
+
+        try {
+          if (this.peer && !this.peer.destroyed) {
+            this.peer.destroy();
+            this.peer = null;
+          }
+        } catch {}
+
+        this.peer = new Peer(targetPeerId, {
+          host: '0.peerjs.com',
+          port: 443,
+          path: '/',
+          secure: true,
+          debug: 0,
+        });
+
+        this.peer.on('open', (id) => {
+          if (hasResolved) return;
+          hasResolved = true;
+          this.myId = id;
+
+          const me: PartyMember = {
+            id,
+            name: myName,
+            isHost: true,
+            joinedAt: Date.now(),
+            isActive: true,
+            userId: this.userId || undefined,
+          };
+
+          this.room = {
+            roomCode: roomCode.toUpperCase(),
+            hostId: id,
+            members: { [id]: me },
+            messages: [],
+            mediaInfo,
+            createdAt: Date.now(),
+            controlMode: 'all',
+            isPublic,
+          };
+
+          publishPublicRoom(this.room, true, isPublic);
+          this._startHostHeartbeat();
+          this.cbs.onRoomCreated?.(this.room);
+          resolve(this.room);
+        });
+
+        this.peer.on('connection', (conn) => this._onGuestConnect(conn));
+
+        this.peer.on('error', (err) => {
+          if (hasResolved) return;
+          const msg = String(err.message ?? err);
+
+          // If PeerJS cloud broker still holds the previous socket temporarily
+          if (msg.includes('ID taken') && attempts < maxAttempts) {
+            const delay = attempts * 1200;
+            setTimeout(() => {
+              if (!hasResolved) tryConnect();
+            }, delay);
+            return;
+          }
+
+          hasResolved = true;
+          const friendly = msg.includes('ID taken')
+            ? 'Kode room masih digunakan oleh sesi lain. Silakan coba sesaat lagi.'
+            : msg;
+          this.cbs.onError?.(friendly);
+          reject(friendly);
+        });
+      };
+
+      tryConnect();
+
+      // Overall timeout of 14 seconds
+      setTimeout(() => {
+        if (!hasResolved) {
+          hasResolved = true;
+          if (this.peer && !this.peer.destroyed) {
+            try { this.peer.destroy(); } catch {}
+          }
+          const errText = 'Waktu habis saat mencoba mengambil alih kembali room host.';
+          this.cbs.onError?.(errText);
+          reject(errText);
+        }
+      }, 14000);
     });
   }
 
@@ -174,7 +306,7 @@ export class WatchPartyService {
       this.peer.on('error', (err) => {
         const msg = String(err.message ?? err);
         const friendly = msg.includes('not found') || msg.includes('Could not connect')
-          ? 'Kode room tidak ditemukan. Pastikan host masih aktif.'
+          ? 'Host sedang tidak aktif atau terputus dari room. Pastikan host masih membuka room ini.'
           : msg;
         reject(friendly);
         this.cbs.onError?.(friendly);
@@ -182,10 +314,11 @@ export class WatchPartyService {
 
       setTimeout(() => {
         if (!this.room) {
-          reject('Timeout: Room tidak ditemukan atau host tidak aktif.');
-          this.cbs.onError?.('Timeout: Room tidak ditemukan atau host tidak aktif.');
+          const friendly = 'Host sedang tidak aktif atau terputus dari room. Pastikan host masih membuka room ini.';
+          reject(friendly);
+          this.cbs.onError?.(friendly);
         }
-      }, 15000);
+      }, 9000);
     });
   }
 
@@ -392,7 +525,7 @@ export class WatchPartyService {
   leave() {
     this._stopHeartbeat();
     if (this.isHost) {
-      if (this.room?.isPublic && this.room.roomCode) {
+      if (this.room?.roomCode) {
         removePublicRoom(this.room.roomCode);
       }
       this._broadcast({ event: 'host_left' });

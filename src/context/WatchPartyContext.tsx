@@ -2,7 +2,14 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { useAuth } from './AuthContext';
 import { watchPartyService } from '../services/watchParty';
 import { soundFX } from '../utils/soundEffects';
-import { subscribeToPublicLobby, fetchActivePublicRooms } from '../services/partyLobbyService';
+import {
+  subscribeToPublicLobby,
+  fetchActivePublicRooms,
+  saveActivePartySession,
+  getActivePartySession,
+  clearActivePartySession,
+  removePublicRoom,
+} from '../services/partyLobbyService';
 import type {
   PartyRoom,
   PublicPartyRoom,
@@ -35,8 +42,10 @@ interface WatchPartyContextValue {
 
   // Actions
   createParty: (name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic?: boolean) => Promise<void>;
+  reclaimPartyHost: (roomCode: string, name: string, mediaInfo: PartyMediaInfo, userId?: string, isPublic?: boolean) => Promise<void>;
   joinParty: (roomCode: string, name: string, userId?: string) => Promise<void>;
   leaveParty: () => void;
+  closePartyRoom: (roomCode: string) => Promise<void>;
   refreshPublicRooms: () => Promise<void>;
   sendChat: (text: string) => void;
   sendSignal: (signal: PlaybackSignal, customAlertText?: string) => boolean;
@@ -239,6 +248,60 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setControlModeState('all');
       setStatus('connected');
       soundFX.success();
+
+      saveActivePartySession({
+        roomCode: r.roomCode,
+        isHost: true,
+        myName: name,
+        userId: effectiveUserId,
+        mediaInfo,
+        isPublic,
+        createdAt: Date.now(),
+        lastActive: Date.now(),
+      });
+    } catch (err) {
+      setErrorMsg(String(err));
+      setStatus('error');
+    }
+  }, [user]);
+
+  const reclaimPartyHost = useCallback(async (
+    roomCodeToReclaim: string,
+    name: string,
+    mediaInfo: PartyMediaInfo,
+    userId?: string,
+    isPublic: boolean = true
+  ) => {
+    const effectiveUserId = userId || user?.id;
+    if (!user && !effectiveUserId) {
+      setErrorMsg('Login diperlukan untuk mengelola room Watch Party.');
+      setStatus('error');
+      return;
+    }
+    setStatus('reconnecting');
+    setErrorMsg('');
+    try {
+      const r = await watchPartyService.reclaimRoom(roomCodeToReclaim, name, mediaInfo, effectiveUserId, isPublic);
+      setMyId(watchPartyService.getMyId());
+      setIsHost(true);
+      setRoom({ ...r });
+      setMembers(Object.values(r.members).filter((m) => m.isActive));
+      setMessages([]);
+      setControlModeState('all');
+      setStatus('connected');
+      setIsPartyOpen(true);
+      soundFX.success();
+
+      saveActivePartySession({
+        roomCode: r.roomCode,
+        isHost: true,
+        myName: name,
+        userId: effectiveUserId,
+        mediaInfo,
+        isPublic,
+        createdAt: Date.now(),
+        lastActive: Date.now(),
+      });
     } catch (err) {
       setErrorMsg(String(err));
       setStatus('error');
@@ -255,9 +318,27 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setStatus('joining');
     setErrorMsg('');
     try {
-      await watchPartyService.joinRoom(roomCode, name, effectiveUserId);
+      const r = await watchPartyService.joinRoom(roomCode, name, effectiveUserId);
       setMyId(watchPartyService.getMyId());
       setIsHost(false);
+      setRoom({ ...r });
+      setMembers(Object.values(r.members).filter((m) => m.isActive));
+      setMessages([...r.messages]);
+      setControlModeState(r.controlMode || 'all');
+      setStatus('connected');
+      setIsPartyOpen(true);
+      soundFX.join();
+
+      saveActivePartySession({
+        roomCode: r.roomCode,
+        isHost: false,
+        myName: name,
+        userId: effectiveUserId,
+        mediaInfo: r.mediaInfo,
+        isPublic: r.isPublic ?? true,
+        createdAt: r.createdAt || Date.now(),
+        lastActive: Date.now(),
+      });
     } catch (err) {
       setErrorMsg(String(err));
       setStatus('error');
@@ -265,6 +346,7 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [user]);
 
   const leaveParty = useCallback(() => {
+    clearActivePartySession();
     watchPartyService.leave();
     setStatus('idle');
     setRoom(null);
@@ -278,6 +360,26 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setReactions([]);
     setUnreadCount(0);
   }, []);
+
+  const closePartyRoom = useCallback(async (roomCodeToClose: string) => {
+    try {
+      await removePublicRoom(roomCodeToClose);
+      const activeSession = getActivePartySession();
+      if (activeSession && activeSession.roomCode.toUpperCase() === roomCodeToClose.toUpperCase()) {
+        clearActivePartySession();
+        watchPartyService.leave();
+        setStatus('idle');
+        setRoom(null);
+        setMembers([]);
+        setMessages([]);
+        setMyId('');
+        setIsHost(false);
+      }
+      await refreshPublicRooms();
+    } catch (err) {
+      console.warn('Gagal menutup room party:', err);
+    }
+  }, [refreshPublicRooms]);
 
   const sendChat = useCallback((text: string) => {
     const msg = watchPartyService.sendChat(text);
@@ -340,6 +442,37 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const clearSignal = useCallback(() => setLatestSignal(null), []);
   const clearError = useCallback(() => setErrorMsg(''), []);
 
+  // Auto-reconnect to active session on initial mount
+  const hasAttemptedRestoreRef = useRef(false);
+  useEffect(() => {
+    if (hasAttemptedRestoreRef.current) return;
+    hasAttemptedRestoreRef.current = true;
+
+    const session = getActivePartySession();
+    if (!session || !session.roomCode) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        if (session.isHost) {
+          await reclaimPartyHost(
+            session.roomCode,
+            session.myName,
+            session.mediaInfo,
+            session.userId,
+            session.isPublic
+          );
+        } else {
+          await joinParty(session.roomCode, session.myName, session.userId);
+        }
+      } catch (err) {
+        console.warn('Gagal memulihkan sesi party otomatis:', err);
+        clearActivePartySession();
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [reclaimPartyHost, joinParty]);
+
   // ── Derived ───────────────────────────────────────────────
   const roomCode = room?.roomCode ?? '';
   const inviteLink = roomCode
@@ -351,7 +484,8 @@ export const WatchPartyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       status, room, members, messages, myId, isHost, errorMsg, latestSignal,
       controlMode, hostTimeSync, reactions, unreadCount, isMinimized,
       publicRooms, refreshPublicRooms,
-      createParty, joinParty, leaveParty, sendChat, sendSignal, sendTimeSync,
+      createParty, reclaimPartyHost, joinParty, leaveParty, closePartyRoom,
+      sendChat, sendSignal, sendTimeSync,
       changeMedia, setControlMode, sendReaction, kickMember,
       clearSignal, clearError, resetUnreadCount, setIsMinimized,
       isPartyOpen, setIsPartyOpen, togglePartyOpen, autoJoinCode, setAutoJoinCode,

@@ -5,7 +5,7 @@ import {
   Send, Crown, WifiOff, Play, Pause,
   AlertCircle, AlertTriangle, Radio, Loader2, Film, Tv, ChevronDown, ChevronUp, Minus,
   Move, GripHorizontal, Share2, RefreshCw, UserMinus, Shield, ShieldCheck, Smile, MessageSquare, ExternalLink,
-  Globe, Search, Lock,
+  Globe, Search, Lock, Trash2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useWatchParty } from '../../context/WatchPartyContext';
@@ -316,7 +316,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     status, room, members, messages, myId, isHost, errorMsg,
     controlMode, hostTimeSync, unreadCount, isMinimized,
     publicRooms, refreshPublicRooms,
-    createParty, joinParty, leaveParty, sendChat, sendSignal,
+    createParty, reclaimPartyHost, joinParty, leaveParty, closePartyRoom, sendChat, sendSignal,
     setControlMode, sendReaction, kickMember,
     clearError, resetUnreadCount, setIsMinimized,
     inviteLink, roomCode,
@@ -398,7 +398,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
   const chatInputRef = useRef<HTMLInputElement>(null);
 
   const isConnected = status === 'connected';
-  const isLoading = status === 'creating' || status === 'joining';
+  const isLoading = status === 'creating' || status === 'joining' || status === 'reconnecting';
 
   // Strictly deduplicated active members list (prevents phantom participants on reconnect)
   const activeMembers = useMemo(() => {
@@ -464,6 +464,45 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
     }
     setJoinCode(roomItem.roomCode);
     await joinParty(roomItem.roomCode, nameToUse, profile?.id);
+  };
+
+  const handleResumeHostFromLobby = async (roomItem: (typeof publicRooms)[0]) => {
+    playClick();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
+    const nameToUse = myName.trim() || profile?.name || roomItem.hostName || (language === 'en' ? 'Host' : 'Host');
+    if (!myName.trim()) {
+      handleNameChange(nameToUse);
+    }
+    const mediaInfo: PartyMediaInfo = {
+      mediaId: roomItem.mediaId,
+      mediaTitle: roomItem.mediaTitle,
+      mediaPoster: roomItem.mediaPoster || '',
+      mediaType: roomItem.mediaType,
+      episodeTitle: roomItem.episodeTitle,
+      seasonNumber: roomItem.seasonNumber,
+      episodeNumber: roomItem.episodeNumber,
+    };
+    setJoinCode(roomItem.roomCode);
+    await reclaimPartyHost(
+      roomItem.roomCode,
+      nameToUse,
+      mediaInfo,
+      user.id,
+      roomItem.isPublic !== false
+    );
+  };
+
+  const handleCloseRoomFromLobby = async (roomCodeToClose: string) => {
+    playClick();
+    if (!window.confirm(t('partyCloseRoomConfirm'))) return;
+    try {
+      await closePartyRoom(roomCodeToClose);
+    } catch (err) {
+      console.error('Gagal menutup room:', err);
+    }
   };
 
   const handleRefreshLobby = async () => {
@@ -1138,6 +1177,12 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             {r.memberCount} {t('partyViewersCount')}
                           </span>
+                          {Boolean(user && r.hostId && user.id === r.hostId) && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-black font-black flex items-center gap-0.5">
+                              <Crown className="w-2.5 h-2.5 fill-black/20" />
+                              <span>{t('partyYourRoomBadge')}</span>
+                            </span>
+                          )}
                           {r.isPublic === false ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-0.5">
                               <Lock className="w-2.5 h-2.5" />
@@ -1194,6 +1239,26 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                           <Lock className="w-3 h-3 text-amber-400" />
                           <span className="hidden xs:inline">{t('partyLoginToJoin')}</span>
                         </button>
+                      ) : Boolean(user && r.hostId && user.id === r.hostId) ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleResumeHostFromLobby(r)}
+                            className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black text-xs font-black shadow-md shadow-amber-950/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                            title={t('partyResumeHost')}
+                          >
+                            <Crown className="w-3 h-3 fill-black/20" />
+                            <span className="hidden xs:inline">{t('partyResumeHost')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCloseRoomFromLobby(r.roomCode)}
+                            title={t('partyCloseRoom')}
+                            className="p-1.5 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       ) : r.isPublic === false && !isAdmin ? (
                         <button
                           type="button"
@@ -1209,25 +1274,37 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ onClose, media
                           <span className="hidden xs:inline">{t('partyUnlockAndJoin')}</span>
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleJoinFromLobby(r)}
-                          className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all shrink-0 flex items-center gap-1 cursor-pointer ${
-                            r.isPublic === false && isAdmin
-                              ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-amber-950/40 font-extrabold'
-                              : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/40'
-                          }`}
-                          title={r.isPublic === false && isAdmin ? t('partyAdminBypass') : t('partyJoinLive')}
-                        >
-                          {r.isPublic === false && isAdmin ? (
-                            <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                          ) : (
-                            <Play className="w-3 h-3 fill-current" />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleJoinFromLobby(r)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer ${
+                              r.isPublic === false && isAdmin
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-amber-950/40 font-extrabold'
+                                : 'bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/40'
+                            }`}
+                            title={r.isPublic === false && isAdmin ? t('partyAdminBypass') : t('partyJoinLive')}
+                          >
+                            {r.isPublic === false && isAdmin ? (
+                              <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                            ) : (
+                              <Play className="w-3 h-3 fill-current" />
+                            )}
+                            <span className="hidden xs:inline">
+                              {r.isPublic === false && isAdmin ? t('partyAdminBypass') : t('partyJoinLive')}
+                            </span>
+                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleCloseRoomFromLobby(r.roomCode)}
+                              title={t('partyDeleteRoomAdmin')}
+                              className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 transition-all cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           )}
-                          <span className="hidden xs:inline">
-                            {r.isPublic === false && isAdmin ? t('partyAdminBypass') : t('partyJoinLive')}
-                          </span>
-                        </button>
+                        </div>
                       )}
                     </div>
                   ));

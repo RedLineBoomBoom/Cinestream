@@ -17,9 +17,11 @@ import {
   LogIn,
   Shield,
   ShieldCheck,
+  Crown,
+  Trash2,
 } from 'lucide-react';
 import type { MediaItem, Episode } from '../../types/media';
-import type { PublicPartyRoom, LobbyFilter } from '../../types/party';
+import type { PublicPartyRoom, LobbyFilter, PartyMediaInfo } from '../../types/party';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -43,7 +45,7 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
   const { user, openAuthModal } = useAuth();
   const { profile } = useUserProfile();
   const isAdmin = isAdminUser(user, profile as any);
-  const { publicRooms, refreshPublicRooms, joinParty, createParty } = useWatchParty();
+  const { publicRooms, refreshPublicRooms, joinParty, createParty, reclaimPartyHost, closePartyRoom } = useWatchParty();
   const { historyItems, watchlist } = useWatchlist();
   const { playClick, playHover, playSuccess } = useSound();
   const { t, language } = useLanguage();
@@ -143,6 +145,67 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
       console.error('Gagal gabung room publik:', err);
     } finally {
       setIsJoining(false);
+    }
+  };
+
+  // Handle Reclaiming / Resuming Host of Own Room
+  const handleResumeHost = async (room: PublicPartyRoom) => {
+    playClick();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
+    setIsJoining(true);
+    try {
+      const myNameToUse = hostName.trim() || profile?.name || room.hostName || (language === 'en' ? 'Host' : 'Host');
+      const mediaInfo: PartyMediaInfo = {
+        mediaId: room.mediaId,
+        mediaTitle: room.mediaTitle,
+        mediaPoster: room.mediaPoster || '',
+        mediaType: room.mediaType,
+        episodeTitle: room.episodeTitle,
+        seasonNumber: room.seasonNumber,
+        episodeNumber: room.episodeNumber,
+      };
+
+      await reclaimPartyHost(
+        room.roomCode,
+        myNameToUse,
+        mediaInfo,
+        user.id,
+        room.isPublic !== false
+      );
+      playSuccess();
+
+      // Find media in catalog to navigate directly
+      const mediaItem = catalog.find((m) => String(m.id) === String(room.mediaId)) || ({
+        id: room.mediaId,
+        title: room.mediaTitle,
+        type: room.mediaType as any,
+        poster: room.mediaPoster,
+        backdrop: room.mediaPoster,
+        overview: '',
+        rating: 0,
+        releaseDate: '',
+      } as unknown as MediaItem);
+
+      onPlayMedia(mediaItem, undefined, room.episodeTitle ? undefined : undefined);
+    } catch (err: any) {
+      console.error('Gagal melanjutkan host room:', err);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // Handle Closing / Deleting Room
+  const handleCloseRoom = async (roomCodeToClose: string) => {
+    playClick();
+    if (!window.confirm(t('partyCloseRoomConfirm'))) return;
+    try {
+      await closePartyRoom(roomCodeToClose);
+      playSuccess();
+    } catch (err) {
+      console.error('Gagal menutup room:', err);
     }
   };
 
@@ -604,23 +667,31 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                       <span>{t('partyLive')}</span>
                     </span>
 
-                    {/* Public vs Private Badge */}
-                    {isPrivate ? (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 text-[10px] font-bold border border-amber-500/40 backdrop-blur-md">
-                        <Lock className="w-3 h-3 text-amber-400" />
-                        <span>{t('partyPrivateBadge')}</span>
-                        {isAdmin && (
-                          <span className="ml-1 px-1 py-0.2 rounded bg-amber-400 text-black font-black text-[9px] uppercase tracking-wider">
-                            Admin
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 text-[10px] font-bold border border-cyan-400/40 backdrop-blur-md">
-                        <Globe className="w-3 h-3 text-cyan-400" />
-                        <span>{t('partyPublicBadge')}</span>
-                      </span>
-                    )}
+                    {/* Room Type & Ownership Badge */}
+                    <div className="flex items-center gap-1">
+                      {Boolean(user && room.hostId && user.id === room.hostId) && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black text-[10px] font-black tracking-wide shadow-md shadow-amber-950/50">
+                          <Crown className="w-3 h-3 fill-black/30" />
+                          <span>{t('partyYourRoomBadge')}</span>
+                        </span>
+                      )}
+                      {isPrivate ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 text-[10px] font-bold border border-amber-500/40 backdrop-blur-md">
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span>{t('partyPrivateBadge')}</span>
+                          {isAdmin && (
+                            <span className="ml-1 px-1 py-0.2 rounded bg-amber-400 text-black font-black text-[9px] uppercase tracking-wider">
+                              Admin
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 text-[10px] font-bold border border-cyan-400/40 backdrop-blur-md">
+                          <Globe className="w-3 h-3 text-cyan-400" />
+                          <span>{t('partyPublicBadge')}</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Bottom Stats on Poster */}
@@ -698,6 +769,27 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                         <Lock className="w-3.5 h-3.5 text-amber-400 group-hover/btn:scale-110 transition-transform" />
                         <span>{t('partyLoginToJoin')}</span>
                       </button>
+                    ) : Boolean(user && room.hostId && user.id === room.hostId) ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleResumeHost(room)}
+                          onMouseEnter={playHover}
+                          disabled={isJoining}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-950/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                          title={`${t('partyResumeHost')} (Kode: ${room.roomCode})`}
+                        >
+                          <Crown className="w-3.5 h-3.5 fill-black/20" />
+                          <span>{t('partyResumeHost')}</span>
+                        </button>
+                        <button
+                          onClick={() => handleCloseRoom(room.roomCode)}
+                          onMouseEnter={playHover}
+                          title={t('partyCloseRoom')}
+                          className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 hover:border-red-400 transition-all cursor-pointer shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     ) : isPrivate ? (
                       isAdmin ? (
                         <div className="flex items-center gap-1.5">
@@ -719,6 +811,14 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                           >
                             <Lock className="w-3.5 h-3.5" />
                           </button>
+                          <button
+                            onClick={() => handleCloseRoom(room.roomCode)}
+                            onMouseEnter={playHover}
+                            title={t('partyDeleteRoomAdmin')}
+                            className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 hover:border-red-400 transition-all cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -732,15 +832,27 @@ export const WatchPartyLobbyView: React.FC<WatchPartyLobbyViewProps> = ({
                         </button>
                       )
                     ) : (
-                      <button
-                        onClick={() => handleJoinPublic(room)}
-                        onMouseEnter={playHover}
-                        disabled={isJoining}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs border border-emerald-400/30 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                        <span>{t('partyJoinLive')}</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleJoinPublic(room)}
+                          onMouseEnter={playHover}
+                          disabled={isJoining}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs border border-emerald-400/30 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>{t('partyJoinLive')}</span>
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleCloseRoom(room.roomCode)}
+                            onMouseEnter={playHover}
+                            title={t('partyDeleteRoomAdmin')}
+                            className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 hover:border-red-400 transition-all cursor-pointer shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
