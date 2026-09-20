@@ -788,7 +788,7 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
       {/* SECTION 2: THE 5 HBO MAX-STYLE THEMATIC BANNERS          */}
       {/* (Bilingual Auto-Translate, Compact 6-Col Grid)           */}
       {/* ───────────────────────────────────────────────────────── */}
-      <div className="space-y-10 sm:space-y-14 lg:space-y-18">
+      <div className="space-y-3 sm:space-y-5 lg:space-y-6">
         {THEMATIC_BANNERS.map((banner) => {
           const displayTitle = language === 'en' ? banner.titleEn : banner.titleId;
           const displayTagline = language === 'en' ? banner.taglineEn : banner.taglineId;
@@ -815,25 +815,12 @@ export const ThematicShowcase: React.FC<ThematicShowcaseProps> = ({
                   return next;
                 });
               }}
-              className={`relative w-full bg-gradient-to-r ${banner.bgGradient} pt-10 pb-8 sm:pt-16 sm:pb-10 lg:pt-20 lg:pb-12 overflow-hidden transition-colors duration-500`}
+              className="relative w-full py-3 sm:py-5 lg:py-6 overflow-hidden transition-all duration-300"
             >
-              {/* Vertical Gradient Vignette: smoothly dissolves top and bottom into the website's dark canvas */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-transparent to-[#141414] pointer-events-none z-[4]" />
-
-              {/* Top Feathered Gradient Transition */}
-              <div className="absolute top-0 inset-x-0 h-20 sm:h-28 bg-gradient-to-b from-[#141414] via-[#141414]/80 to-transparent pointer-events-none z-10" />
-
-              {/* Bottom Feathered Gradient Transition */}
-              <div className="absolute bottom-0 inset-x-0 h-20 sm:h-28 bg-gradient-to-t from-[#141414] via-[#141414]/80 to-transparent pointer-events-none z-10" />
-
-
-              {/* Subtle background ambient overlay */}
-              <div className="absolute inset-0 bg-black/25 pointer-events-none z-[2]" />
-
-              {/* Dynamic Atmospheric Radial Glow behind character cutout */}
-              <div className="absolute inset-y-0 inset-x-0 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto pointer-events-none overflow-hidden z-[3]">
+              {/* Soft, Seamless Ambient Glow — organic and feathered with zero box boundaries */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
                 <div
-                  className="absolute right-0 top-0 bottom-0 w-full sm:w-[680px] lg:w-[840px] pointer-events-none select-none opacity-90"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-full sm:w-[680px] lg:w-[880px] h-[130%] pointer-events-none select-none opacity-40 blur-[75px] sm:blur-[100px]"
                   style={{
                     background: banner.radialGlow,
                   }}
