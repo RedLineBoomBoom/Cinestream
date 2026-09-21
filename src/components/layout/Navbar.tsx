@@ -24,12 +24,14 @@ import { getTabUrl } from '../../utils/navigation';
 import { isAdminUser } from '../../utils/admin';
 import type { ModalSearchSource } from '../search/SearchModal';
 import { MoodPickerModal } from '../discovery/MoodPickerModal';
+import type { MediaItem } from '../../types/media';
 
 interface NavbarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   onOpenSearch: (source?: ModalSearchSource) => void;
   onOpenWatchParty?: () => void;
+  onPlayMedia?: (media: MediaItem) => void;
   isTheaterMode?: boolean;
   watchlistCount?: number;
   isHidden?: boolean;
@@ -40,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   onOpenSearch,
   onOpenWatchParty: _onOpenWatchParty,
+  onPlayMedia,
   isTheaterMode = false,
   watchlistCount,
   isHidden = false,
@@ -477,7 +480,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
     </header>
     {showMoodPicker && (
-      <MoodPickerModal onClose={() => setShowMoodPicker(false)} />
+      <MoodPickerModal
+        onClose={() => setShowMoodPicker(false)}
+        onSelectMedia={onPlayMedia}
+      />
     )}
   </>
   );

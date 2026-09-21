@@ -1046,6 +1046,7 @@ const MainContent: React.FC = () => {
         onSelectTab={handleSelectTab}
         onOpenSearch={handleOpenSearch}
         onOpenWatchParty={togglePartyOpen}
+        onPlayMedia={handleOpenMedia}
         isTheaterMode={isTheaterMode}
         watchlistCount={watchlistItems.length}
         isHidden={isFullscreen}
