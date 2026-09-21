@@ -95,6 +95,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
   const totalWatched = isOtherUser ? 0 : myHistoryItems.length;
 
   const profileUrl = `${window.location.origin}/u/${encodeURIComponent(displayProfile.name || 'user')}`;
+  const displayUrlText = `${typeof window !== 'undefined' ? window.location.host : 'cinestream'}/u/${displayProfile.name || 'user'}`;
 
   const handleCopyLink = async () => {
     playClick();
@@ -130,68 +131,90 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
       icon: <Bookmark className="w-4 h-4 text-violet-400" />,
       label: language === 'en' ? 'Watchlist' : 'Watchlist',
       value: displayWatchlistCount,
-      sub: language === 'en' ? 'titles saved' : 'film tersimpan',
+      sub: language === 'en' ? 'saved' : 'disimpan',
     },
     {
       icon: <Clock className="w-4 h-4 text-sky-400" />,
-      label: language === 'en' ? 'Watched' : 'Ditonton',
+      label: language === 'en' ? 'History' : 'Riwayat',
       value: totalWatched,
-      sub: language === 'en' ? 'items in history' : 'total riwayat',
+      sub: language === 'en' ? 'in history' : 'riwayat',
     },
     {
       icon: <Film className="w-4 h-4 text-emerald-400" />,
-      label: language === 'en' ? 'Completed' : 'Selesai',
+      label: language === 'en' ? 'Watched' : 'Selesai',
       value: completedCount,
-      sub: language === 'en' ? 'fully watched' : 'ditonton tuntas',
+      sub: language === 'en' ? 'completed' : 'ditonton',
     },
   ];
 
+  const accentColor = displayPalette?.accent || '#E50914';
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
         ref={cardRef}
-        className="relative w-full max-w-sm bg-cinema-950/95 border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-sm bg-[#121212] border border-white/15 rounded-3xl overflow-hidden shadow-2xl shadow-black/90 animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header gradient band */}
-        <div className={`h-24 w-full bg-gradient-to-br ${displayPalette.gradient} relative`}>
+        {/* Header gradient band with cinematic vignette */}
+        <div className={`h-28 w-full bg-gradient-to-br ${displayPalette.gradient} relative overflow-hidden`}>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_70%)]" />
+
+          {/* Close button with frosted glass circle */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-xl bg-black/30 hover:bg-black/50 text-white/80 hover:text-white transition-all cursor-pointer"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md border border-white/15 flex items-center justify-center text-white/90 hover:text-white transition-all cursor-pointer z-10 active:scale-95"
+            title={language === 'en' ? 'Close' : 'Tutup'}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Avatar overlapping the header */}
+        {/* Card Body */}
         <div className="px-6 pb-6">
-          <div className="flex items-end justify-between -mt-10 mb-4">
-            {/* Avatar */}
+          {/* Avatar and Action Buttons Row */}
+          <div className="flex items-end justify-between -mt-12 mb-4 relative z-10">
+            {/* Elevated Dual-Ring Avatar Box (prevents any color blending or clipping) */}
             <div
-              className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${displayPalette.gradient} border-4 border-cinema-950 flex items-center justify-center shadow-2xl`}
+              className="w-20 h-20 rounded-2xl p-1 bg-gradient-to-br from-white/30 to-white/5 shadow-2xl ring-4 ring-[#121212] shrink-0"
+              style={{
+                boxShadow: `0 10px 25px -5px ${accentColor}40`,
+              }}
             >
-              <span className="text-3xl font-bold text-white select-none">
-                {displayProfile.emoji || displayProfile.initials || (displayProfile.name?.[0]?.toUpperCase() ?? '?')}
-              </span>
+              <div className="w-full h-full rounded-[12px] bg-[#1a1a1a] flex items-center justify-center border border-white/10 relative overflow-hidden">
+                {/* Accent glow behind avatar */}
+                <div
+                  className="absolute inset-0 opacity-25 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle at center, ${accentColor}, transparent 70%)`,
+                  }}
+                />
+                <span className="text-3xl filter drop-shadow-md select-none relative z-10 leading-none">
+                  {displayProfile.emoji || displayProfile.initials || (displayProfile.name?.[0]?.toUpperCase() ?? '?')}
+                </span>
+              </div>
             </div>
 
-            {/* Share actions */}
-            <div className="flex gap-2 mb-1">
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 mb-1">
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.07] border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 text-xs font-medium transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied
-                  ? (language === 'en' ? 'Copied!' : 'Disalin!')
-                  : (language === 'en' ? 'Copy Link' : 'Salin Link')}
+                <span>
+                  {copied
+                    ? (language === 'en' ? 'Copied!' : 'Disalin!')
+                    : (language === 'en' ? 'Copy Link' : 'Salin Link')}
+                </span>
               </button>
               <button
                 onClick={handleShare}
-                className="p-1.5 rounded-xl bg-white/[0.07] border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white transition-all cursor-pointer shadow-sm active:scale-95"
                 title={language === 'en' ? 'Share Profile' : 'Bagikan Profil'}
               >
                 <Share2 className="w-3.5 h-3.5" />
@@ -199,34 +222,55 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
             </div>
           </div>
 
-          {/* Name & tagline */}
-          <div className="mb-5">
-            <h2 className="text-xl font-display font-bold text-white leading-tight">
+          {/* Name & Tagline */}
+          <div className="mb-5 space-y-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-wide font-sans leading-tight break-words">
               {displayProfile.name || (language === 'en' ? 'Cinephile' : 'Cinephile')}
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {language === 'en' ? 'Cinestream Member' : 'Anggota Cinestream'}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[11px] text-slate-300 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{language === 'en' ? 'Cinestream Member' : 'Anggota Cinestream'}</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {displayPalette.name}
+              </span>
+            </div>
           </div>
 
-          {/* Stats grid */}
+          {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-2 mb-5">
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="flex flex-col items-center gap-1 px-2 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06]"
+                className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.04] border border-white/[0.07] text-center"
               >
-                {s.icon}
-                <span className="text-xl font-bold text-white font-display">{s.value}</span>
-                <span className="text-[9px] text-slate-400 text-center leading-tight">{s.sub}</span>
+                <div className="mb-1.5">{s.icon}</div>
+                <span className="text-2xl font-black text-white font-display leading-none">
+                  {s.value}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-1 leading-tight">
+                  {s.sub}
+                </span>
               </div>
             ))}
           </div>
 
-          {/* Profile link preview */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07]">
-            <ExternalLink className="w-3 h-3 text-slate-500 shrink-0" />
-            <span className="text-[10px] text-slate-500 truncate flex-1">{profileUrl}</span>
+          {/* Profile URL Preview Bar (Clean display without raw %20) */}
+          <div
+            onClick={handleCopyLink}
+            className="group flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 transition-all cursor-pointer active:scale-[0.99]"
+            title={language === 'en' ? 'Click to copy link' : 'Klik untuk salin link'}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-white shrink-0 transition-colors" />
+              <span className="text-[11px] text-slate-400 group-hover:text-slate-200 font-mono truncate transition-colors">
+                {displayUrlText}
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-300 group-hover:text-white font-sans shrink-0 px-2 py-0.5 rounded-md bg-white/[0.06]">
+              {copied ? (language === 'en' ? '✓ Copied' : '✓ Tersalin') : (language === 'en' ? 'Copy' : 'Salin')}
+            </span>
           </div>
         </div>
       </div>
