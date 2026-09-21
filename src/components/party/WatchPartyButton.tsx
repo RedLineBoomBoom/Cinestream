@@ -7,9 +7,10 @@ import { useLanguage } from '../../context/LanguageContext';
 interface WatchPartyButtonProps {
   onClick: () => void;
   variant?: 'pill' | 'compact' | 'nav';
+  isActive?: boolean;
 }
 
-export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, variant = 'pill' }) => {
+export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, variant = 'pill', isActive = false }) => {
   const { status, members, publicRooms } = useWatchParty();
   const { t } = useLanguage();
   const { playClick, playHover } = useSound();
@@ -21,11 +22,18 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
 
   if (variant === 'nav') {
     return (
-      <button
-        onClick={handleClick}
+      <a
+        href="/watch-party"
+        onClick={(e) => {
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+          e.preventDefault();
+          handleClick();
+        }}
         onMouseEnter={playHover}
-        className={`relative px-2.5 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 group border ${
-          isConnected
+        className={`relative px-2.5 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 group border no-underline ${
+          isActive
+            ? 'bg-white/10 text-white font-bold border-white/25 shadow-sm'
+            : isConnected
             ? 'bg-violet-600/30 text-white font-bold border-violet-400/50 shadow-sm shadow-violet-500/20'
             : liveRoomsCount > 0
             ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 font-semibold border-emerald-500/35 hover:border-emerald-400/60 shadow-sm shadow-emerald-950/40'
@@ -34,7 +42,13 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
         title={isConnected ? `${t('partyTitle')} (${activeCount})` : liveRoomsCount > 0 ? `${liveRoomsCount} ${t('partyLobbyTab')} Live` : t('partyTitle')}
       >
         <Users className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:scale-110 ${
-          isConnected ? 'text-violet-300' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400 group-hover:text-white'
+          isActive
+            ? 'text-[#E50914]'
+            : isConnected
+            ? 'text-violet-300'
+            : liveRoomsCount > 0
+            ? 'text-emerald-400'
+            : 'text-slate-400 group-hover:text-white'
         }`} />
         <span>{t('partyTitle')}</span>
         {isConnected && activeCount > 0 ? (
@@ -50,7 +64,10 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
             {liveRoomsCount} Live
           </span>
         ) : null}
-      </button>
+        {isActive && (
+          <span className="absolute bottom-0 inset-x-2 xl:inset-x-3 h-[2px] bg-[#E50914] rounded-full" />
+        )}
+      </a>
     );
   }
 
