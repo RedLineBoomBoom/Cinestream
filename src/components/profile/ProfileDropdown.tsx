@@ -105,6 +105,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   // Click outside listener
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // If the shareable profile modal is currently open, do not trigger dropdown close from outside clicks
+      if (showProfileCard) return;
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -115,7 +117,15 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showProfileCard]);
+
+  // Always reset showProfileCard and edit states whenever dropdown closes or is hidden
+  useEffect(() => {
+    if (!isOpen) {
+      setShowProfileCard(false);
+      setIsEditingName(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

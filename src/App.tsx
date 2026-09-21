@@ -196,16 +196,16 @@ const MainContent: React.FC = () => {
     if (route.type === 'profile') {
       try {
         if (sessionStorage.getItem(`cinestream_dismissed_profile_${route.username}`) === 'true') {
-          window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
+          window.history.replaceState({ type: 'tab', tab: 'home' }, '', '/');
           return;
         }
       } catch {}
 
       setSharedProfileUsername(route.username);
       // Immediately clean the URL to activeTab / '/' so PWA restarts and browser refreshes never get stuck in /u/...
-      window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
+      window.history.replaceState({ type: 'tab', tab: 'home' }, '', '/');
     }
-  }, [activeTab]);
+  }, []);
 
   const handleCloseSharedProfile = useCallback(() => {
     setSharedProfileUsername((prev) => {
@@ -216,7 +216,7 @@ const MainContent: React.FC = () => {
       }
       return null;
     });
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/u/')) {
+    if (typeof window !== 'undefined') {
       window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
     }
   }, [activeTab]);

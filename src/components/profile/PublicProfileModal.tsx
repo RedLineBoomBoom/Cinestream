@@ -168,7 +168,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-pointer select-none"
+      className="fixed inset-0 z-[10005] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-pointer select-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           playClick();
@@ -323,7 +323,11 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
             className="w-full mt-3 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer text-center active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-sm"
           >
             <X className="w-3.5 h-3.5 text-slate-400" />
-            <span>{language === 'en' ? 'Close & Return to Home' : 'Tutup & Kembali ke Beranda'}</span>
+            <span>
+              {isOtherUser
+                ? (language === 'en' ? 'Close & Return to Home' : 'Tutup & Kembali ke Beranda')
+                : (language === 'en' ? 'Close Card' : 'Tutup Kartu')}
+            </span>
           </button>
         </div>
       </div>
