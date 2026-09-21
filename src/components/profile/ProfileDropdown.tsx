@@ -201,9 +201,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       {/* Main Profile Info */}
       <div className="p-5 pt-0 relative">
         {/* Floating Avatar & Actions Row */}
-        <div className="flex items-end justify-between -mt-9 mb-4">
+        <div className="flex items-start justify-between mb-4">
           <div
-            className={`w-18 h-18 rounded-2xl bg-gradient-to-br ${activePalette.gradient} p-0.5 border-4 border-[#181818] shadow-2xl ${activePalette.shadow} flex items-center justify-center select-none relative z-20`}
+            className={`-mt-10 w-20 h-20 rounded-2xl bg-gradient-to-br ${activePalette.gradient} p-0.5 border-4 border-[#181818] shadow-2xl ${activePalette.shadow} flex items-center justify-center select-none relative z-20 shrink-0`}
           >
             <div className="w-full h-full rounded-[12px] flex items-center justify-center bg-black/20 backdrop-blur-xs">
               {profile.avatarType === 'monogram' ? (
@@ -218,8 +218,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex items-center gap-1.5 relative z-20">
+          {/* Quick Actions - cleanly on dark background below banner */}
+          <div className="flex items-center gap-1.5 pt-3 relative z-20">
             <button
               onClick={handleRandomize}
               onMouseEnter={playHover}

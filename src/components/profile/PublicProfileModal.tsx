@@ -216,10 +216,10 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
         {/* Card Body */}
         <div className="px-6 pb-6">
           {/* Avatar and Action Buttons Row */}
-          <div className="flex items-end justify-between -mt-12 mb-4 relative z-10">
+          <div className="flex items-start justify-between mb-4 relative z-10">
             {/* Elevated Dual-Ring Avatar Box (prevents any color blending or clipping) */}
             <div
-              className="w-20 h-20 rounded-2xl p-1 bg-gradient-to-br from-white/30 to-white/5 shadow-2xl ring-4 ring-[#121212] shrink-0"
+              className="-mt-12 w-20 h-20 rounded-2xl p-1 bg-gradient-to-br from-white/30 to-white/5 shadow-2xl ring-4 ring-[#121212] shrink-0"
               style={{
                 boxShadow: `0 10px 25px -5px ${accentColor}40`,
               }}
@@ -238,11 +238,11 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 mb-1">
+            {/* Action Buttons - cleanly on dark background below banner */}
+            <div className="flex items-center gap-2 pt-3">
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>
@@ -253,7 +253,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
               </button>
               <button
                 onClick={handleShare}
-                className="p-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                className="p-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 text-white transition-all cursor-pointer shadow-sm active:scale-95"
                 title={language === 'en' ? 'Share Profile' : 'Bagikan Profil'}
               >
                 <Share2 className="w-3.5 h-3.5" />
@@ -311,24 +311,6 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
               {copied ? (language === 'en' ? '✓ Copied' : '✓ Tersalin') : (language === 'en' ? 'Copy' : 'Salin')}
             </span>
           </div>
-
-          {/* Dismiss button for mobile/PWA convenience */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              playClick();
-              onClose();
-            }}
-            className="w-full mt-3 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer text-center active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            <X className="w-3.5 h-3.5 text-slate-400" />
-            <span>
-              {isOtherUser
-                ? (language === 'en' ? 'Close & Return to Home' : 'Tutup & Kembali ke Beranda')
-                : (language === 'en' ? 'Close Card' : 'Tutup Kartu')}
-            </span>
-          </button>
         </div>
       </div>
     </div>,
