@@ -134,10 +134,16 @@ export const DanmakuOverlay: React.FC<DanmakuOverlayProps> = ({
         timeSeconds: Math.floor(currentTime),
         text: commentText.trim(),
         authorName: profile.name || 'Penonton',
-        authorColor: '#38bdf8',
+        authorColor: '#34d399',
       });
 
-      setComments((prev) => [...prev, newComment]);
+      // Prevent the auto-fire useEffect from spawning a duplicate comment
+      firedCommentIdsRef.current.add(newComment.id);
+
+      setComments((prev) => {
+        if (prev.some((c) => c.id === newComment.id)) return prev;
+        return [...prev, newComment];
+      });
 
       // Immediately display user's own comment flying across
       const trackIndex = trackAssignmentRef.current % TRACKS_COUNT;
@@ -151,6 +157,11 @@ export const DanmakuOverlay: React.FC<DanmakuOverlayProps> = ({
         trackIndex,
       };
       setActiveItems((prev) => [...prev, userItem]);
+
+      // Automatically remove user's comment after 9.5s (animation duration)
+      setTimeout(() => {
+        setActiveItems((prev) => prev.filter((item) => item.id !== userItem.id));
+      }, 9500);
 
       setCommentText('');
       setIsInputOpen(false);
