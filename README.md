@@ -17,7 +17,7 @@
   Curated blockbuster movies, top-rated TV series, Asian dramas, and anime with blazing performance, multi-server streaming with automated failover, serverless P2P Watch Party, real-time Danmaku bullet comments, and intelligent Netflix-style Autoplay Next.
 </p>
 
-[🎉 Full Release Announcement](#-full-release-announcement) • [✨ Key Features](#-key-features) • [🚀 Changelog](#-whats-new-in-full-release) • [⌨️ Shortcuts](#️-keyboard-shortcuts) • [🛠️ Tech Stack](#️-technologies--stack)
+[🎉 Full Release Announcement](#-full-release-announcement) • [✨ Key Features](#-key-features-overview) • [🚀 What's New](#-whats-new-in-full-release) • [⌨️ Shortcuts](#️-keyboard-shortcuts) • [🛠️ Tech Stack](#️-technologies--stack)
 
 ---
 
@@ -26,85 +26,85 @@
 ## 🎉 Full Release Announcement
 
 > [!IMPORTANT]
-> **CINESTREAM NOVA RESMI KELUAR DARI TAHAP BETA DAN KINI FULL RILIS!**  
-> Kami dengan bangga mengumumkan bahwa **Cinestream Nova** telah resmi menyelesaikan fase pengujian Beta dan kini memasuki tahap **Official Full Production Release (v1.4.3)**. Seluruh infrastruktur inti—mulai dari *multi-server failover*, sinkronisasi Cloud profil, *serverless P2P Watch Party*, *Airing Schedule* dengan jam rilis akurat, hingga interaktivitas *Danmaku timed comments*—kini telah mencapai tingkat kestabilan, responsivitas, dan performa tinggi yang siap dinikmati di semua perangkat.
+> **CINESTREAM NOVA HAS OFFICIALLY GRADUATED FROM BETA TO FULL PRODUCTION RELEASE!**  
+> We are proud to announce that **Cinestream Nova** has successfully completed its Beta testing phase and has officially entered **Full Production Release (v1.4.3)**. Every pillar of the platform—from automated multi-server failover, Cloud profile synchronization, serverless P2P Watch Party, Airing Schedule with exact release timestamps, to real-time Danmaku bullet comments—has achieved enterprise-grade stability, fluid responsiveness, and high performance ready to be experienced across all modern devices.
 
 ---
 
 ## 🌟 About Cinestream Nova
 
-**CINESTREAM NOVA** adalah platform web streaming modern yang dirancang untuk memberikan pengalaman menonton sinematik premium tanpa gangguan iklan pop-up (*distraction-free*). Menggabungkan estetika *dark luxury cinema*, tipografi editorial (*Bebas Neue*, *Plus Jakarta Sans*, *Montserrat*), serta animasi mikro halus bertenaga *Framer Motion*.
+**CINESTREAM NOVA** is a modern, distraction-free web streaming platform engineered to deliver an ultra-premium cinematic experience without disruptive pop-up advertisements. It seamlessly blends a lavish *dark-cinema aesthetic*, editorial typography (*Bebas Neue*, *Plus Jakarta Sans*, *Montserrat*), and fluid micro-interactions powered by *Framer Motion*.
 
-Kini dalam tahap **Full Release**, Cinestream menawarkan keandalan tingkat tinggi, pemulihan otomatis server pemutar, pelacakan riwayat tontonan lintas musim yang teratur, dan antarmuka responsif sempurna untuk Desktop, Tablet, maupun Smartphone (PWA).
+Now in its **Full Production Release**, Cinestream guarantees high reliability, automatic player server recovery, organized cross-season episode progression, and a meticulously crafted responsive interface tailored for Desktop, Tablet, and Mobile devices (PWA).
 
 ---
 
-## 🚀 What's New in Full Release (Rangkuman Update Fitur)
+## 🚀 What's New in Full Release (Feature Updates & Highlights)
 
-Berikut adalah rangkuman pembaruan fitur utama dan penyempurnaan yang telah diterapkan menjelang dan saat peluncuran Full Release:
+Here is a comprehensive summary of key feature updates, architectural innovations, and refinements shipped leading up to and included in this Full Release:
 
-### 1. 💬 Danmaku Floating Timed Comments (Fitur Baru)
-- **Komentar Melayang Real-Time**: Penonton dapat mengirim reaksi dan komentar yang melayang secara horizontal melintasi layar video sesuai menit/detik penayangan (*timestamp-pinned*).
-- **Anti-Duplikasi Cerdas**: Memastikan komentar yang baru dikirim oleh pengguna langsung tampil mulus satu kali tanpa duplikasi warna/lajur.
-- **Kontrol Cepat di Player**: Tombol cepat untuk mengaktifkan (*Danmaku ON*) atau menyembunyikan (*Danmaku OFF*) komentar kapan saja tanpa menghentikan video.
-- **Sinkronisasi Otomatis**: Komentar tersimpan di penyimpanan lokal dan sinkron ke Cloud Supabase agar dapat dinikmati penonton lainnya.
+### 1. 💬 Danmaku Floating Timed Comments (New Feature)
+- **Real-Time Synchronized Bullet Comments**: Viewers can post timestamped reactions and commentary that fly horizontally across the video canvas in sync with the playback time.
+- **Smart Anti-Duplication Engine**: Ensures comments submitted by the user appear instantaneously on-screen exactly once without duplicate lanes or conflicting dot colors.
+- **In-Player Quick Toggle**: Easily switch Danmaku visibility on or off anytime via a dedicated HUD button without interrupting video playback.
+- **Cloud & Local Persistence**: Timed comments are saved instantly to local storage and synchronized with Cloud Supabase so other viewers can experience community reactions.
 
-### 2. 📅 Airing Schedule & Episode Countdown (Jadwal Tayang Akurat)
-- **Jadwal Rilis Serial Berjalan**: Tampilan kalender jadwal tayang serial TV, drakor, dan anime yang sedang *on-going*.
-- **Jam Rilis Episode Pasti**: Dilengkapi jam tayang akurat dan badge hitung mundur (*countdown badge*) interaktif yang mempermudah pengguna mengetahui kapan episode berikutnya akan rilis.
-- **Deduplikasi Cerdas**: Menghilangkan judul berulang antar-tanggal dan saat *load more*, sehingga jadwal tampil bersih dan teratur.
+### 2. 📅 Airing Schedule & Episode Countdown (Accurate Release Times)
+- **Live Ongoing Broadcast Calendar**: A dedicated airing schedule calendar tracking ongoing TV series, K-dramas, and anime broadcasts.
+- **Exact Release Hour & Countdown Badges**: Equipped with precise release timestamps and interactive countdown badges (`EpisodeCountdownBadge`) informing viewers exactly when the next episode drops.
+- **Clean Deduplication**: Eliminates duplicate titles across different dates and during *load more* pagination for a clean, organized browsing experience.
 
-### 3. 🎭 AI CineFinder & Mood Picker (Eksplorasi Judul Bervariasi)
-- **Mood Picker Cerdas**: Menampilkan rekomendasi film dan series beragam sesuai suasana hati (Santai, Tegang, Romantis, Mind-Bending, dll.) dengan beberapa opsi rekomendasi sekaligus dan variasi judul nyata yang dinamis.
-- **AI CineFinder**: Pencarian semantik berbahasa natural bertenaga AI untuk menemukan film berdasarkan deskripsi alur cerita atau tema spesifik.
+### 3. 🎭 AI CineFinder & Mood Picker (Diverse & Smart Discovery)
+- **Multi-Option Mood Picker**: Recommends varied, handpicked movies and series matching your current vibe (Chill, Thrill, Laugh, Cry, Mind-Bending, etc.) with real title diversity rather than repeated selections.
+- **AI CineFinder**: Natural-language semantic search engine powered by AI that surfaces films based on storyline descriptions, plot twists, or specific thematic prompts.
 
-### 4. 👤 Profil Pengguna & Kartu Profil Publik yang Dapat Dibagikan
-- **Kustomisasi Persona & Warna Tema**: Pilihan avatar emoji, monogram inisial, dan palet warna sinematik (*Netflix Crimson, Cyberpunk Neon, Golden Luxury, Emerald Oasis, dll.*).
-- **Kartu Profil Publik (/u/:username)**: Desain kartu profil modern yang menampilkan statistik menonton, watchlist, dan genre favorit yang dapat dibagikan langsung via tautan atau QR Code.
-- **Navigasi & Toggle Profil Sempurna**: Penyempurnaan alur buka-tutup profil (*click toggle close*), perbaikan batas layout banner tanpa tumpang tindih (*clean solid background*), dan pencegahan tersangkutnya modal profil.
+### 4. 👤 User Profiles & Shareable Public Profile Cards
+- **Persona & Cinema Palette Customization**: Choose from diverse emoji personas, monogram initials, and luxurious color themes (*Netflix Crimson, Cyberpunk Neon, Golden Luxury, Emerald Oasis, etc.*).
+- **Public Profile Cards (/u/:username)**: Modern profile cards highlighting watch stats, watchlist counts, and completed titles, shareable with 1-click links or QR codes.
+- **Refined Navigation & Toggle State**: Perfected dropdown toggle-close behavior when clicking the profile avatar, zero-overlap banner layouts, and modal dismiss handling.
 
-### 5. 🎬 Penyempurnaan Hero Banner & Player Experience
-- **Trailer Video Lebih Luas & Jernih**: Penurunan posisi vertikal teks highlight dan pengurangan ketebalan gradien hitam bawah (dari 70% menjadi 36%) sehingga video trailer di latar belakang tidak lagi tertutup bayangan gelap pekat.
-- **Pembersihan Baris Aksi**: Menghilangkan tombol Watch Party yang redundan pada baris aksi detail film agar tampilan tombol esensial (*Watchlist, Trailer, Share*) tetap rapi dan terfokus.
-- **Autoplay Next Episode dengan End-Credits Detection**: Transisi otomatis antar-episode dengan jeda waktu credit yang terkalibrasi presisi sesuai durasi film/series.
-- **Mini Player & Theater Mode**: Floating PiP player yang dapat digeser dan disematkan di 4 sudut layar dengan subtitle yang otomatis menyesuaikan ukuran.
+### 5. 🎬 Refined Hero Banner & Cinematic Player Experience
+- **Unobstructed Trailer View**: Lowered highlight text placement and reduced bottom black gradient height (from 70% down to 36%) so background trailer footage is wide, bright, and clearly visible.
+- **Streamlined Action Bar**: Removed redundant buttons on media detail action rows to keep essential controls (*Add to Watchlist, Watch Trailer, Share*) focused and elegant.
+- **Calibrated Autoplay Next Episode**: Intelligent credit-detection triggers next episode countdown seamlessly based on content duration.
+- **Floating PiP Mini Player**: Draggable, snappable mini player with magnetic 4-corner docking and autoscaling subtitles.
 
 ### 6. 📱 PWA Engine v1.4.3 & Hot Cache-Busting
-- **Pembaruan Instan Tanpa Cache Nyangkut**: Sistem deteksi Service Worker otomatis yang memicu notifikasi pembaruan dan tombol *Hard Reload* saat versi baru dirilis.
-- **Desain Native Mobile**: Optimalisasi *safe-area insets* untuk smartphone berponi (*notch*) dan navigasi bawah yang mulus.
+- **Instant Version Sync**: Automatic Service Worker update detection alerts users and provides 1-click *Hard Reload*, preventing stale cache issues across all PWA devices and mobile browsers.
+- **Mobile Native Adaptation**: Comprehensive safe-area insets optimization for edge-to-edge screens, notches, and navigation bars.
 
 ---
 
 ## ✨ Key Features Overview
 
-| Kategori | Fitur Unggulan |
+| Category | Highlights & Capabilities |
 | :--- | :--- |
-| **Streaming Engine** | Multi-server failover otomatis, monitoring latensi server, pemutaran 1080p, audio synchro. |
-| **Interaktivitas** | Danmaku floating comments, Watch Party P2P (WebRTC) dengan sinkronisasi playback & obrolan langsung. |
-| **Serial & Episode** | Navigasi lintas musim (*Cross-Season Progression*), Drawer episode di dalam player, riwayat tontonan ringkas (*Watched Tab*). |
-| **Personalisasi** | Profil dengan tema warna & avatar kustom, Sinkronisasi Cloud (Supabase), daftar tontonan pribadi. |
-| **Bahasa & Audio** | 100% Bilingual (Bahasa Indonesia & English), terjemahan sinopsis dinamis, soundscape UI Web Audio API tanpa file eksternal. |
-| **Admin Control** | Dashboard analitik komprehensif, metrik penonton, broadcast pengumuman global, manajemen server & konten. |
+| **Streaming Engine** | Multi-server automated failover, real-time latency monitoring, 1080p playback, seamless audio synchronization. |
+| **Interactivity & Social** | Danmaku floating timed comments, Serverless P2P Watch Party (WebRTC) with synchronized playback and in-player chat. |
+| **Series & Episodes** | Cross-season progression, in-player episode drawer, consolidated series cards in viewing history (*Watched Tab*). |
+| **Personalization** | Custom profile personas & color themes, Cloud sync (Supabase), personalized watchlists & history tracking. |
+| **Localization & Audio** | 100% Bilingual (English & Indonesian), dynamic auto-translated synopses, synthetic Web Audio API sound effects without external files. |
+| **Admin Command Center** | Comprehensive analytics dashboard, viewer metrics, global announcements broadcast, content & server management. |
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-Nikmati kontrol pemutaran penuh tanpa menyentuh mouse:
+Enjoy complete playback control directly from your keyboard:
 
-| Tombol | Aksi Pemutar |
+| Key | Player Action |
 | :--- | :--- |
-| <kbd>Space</kbd> / <kbd>K</kbd> | Putar / Jeda (*Play / Pause*) |
-| <kbd>F</kbd> | Layar Penuh (*Toggle Fullscreen*) |
-| <kbd>T</kbd> | Mode Bioskop (*Toggle Theater Mode*) |
-| <kbd>M</kbd> | Bisukan Suara (*Mute / Unmute*) |
-| <kbd>←</kbd> / <kbd>J</kbd> | Mundur 10 Detik |
-| <kbd>→</kbd> / <kbd>L</kbd> | Maju 10 Detik |
-| <kbd>↑</kbd> | Naikkan Volume (+5%) |
-| <kbd>↓</kbd> | Turunkan Volume (-5%) |
-| <kbd>Shift</kbd> + <kbd>N</kbd> | Episode Selanjutnya (*Next Episode*) |
-| <kbd>Shift</kbd> + <kbd>P</kbd> | Episode Sebelumnya (*Previous Episode*) |
-| <kbd>Esc</kbd> | Keluar Layar Penuh / Tutup Dialog Modal |
+| <kbd>Space</kbd> / <kbd>K</kbd> | Play / Pause |
+| <kbd>F</kbd> | Toggle Fullscreen |
+| <kbd>T</kbd> | Toggle Theater Mode |
+| <kbd>M</kbd> | Mute / Unmute Audio |
+| <kbd>←</kbd> / <kbd>J</kbd> | Rewind 10 Seconds |
+| <kbd>→</kbd> / <kbd>L</kbd> | Fast Forward 10 Seconds |
+| <kbd>↑</kbd> | Volume Up (+5%) |
+| <kbd>↓</kbd> | Volume Down (-5%) |
+| <kbd>Shift</kbd> + <kbd>N</kbd> | Next Episode |
+| <kbd>Shift</kbd> + <kbd>P</kbd> | Previous Episode |
+| <kbd>Esc</kbd> | Exit Fullscreen / Close Dialog Modals |
 
 ---
 
@@ -112,19 +112,19 @@ Nikmati kontrol pemutaran penuh tanpa menyentuh mouse:
 
 - **Frontend Core**: [React 19](https://react.dev/) + [TypeScript 6](https://www.typescriptlang.org/)
 - **Bundler & Tooling**: [Vite 8](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS v3](https://tailwindcss.com/) dengan palet custom *luxury cinema*
-- **Animation**: [Framer Motion 13](https://www.framer.com/motion/)
-- **Icons**: [Lucide React](https://lucide.dev/)
+- **Styling**: [Tailwind CSS v3](https://tailwindcss.com/) with custom luxury cinema palettes
+- **Animation Engine**: [Framer Motion 13](https://www.framer.com/motion/)
+- **Iconography**: [Lucide React](https://lucide.dev/)
 - **P2P Networking**: [PeerJS](https://peerjs.com/) (WebRTC Data & Media Channels)
 - **Backend & Database**: [Supabase](https://supabase.com/) (PostgreSQL, Realtime, Cloud Sync)
 - **PWA**: [Vite PWA Plugin](https://vite-pwa-org.netlify.app/) (Workbox Service Worker)
-- **Metadata Sources**: TMDB API, TVMaze, OMDb
+- **Metadata Aggregation**: TMDB API, TVMaze, OMDb
 
 ---
 
 ## 📄 License & Disclaimer
 
-Didistribusikan di bawah lisensi **MIT License**.
+Distributed under the **MIT License**.
 
 > **⚠️ Educational Disclaimer:**  
-> **CINESTREAM NOVA** dikembangkan sebagai proyek eksplorasi rekayasa perangkat lunak modern, arsitektur peer-to-peer WebRTC, dan desain antarmuka web sinematik. Semua metadata film dan televisi bersumber dari basis data publik terbuka (seperti TMDB dan TVMaze).
+> **CINESTREAM NOVA** is developed as an open-source technical exploration of modern frontend web engineering, WebRTC peer-to-peer interactivity, and digital cinematic interface design. All movie and television metadata are retrieved from publicly accessible open APIs (such as TMDB and TVMaze).
