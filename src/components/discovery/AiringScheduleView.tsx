@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Calendar, Tv, RefreshCw, Clock, Star, ExternalLink, Sparkles, Filter, Flame } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
+import { translateText } from '../../services/translator';
 
 const TMDB_API_KEY = '4e44d9029b1270a757cddc766a1bcb63';
 
@@ -25,6 +26,7 @@ export interface ShowDetailExtra {
   episodeBadge: string | null;
   epName?: string;
   airTime: string; // "HH:mm" in WIB
+  overview?: string; // localized or translated overview
 }
 
 interface AiringScheduleViewProps {
@@ -206,8 +208,8 @@ function getAirStatus(airTime: string, isToday: boolean, language: 'en' | 'id', 
   }
 }
 
-// In-memory cache for show details
-const showDetailsCache = new Map<number, ShowDetailExtra>();
+// In-memory cache for show details (keyed by showId_language)
+const showDetailsCache = new Map<string, ShowDetailExtra>();
 
 const GENRE_FILTERS = [
   { id: 'all', labelId: 'Semua', labelEn: 'All', withGenres: '' },
@@ -280,58 +282,78 @@ export const AiringScheduleView: React.FC<AiringScheduleViewProps> = ({ onSelect
     return () => clearInterval(timer);
   }, []);
 
-  // Background deep enrichment for networks and exact episode numbers
-  const enrichShowsWithDetails = useCallback(async (showsToEnrich: AiringShow[]) => {
-    const newExtras: Record<number, ShowDetailExtra> = {};
-    const promises = showsToEnrich.map(async (show) => {
-      if (showDetailsCache.has(show.id)) {
-        newExtras[show.id] = showDetailsCache.get(show.id)!;
-        return;
-      }
-      try {
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${show.id}?api_key=${TMDB_API_KEY}`);
-        if (!res.ok) throw new Error('Detail error');
-        const d = await res.json();
-        const networks: string[] = (d.networks || []).map((n: any) => n.name);
-        const ep = d.next_episode_to_air || d.last_episode_to_air;
-        let episodeBadge: string | null = null;
-        if (ep) {
-          if (ep.season_number && ep.season_number > 1) {
-            episodeBadge = `S${ep.season_number} E${ep.episode_number}`;
-          } else if (ep.episode_number) {
-            episodeBadge = `Ep. ${ep.episode_number}`;
-          }
+  // Background deep enrichment for networks, exact episode numbers, and localized synopsis
+  const enrichShowsWithDetails = useCallback(
+    async (showsToEnrich: AiringShow[]) => {
+      const newExtras: Record<number, ShowDetailExtra> = {};
+      const promises = showsToEnrich.map(async (show) => {
+        const cacheKey = `${show.id}_${language}`;
+        if (showDetailsCache.has(cacheKey)) {
+          newExtras[show.id] = showDetailsCache.get(cacheKey)!;
+          return;
         }
-        const airTime = resolveAirTime(
-          show.id,
-          show.genre_ids,
-          show.original_language,
-          show.origin_country || d.origin_country || [],
-          networks
-        );
-        const extra: ShowDetailExtra = {
-          networks,
-          episodeBadge,
-          epName: ep?.name,
-          airTime,
-        };
-        showDetailsCache.set(show.id, extra);
-        newExtras[show.id] = extra;
-      } catch {
-        const airTime = resolveAirTime(show.id, show.genre_ids, show.original_language, show.origin_country || []);
-        const extra: ShowDetailExtra = {
-          networks: [],
-          episodeBadge: null,
-          airTime,
-        };
-        showDetailsCache.set(show.id, extra);
-        newExtras[show.id] = extra;
-      }
-    });
+        try {
+          const res = await fetch(`https://api.themoviedb.org/3/tv/${show.id}?api_key=${TMDB_API_KEY}`);
+          if (!res.ok) throw new Error('Detail error');
+          const d = await res.json();
+          const networks: string[] = (d.networks || []).map((n: any) => n.name);
+          const ep = d.next_episode_to_air || d.last_episode_to_air;
+          let episodeBadge: string | null = null;
+          if (ep) {
+            if (ep.season_number && ep.season_number > 1) {
+              episodeBadge = `S${ep.season_number} E${ep.episode_number}`;
+            } else if (ep.episode_number) {
+              episodeBadge = `Ep. ${ep.episode_number}`;
+            }
+          }
+          const airTime = resolveAirTime(
+            show.id,
+            show.genre_ids,
+            show.original_language,
+            show.origin_country || d.origin_country || [],
+            networks
+          );
 
-    await Promise.all(promises);
-    setShowExtras((prev) => ({ ...prev, ...newExtras }));
-  }, []);
+          let resolvedOverview = (show.overview || d.overview || '').trim();
+          if (language === 'id' && resolvedOverview) {
+            // Auto-translate overview into Indonesian in background if needed
+            try {
+              const translated = await translateText(resolvedOverview, 'id');
+              if (translated && translated.trim()) {
+                resolvedOverview = translated.trim();
+              }
+            } catch {
+              // Gracefully keep fallback overview
+            }
+          }
+
+          const extra: ShowDetailExtra = {
+            networks,
+            episodeBadge,
+            epName: ep?.name,
+            airTime,
+            overview: resolvedOverview,
+          };
+          showDetailsCache.set(cacheKey, extra);
+          newExtras[show.id] = extra;
+        } catch {
+          const airTime = resolveAirTime(show.id, show.genre_ids, show.original_language, show.origin_country || []);
+          const extra: ShowDetailExtra = {
+            networks: [],
+            episodeBadge: null,
+            airTime,
+            overview: show.overview,
+          };
+          showDetailsCache.set(cacheKey, extra);
+          newExtras[show.id] = extra;
+        }
+      });
+
+      await Promise.all(promises);
+      setShowExtras((prev) => ({ ...prev, ...newExtras }));
+    },
+    [language]
+  );
 
   // Active selected day object
   const activeDayObj = useMemo(() => {
@@ -342,7 +364,7 @@ export const AiringScheduleView: React.FC<AiringScheduleViewProps> = ({ onSelect
     return GENRE_FILTERS.find((g) => g.id === selectedGenreId) || GENRE_FILTERS[0];
   }, [selectedGenreId]);
 
-  // Fetch shows strictly for the selected date
+  // Fetch shows strictly for the selected date with bilingual fallback for synopsis
   const fetchShowsForDate = useCallback(
     async (targetDate: string, targetPage: number, genreQuery: string, append = false) => {
       if (append) {
@@ -353,36 +375,67 @@ export const AiringScheduleView: React.FC<AiringScheduleViewProps> = ({ onSelect
       setError(null);
 
       try {
-        const lang = language === 'en' ? 'en-US' : 'id-ID';
-        let url = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&language=${lang}&air_date.gte=${targetDate}&air_date.lte=${targetDate}&sort_by=popularity.desc&page=${targetPage}`;
-        if (genreQuery) {
-          url += `&with_genres=${genreQuery}`;
+        const baseParams = `api_key=${TMDB_API_KEY}&air_date.gte=${targetDate}&air_date.lte=${targetDate}&sort_by=popularity.desc&page=${targetPage}${genreQuery ? `&with_genres=${genreQuery}` : ''}`;
+
+        let rawResults: AiringShow[] = [];
+        if (language === 'id') {
+          // Fetch both ID and EN in parallel: TMDB often lacks Indonesian overviews for international TV shows
+          const [resId, resEn] = await Promise.all([
+            fetch(`https://api.themoviedb.org/3/discover/tv?${baseParams}&language=id-ID`).catch(() => null),
+            fetch(`https://api.themoviedb.org/3/discover/tv?${baseParams}&language=en-US`).catch(() => null),
+          ]);
+
+          const dataId = resId && resId.ok ? await resId.json() : null;
+          const dataEn = resEn && resEn.ok ? await resEn.json() : null;
+
+          setTotalPages(dataId?.total_pages || dataEn?.total_pages || 1);
+          setTotalResults(dataId?.total_results || dataEn?.total_results || 0);
+
+          const enMap = new Map<number, AiringShow>();
+          for (const item of dataEn?.results || []) {
+            if (item.id) enMap.set(item.id, item);
+          }
+
+          const baseList: AiringShow[] =
+            dataId?.results && dataId.results.length > 0 ? dataId.results : dataEn?.results || [];
+
+          rawResults = baseList.map((item: AiringShow) => {
+            const enItem = enMap.get(item.id);
+            const idOverview = (item.overview || '').trim();
+            const enOverview = (enItem?.overview || '').trim();
+            return {
+              ...item,
+              name: item.name || enItem?.name || '',
+              overview: idOverview || enOverview || '',
+            };
+          });
+        } else {
+          const res = await fetch(`https://api.themoviedb.org/3/discover/tv?${baseParams}&language=en-US`);
+          if (!res.ok) throw new Error('TMDB fetch error');
+          const data = await res.json();
+          rawResults = data.results || [];
+          setTotalPages(data.total_pages || 1);
+          setTotalResults(data.total_results || 0);
         }
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('TMDB fetch error');
-        const data = await res.json();
-
-        const rawResults: AiringShow[] = data.results || [];
-        setTotalPages(data.total_pages || 1);
-        setTotalResults(data.total_results || 0);
-
-        // Pre-fill synchronous fallback extra so air time displays immediately without waiting
+        // Pre-fill synchronous fallback extra so air time and initial overview display immediately
         const initialExtras: Record<number, ShowDetailExtra> = {};
         for (const show of rawResults) {
-          if (showDetailsCache.has(show.id)) {
-            initialExtras[show.id] = showDetailsCache.get(show.id)!;
+          const cacheKey = `${show.id}_${language}`;
+          if (showDetailsCache.has(cacheKey)) {
+            initialExtras[show.id] = showDetailsCache.get(cacheKey)!;
           } else {
             initialExtras[show.id] = {
               networks: [],
               episodeBadge: null,
               airTime: resolveAirTime(show.id, show.genre_ids, show.original_language, show.origin_country || []),
+              overview: show.overview,
             };
           }
         }
         setShowExtras((prev) => ({ ...prev, ...initialExtras }));
 
-        // Asynchronously fetch deep details (networks & episode numbers)
+        // Asynchronously fetch deep details (networks, episode numbers, and Indonesian translation)
         enrichShowsWithDetails(rawResults);
 
         setShows((prev) => {
@@ -795,11 +848,21 @@ export const AiringScheduleView: React.FC<AiringScheduleViewProps> = ({ onSelect
                         )}
                       </div>
 
-                      {show.overview && (
-                        <p className="text-[10.5px] text-slate-400 line-clamp-2 leading-relaxed font-light mb-2">
-                          {show.overview}
-                        </p>
-                      )}
+                      {(() => {
+                        const synopsisText = (extra?.overview || show.overview || '').trim();
+                        if (synopsisText) {
+                          return (
+                            <p className="text-[10.5px] text-slate-400 line-clamp-2 leading-relaxed font-light mb-2">
+                              {synopsisText}
+                            </p>
+                          );
+                        }
+                        return (
+                          <p className="text-[10.5px] text-slate-500/80 italic line-clamp-2 leading-relaxed font-light mb-2">
+                            {language === 'en' ? 'Official synopsis will be updated soon.' : 'Sinopsis resmi akan segera diperbarui.'}
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-auto pt-1 border-t border-white/[0.04]">

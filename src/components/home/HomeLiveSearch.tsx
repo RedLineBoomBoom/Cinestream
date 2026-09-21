@@ -1048,7 +1048,11 @@ const HomeLiveSearchCard: React.FC<HomeLiveSearchCardProps> = ({
   const itemPoster = getMediaPoster(item as any, language) || item.poster;
   const durationLabel = formatMediaDuration(item as any, language);
   const { synopsis: autoCardSynopsis } = useAutoTranslateSynopsis(item as any, language);
-  const displaySynopsis = autoCardSynopsis || (language === 'en' ? (item.synopsisEn || item.synopsis) : (item.synopsisId || item.synopsis));
+  const displaySynopsis =
+    autoCardSynopsis ||
+    (language === 'en'
+      ? (item.synopsisEn || item.synopsis || item.synopsisId)
+      : (item.synopsisId || item.synopsis || item.synopsisEn));
 
   return (
     <div

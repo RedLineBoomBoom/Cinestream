@@ -6,7 +6,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { fetchLogoForMedia, fetchTrailerForMedia } from '../../services/tmdb';
 import { useAutoTranslateSynopsis } from '../../services/translator';
-import { formatGenre, getMediaTitle, getMediaBackdrop } from '../../utils/formatters';
+import { formatGenre, getMediaTitle, getMediaBackdrop, getMediaSynopsis } from '../../utils/formatters';
 import { getMediaWatchUrl, getAbsoluteWatchUrl } from '../../utils/navigation';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 
@@ -479,7 +479,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
           {/* Synopsis */}
           <p className="text-xs sm:text-sm lg:text-base text-white/80 font-normal max-w-2xl line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow-md transition-opacity duration-300">
-            {autoHeroSynopsis || currentMedia.synopsis}
+            {autoHeroSynopsis || getMediaSynopsis(currentMedia, language)}
           </p>
 
           {/* Action CTAs - Signature Netflix Play & More Info Buttons */}

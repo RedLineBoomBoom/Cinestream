@@ -4,6 +4,7 @@ import { X, Shuffle, Sparkles, Star, Play, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 import { fetchFullMediaItem } from '../../services/tmdb';
+import { translateText } from '../../services/translator';
 import { MOCK_CATALOG } from '../../data/mockCatalog';
 import type { MediaItem } from '../../types/media';
 
@@ -205,32 +206,77 @@ export const MoodPickerModal: React.FC<MoodPickerModalProps> = ({ onClose, onSel
     try {
       // Pick a random page between 1 and 4 for maximum freshness and variety
       const randomPage = Math.floor(Math.random() * 3) + 1;
-      const lang = language === 'en' ? 'en-US' : 'id-ID';
       const extra = mood.extraQuery || '';
-      const url = `https://api.themoviedb.org/3/discover/${mood.endpoint}?api_key=${TMDB_API_KEY}&language=${lang}&with_genres=${mood.withGenres}&vote_count.gte=80&sort_by=popularity.desc&page=${randomPage}${extra}`;
+      let rawList: any[] = [];
+      const enMap = new Map<number, any>();
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch from TMDB');
-      const data = await res.json();
-      const rawList: any[] = data.results || [];
+      if (language === 'id') {
+        const [resId, resEn] = await Promise.all([
+          fetch(
+            `https://api.themoviedb.org/3/discover/${mood.endpoint}?api_key=${TMDB_API_KEY}&language=id-ID&with_genres=${mood.withGenres}&vote_count.gte=80&sort_by=popularity.desc&page=${randomPage}${extra}`
+          ).catch(() => null),
+          fetch(
+            `https://api.themoviedb.org/3/discover/${mood.endpoint}?api_key=${TMDB_API_KEY}&language=en-US&with_genres=${mood.withGenres}&vote_count.gte=80&sort_by=popularity.desc&page=${randomPage}${extra}`
+          ).catch(() => null),
+        ]);
 
-      // Filter items with valid poster and overview
-      const validItems = rawList.filter((item) => item.poster_path && (item.title || item.name));
+        const dataId = resId && resId.ok ? await resId.json() : null;
+        const dataEn = resEn && resEn.ok ? await resEn.json() : null;
 
-      // Shuffle valid items and pick 3 or 4 top recommendations
+        for (const item of dataEn?.results || []) {
+          if (item.id) enMap.set(item.id, item);
+        }
+
+        rawList = (dataId?.results && dataId.results.length > 0) ? dataId.results : (dataEn?.results || []);
+      } else {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/discover/${mood.endpoint}?api_key=${TMDB_API_KEY}&language=en-US&with_genres=${mood.withGenres}&vote_count.gte=80&sort_by=popularity.desc&page=${randomPage}${extra}`
+        );
+        if (!res.ok) throw new Error('Failed to fetch from TMDB');
+        const data = await res.json();
+        rawList = data.results || [];
+      }
+
+      // Filter items with valid poster and title
+      const validItems = rawList.filter((item) => (item.poster_path || enMap.get(item.id)?.poster_path) && (item.title || item.name || enMap.get(item.id)?.title || enMap.get(item.id)?.name));
+
+      // Shuffle valid items and pick 3 top recommendations
       const shuffled = [...validItems].sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 3);
 
-      const mapped: MoodRecommendation[] = selected.map((item) => ({
-        tmdbId: item.id,
-        title: item.title || item.name || 'Untitled',
-        poster: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-        backdrop: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : '',
-        rating: item.vote_average ? Number(item.vote_average.toFixed(1)) : 0,
-        year: (item.release_date || item.first_air_date || '').slice(0, 4),
-        synopsis: item.overview || (language === 'en' ? 'No synopsis available.' : 'Sinopsis belum tersedia.'),
-        mediaType: mood.endpoint,
-      }));
+      const mapped: MoodRecommendation[] = await Promise.all(
+        selected.map(async (item) => {
+          const enItem = enMap.get(item.id);
+          const rawSynopsis = (item.overview || '').trim() || (enItem?.overview || '').trim();
+          let finalSynopsis = rawSynopsis;
+
+          if (language === 'id' && rawSynopsis && !(item.overview || '').trim()) {
+            try {
+              const translated = await translateText(rawSynopsis, 'id');
+              if (translated && translated.trim()) {
+                finalSynopsis = translated.trim();
+              }
+            } catch {
+              finalSynopsis = rawSynopsis;
+            }
+          }
+
+          return {
+            tmdbId: item.id,
+            title: item.title || item.name || enItem?.title || enItem?.name || 'Untitled',
+            poster: `https://image.tmdb.org/t/p/w500${item.poster_path || enItem?.poster_path}`,
+            backdrop: item.backdrop_path
+              ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
+              : enItem?.backdrop_path
+              ? `https://image.tmdb.org/t/p/w1280${enItem.backdrop_path}`
+              : '',
+            rating: item.vote_average ? Number(item.vote_average.toFixed(1)) : 0,
+            year: (item.release_date || item.first_air_date || enItem?.release_date || enItem?.first_air_date || '').slice(0, 4),
+            synopsis: finalSynopsis || (language === 'en' ? 'No synopsis available.' : 'Sinopsis belum tersedia.'),
+            mediaType: mood.endpoint,
+          };
+        })
+      );
 
       setRecommendations(mapped);
     } catch (err) {
