@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Tv, RefreshCw, Clock, Star, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Calendar, Tv, RefreshCw, Clock, Star, ExternalLink, Sparkles, Filter } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 
 const TMDB_API_KEY = '4e44d9029b1270a757cddc766a1bcb63';
+
 const DAY_NAMES_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -15,233 +16,453 @@ interface AiringShow {
   vote_average: number;
   overview: string;
   genre_ids: number[];
-  next_episode_to_air?: {
-    air_date: string;
-    episode_number: number;
-    season_number: number;
-    name: string;
-  };
+  origin_country?: string[];
+  original_language?: string;
 }
 
 interface AiringScheduleViewProps {
   onSelectMedia?: (tmdbId: number, title: string) => void;
 }
 
+const GENRE_FILTERS = [
+  { id: 'all', labelId: 'Semua', labelEn: 'All', withGenres: '' },
+  { id: 'anime', labelId: 'Anime & Animasi', labelEn: 'Anime & Animation', withGenres: '16' },
+  { id: 'drama', labelId: 'Drama & Series', labelEn: 'Drama & Series', withGenres: '18' },
+  { id: 'action', labelId: 'Aksi & Sci-Fi', labelEn: 'Action & Sci-Fi', withGenres: '10759,10765' },
+  { id: 'comedy', labelId: 'Komedi', labelEn: 'Comedy', withGenres: '35' },
+] as const;
+
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const AiringScheduleView: React.FC<AiringScheduleViewProps> = ({ onSelectMedia }) => {
   const { language } = useLanguage();
   const { playClick, playHover } = useSound();
-  const [shows, setShows] = useState<AiringShow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState(new Date().getDay());
-  const [page, setPage] = useState(1);
 
-  const today = new Date();
   const dayNames = language === 'en' ? DAY_NAMES_EN : DAY_NAMES_ID;
 
-  // Build a week of dates
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - today.getDay() + i);
-    return d;
+  // Compute 7 days for the current week (Sunday to Saturday)
+  const weekDays = useMemo(() => {
+    const today = new Date();
+    const currentDow = today.getDay(); // 0 = Sunday
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - currentDow);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const dateStr = formatLocalDate(d);
+      const isToday = d.toDateString() === today.toDateString();
+      return {
+        date: d,
+        dateStr,
+        dayIndex: d.getDay(),
+        dayNumber: d.getDate(),
+        isToday,
+      };
+    });
+  }, []);
+
+  const todayStr = useMemo(() => formatLocalDate(new Date()), []);
+
+  // Selected date defaults to today
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
+    return todayStr;
   });
 
-  const fetchAiring = async (pageNum = 1) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // TMDB on_the_air returns shows airing in the next 7 days
-      const res = await fetch(
-        `https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_API_KEY}&language=${language === 'en' ? 'en-US' : 'id-ID'}&page=${pageNum}&region=ID`
-      );
-      if (!res.ok) throw new Error('TMDB fetch failed');
-      const data = await res.json();
-      const results: AiringShow[] = data.results || [];
-      setShows(pageNum === 1 ? results : (prev) => [...prev, ...results]);
-    } catch (err) {
-      setError(language === 'en' ? 'Failed to load airing schedule.' : 'Gagal memuat jadwal tayang.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [selectedGenreId, setSelectedGenreId] = useState<string>('all');
+  const [shows, setShows] = useState<AiringShow[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalResults, setTotalResults] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Active selected day object
+  const activeDayObj = useMemo(() => {
+    return weekDays.find((d) => d.dateStr === selectedDateStr) || weekDays[0];
+  }, [weekDays, selectedDateStr]);
+
+  const activeGenreFilter = useMemo(() => {
+    return GENRE_FILTERS.find((g) => g.id === selectedGenreId) || GENRE_FILTERS[0];
+  }, [selectedGenreId]);
+
+  // Fetch shows strictly for the selected date
+  const fetchShowsForDate = useCallback(
+    async (targetDate: string, targetPage: number, genreQuery: string, append = false) => {
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const lang = language === 'en' ? 'en-US' : 'id-ID';
+        let url = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&language=${lang}&air_date.gte=${targetDate}&air_date.lte=${targetDate}&sort_by=popularity.desc&page=${targetPage}`;
+        if (genreQuery) {
+          url += `&with_genres=${genreQuery}`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('TMDB fetch error');
+        const data = await res.json();
+
+        const rawResults: AiringShow[] = data.results || [];
+        setTotalPages(data.total_pages || 1);
+        setTotalResults(data.total_results || 0);
+
+        setShows((prev) => {
+          if (!append) {
+            // First page: strict unique IDs
+            const seen = new Set<number>();
+            return rawResults.filter((item) => {
+              if (!item.id || seen.has(item.id)) return false;
+              seen.add(item.id);
+              return true;
+            });
+          } else {
+            // Appending page: add only IDs not already in prev list
+            const existingIds = new Set(prev.map((item) => item.id));
+            const freshItems = rawResults.filter((item) => item.id && !existingIds.has(item.id));
+            return [...prev, ...freshItems];
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to load airing schedule:', err);
+        setError(
+          language === 'en'
+            ? 'Failed to load airing schedule for this date.'
+            : 'Gagal memuat jadwal tayang untuk tanggal ini.'
+        );
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [language]
+  );
+
+  // When selected date or genre changes, reset to page 1 and fetch fresh
   useEffect(() => {
     setPage(1);
-    setShows([]);
-    fetchAiring(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]);
+    fetchShowsForDate(selectedDateStr, 1, activeGenreFilter.withGenres, false);
+  }, [selectedDateStr, activeGenreFilter.withGenres, fetchShowsForDate]);
 
+  // Load More action with deduplication
   const handleLoadMore = () => {
+    if (isLoadingMore || page >= totalPages) return;
     playClick();
     const nextPage = page + 1;
     setPage(nextPage);
-    fetchAiring(nextPage);
+    fetchShowsForDate(selectedDateStr, nextPage, activeGenreFilter.withGenres, true);
   };
 
-  // Filter shows loosely by selected day (air date day of week)
-  const filteredShows = shows.filter((show) => {
-    if (!show.first_air_date) return true;
-    const airDow = new Date(show.first_air_date).getDay();
-    return airDow === selectedDay;
-  });
+  const handleRefresh = () => {
+    playClick();
+    setPage(1);
+    fetchShowsForDate(selectedDateStr, 1, activeGenreFilter.withGenres, false);
+  };
 
-  // If no shows match the exact day, show all (TMDB on_the_air doesn't always have perfect day data)
-  const displayShows = filteredShows.length > 0 ? filteredShows : shows;
+  const hasMore = page < totalPages && page < 20;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
-          <Calendar className="w-5 h-5 text-violet-400" />
-        </div>
-        <div>
-          <h1 className="text-xl font-display font-bold text-white">
-            {language === 'en' ? 'Weekly Airing Schedule' : 'Jadwal Tayang Mingguan'}
-          </h1>
-          <p className="text-xs text-slate-400">
-            {language === 'en' ? 'Anime & series currently airing — powered by TMDB' : 'Anime & series yang sedang tayang — dari TMDB'}
-          </p>
+    <div className="pt-28 sm:pt-32 pb-20 px-4 sm:px-8 lg:px-12 3xl:px-16 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto space-y-6 sm:space-y-8 min-h-[75vh] animate-in fade-in duration-300">
+      {/* Top Banner & Title */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-900/30 shrink-0 mt-0.5">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-white tracking-wide uppercase">
+                {language === 'en' ? 'Weekly Airing Schedule' : 'Jadwal Tayang Mingguan'}
+              </h1>
+              <span className="text-[11px] sm:text-xs font-mono font-bold text-violet-300 bg-violet-500/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-violet-500/30 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                <span>TMDB LIVE</span>
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 font-light mt-1 max-w-2xl leading-relaxed">
+              {language === 'en'
+                ? 'Discover anime and TV series airing each day this week. Select a day to view its exclusive daily broadcast lineup.'
+                : 'Temukan anime dan serial TV yang tayang setiap hari minggu ini. Pilih tanggal untuk melihat jadwal siaran khusus hari tersebut.'}
+            </p>
+          </div>
         </div>
 
         <button
-          onClick={() => { playClick(); setPage(1); setShows([]); fetchAiring(1); }}
-          disabled={isLoading}
-          className="ml-auto p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
-          title={language === 'en' ? 'Refresh' : 'Segarkan'}
+          onClick={handleRefresh}
+          disabled={isLoading || isLoadingMore}
+          className="self-start md:self-auto flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+          title={language === 'en' ? 'Refresh schedule' : 'Segarkan jadwal'}
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-violet-400' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-violet-400' : ''}`} />
+          <span>{language === 'en' ? 'Refresh' : 'Segarkan'}</span>
         </button>
       </div>
 
-      {/* Day Selector */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10">
-        {weekDays.map((d, i) => {
-          const isToday = d.toDateString() === today.toDateString();
-          const isSelected = i === selectedDay;
-          return (
-            <button
-              key={i}
-              onClick={() => { playClick(); setSelectedDay(i); }}
-              onMouseEnter={playHover}
-              className={`flex flex-col items-center px-3 py-2.5 rounded-2xl min-w-[56px] transition-all cursor-pointer shrink-0 border ${
-                isSelected
-                  ? 'bg-violet-600 border-violet-500 text-white shadow-lg shadow-violet-900/30'
-                  : isToday
-                  ? 'bg-violet-500/15 border-violet-500/30 text-violet-300 hover:bg-violet-500/25'
-                  : 'bg-white/[0.04] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.08]'
-              }`}
-            >
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                {dayNames[i].slice(0, 3)}
-              </span>
-              <span className="text-base font-display font-black mt-0.5">{d.getDate()}</span>
-              {isToday && (
-                <span className="w-1 h-1 rounded-full bg-violet-300 mt-0.5" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Day label */}
-      <div className="flex items-center gap-2">
-        <Tv className="w-4 h-4 text-violet-400" />
-        <span className="text-sm font-semibold text-slate-300">
-          {dayNames[selectedDay]}, {weekDays[selectedDay]?.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'long' })}
-        </span>
-        {filteredShows.length === 0 && !isLoading && (
-          <span className="text-xs text-slate-500 ml-2">
-            ({language === 'en' ? 'Showing all airing shows' : 'Menampilkan semua yang sedang tayang'})
+      {/* 7-Day Week Navigation Bar */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-violet-400" />
+            {language === 'en' ? 'Select Broadcast Day' : 'Pilih Hari Penayangan'}
           </span>
-        )}
+          <span className="text-[11px] font-mono text-slate-500">
+            {weekDays[0].date.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { month: 'short', day: 'numeric' })}
+            {' — '}
+            {weekDays[6].date.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+          {weekDays.map((d) => {
+            const isSelected = d.dateStr === selectedDateStr;
+            const dayLabel = dayNames[d.dayIndex]?.slice(0, 3).toUpperCase();
+
+            return (
+              <button
+                key={d.dateStr}
+                onClick={() => {
+                  playClick();
+                  setSelectedDateStr(d.dateStr);
+                }}
+                onMouseEnter={playHover}
+                className={`relative flex flex-col items-center justify-center py-2.5 sm:py-3.5 px-1 sm:px-2 rounded-2xl transition-all duration-200 cursor-pointer border select-none ${
+                  isSelected
+                    ? 'bg-violet-600 border-violet-400 text-white shadow-lg shadow-violet-900/50 scale-[1.03] z-10'
+                    : d.isToday
+                    ? 'bg-violet-500/10 border-violet-500/40 text-violet-300 hover:bg-violet-500/20'
+                    : 'bg-white/[0.03] border-white/[0.07] text-slate-400 hover:text-white hover:bg-white/[0.08]'
+                }`}
+              >
+                <span className={`text-[9.5px] sm:text-[11px] font-bold tracking-wider ${isSelected ? 'text-violet-100' : 'text-slate-400'}`}>
+                  {dayLabel}
+                </span>
+                <span className="text-lg sm:text-2xl font-display font-black tracking-tight mt-0.5">
+                  {d.dayNumber}
+                </span>
+
+                {/* Today indicator badge */}
+                {d.isToday && (
+                  <span
+                    className={`mt-1 text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider ${
+                      isSelected
+                        ? 'bg-white/25 text-white'
+                        : 'bg-violet-500/30 text-violet-300'
+                    }`}
+                  >
+                    {language === 'en' ? 'Today' : 'Hari ini'}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Error */}
+      {/* Genre Filter Chips & Current Lineup Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2">
+        {/* Active Day Description */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-base sm:text-lg font-display font-bold text-white">
+              {dayNames[activeDayObj.dayIndex]}, {activeDayObj.date.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+            <span className="text-xs text-slate-400 font-mono">
+              ({totalResults} {language === 'en' ? 'shows airing' : 'tayangan terjadwal'})
+            </span>
+          </div>
+        </div>
+
+        {/* Category Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0 mr-1" />
+          {GENRE_FILTERS.map((g) => {
+            const isSelected = selectedGenreId === g.id;
+            const label = language === 'en' ? g.labelEn : g.labelId;
+            return (
+              <button
+                key={g.id}
+                onClick={() => {
+                  playClick();
+                  setSelectedGenreId(g.id);
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-white text-black border-white shadow-md font-bold'
+                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border-white/[0.08]'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Error Message */}
       {error && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-          {error}
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-300 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-xs font-bold text-white transition-all cursor-pointer"
+          >
+            {language === 'en' ? 'Retry' : 'Coba Lagi'}
+          </button>
         </div>
       )}
 
-      {/* Show Grid */}
-      {isLoading && shows.length === 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="rounded-2xl bg-white/[0.04] border border-white/[0.06] overflow-hidden animate-pulse">
+      {/* Main Shows Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 lg:gap-5">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden animate-pulse flex flex-col"
+            >
               <div className="aspect-[2/3] bg-white/[0.06]" />
-              <div className="p-3 space-y-2">
-                <div className="h-3 bg-white/[0.06] rounded-full w-3/4" />
+              <div className="p-3 space-y-2 flex-1">
+                <div className="h-3 bg-white/[0.08] rounded-full w-4/5" />
                 <div className="h-2.5 bg-white/[0.04] rounded-full w-1/2" />
               </div>
             </div>
           ))}
         </div>
+      ) : shows.length === 0 ? (
+        <div className="py-24 text-center space-y-3 rounded-3xl bg-white/[0.02] border border-white/[0.06]">
+          <Tv className="w-10 h-10 mx-auto text-slate-600" />
+          <h3 className="text-base font-display font-medium text-white">
+            {language === 'en' ? 'No scheduled broadcasts found' : 'Tidak ada jadwal tayang ditemukan'}
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            {language === 'en'
+              ? 'Try selecting a different day or category filter to discover ongoing anime and series.'
+              : 'Coba pilih hari lain atau ubah kategori filter untuk melihat anime dan serial yang tayang.'}
+          </p>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {displayShows.map((show) => (
-              <button
-                key={show.id}
-                onClick={() => { playClick(); onSelectMedia?.(show.id, show.name); }}
-                onMouseEnter={playHover}
-                className="group flex flex-col rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/40 hover:bg-violet-500/[0.07] overflow-hidden transition-all cursor-pointer text-left shadow-sm hover:shadow-lg hover:shadow-violet-900/20 active:scale-[0.98]"
-              >
-                {/* Poster */}
-                <div className="relative aspect-[2/3] overflow-hidden bg-white/[0.04]">
-                  {show.poster_path ? (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w300${show.poster_path}`}
-                      alt={show.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Tv className="w-8 h-8 text-slate-600" />
-                    </div>
-                  )}
-                  {/* Rating badge */}
-                  {show.vote_average > 0 && (
-                    <div className="absolute top-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[9px] font-bold text-amber-300">
-                      <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                      {show.vote_average.toFixed(1)}
-                    </div>
-                  )}
-                  {/* Airing badge */}
-                  <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-violet-600/85 backdrop-blur-sm text-[9px] font-bold text-white">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    {language === 'en' ? 'AIRING' : 'TAYANG'}
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 lg:gap-5">
+            {shows.map((show) => {
+              const year = show.first_air_date ? show.first_air_date.slice(0, 4) : '';
+              const rating = show.vote_average ? show.vote_average.toFixed(1) : null;
+              const isAnime = show.genre_ids?.includes(16) || show.original_language === 'ja';
 
-                {/* Info */}
-                <div className="p-2.5 flex-1 flex flex-col">
-                  <p className="text-xs font-semibold text-white leading-tight line-clamp-2 mb-1">{show.name}</p>
-                  <div className="flex items-center gap-1 text-[9px] text-slate-500 mt-auto">
-                    <Clock className="w-2.5 h-2.5" />
-                    <span>{show.first_air_date?.slice(0, 4) || '—'}</span>
-                    <ExternalLink className="w-2.5 h-2.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+              return (
+                <button
+                  key={`${selectedDateStr}-${show.id}`}
+                  onClick={() => {
+                    playClick();
+                    onSelectMedia?.(show.id, show.name);
+                  }}
+                  onMouseEnter={playHover}
+                  className="group flex flex-col rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/50 hover:bg-violet-500/[0.08] overflow-hidden transition-all duration-300 cursor-pointer text-left shadow-md hover:shadow-xl hover:shadow-violet-950/40 active:scale-[0.98]"
+                >
+                  {/* Poster image */}
+                  <div className="relative aspect-[2/3] overflow-hidden bg-neutral-900">
+                    {show.poster_path ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w342${show.poster_path}`}
+                        alt={show.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 gap-2 p-2 text-center">
+                        <Tv className="w-8 h-8 opacity-60" />
+                        <span className="text-[10px] text-slate-500 line-clamp-2">{show.name}</span>
+                      </div>
+                    )}
+
+                    {/* Gradient shadow overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+
+                    {/* Rating Badge */}
+                    {rating && Number(rating) > 0 && (
+                      <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-amber-300 border border-white/10 shadow-md">
+                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                        <span>{rating}</span>
+                      </div>
+                    )}
+
+                    {/* Anime Tag */}
+                    {isAnime && (
+                      <div className="absolute top-2 left-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-600/85 backdrop-blur-md text-[8.5px] font-black tracking-wider uppercase text-white shadow-sm">
+                        <Sparkles className="w-2 h-2" />
+                        <span>ANIME</span>
+                      </div>
+                    )}
+
+                    {/* Airing Today/Date Badge */}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-600/90 backdrop-blur-md text-[9px] font-bold text-white shadow-md">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      <span>{activeDayObj.isToday ? (language === 'en' ? 'AIRING TODAY' : 'TAYANG HARI INI') : (language === 'en' ? 'SCHEDULED' : 'TERJADWAL')}</span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+
+                  {/* Show info */}
+                  <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-violet-300 transition-colors line-clamp-2 leading-snug mb-1">
+                        {show.name}
+                      </h4>
+                      {show.overview && (
+                        <p className="text-[10.5px] text-slate-400 line-clamp-2 leading-relaxed font-light mb-2">
+                          {show.overview}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-auto pt-1 border-t border-white/[0.04]">
+                      <span>{year || 'TV Series'}</span>
+                      <div className="flex items-center gap-1 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                        <span>{language === 'en' ? 'Watch' : 'Tonton'}</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Load More */}
-          {!isLoading && displayShows.length > 0 && (
-            <div className="flex justify-center pt-4">
+          {/* Load More Button & End of Results */}
+          <div className="flex flex-col items-center justify-center pt-8 pb-4 space-y-2">
+            {hasMore ? (
               <button
                 onClick={handleLoadMore}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300 text-sm font-semibold transition-all cursor-pointer"
+                disabled={isLoadingMore}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-violet-600/20 hover:bg-violet-600/35 border border-violet-500/40 text-violet-200 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-950/40"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                {language === 'en' ? 'Load More' : 'Muat Lebih Banyak'}
+                <RefreshCw className={`w-4 h-4 ${isLoadingMore ? 'animate-spin text-violet-400' : ''}`} />
+                <span>
+                  {isLoadingMore
+                    ? language === 'en' ? 'Loading more shows…' : 'Memuat lebih banyak…'
+                    : language === 'en' ? 'Load More Airing Shows' : 'Muat Lebih Banyak Tayangan'}
+                </span>
               </button>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs text-slate-500 font-mono">
+                ✓ {language === 'en'
+                  ? 'All scheduled shows for this date have been loaded'
+                  : 'Semua tayangan terjadwal untuk tanggal ini telah ditampilkan'}
+              </p>
+            )}
+          </div>
         </>
       )}
     </div>

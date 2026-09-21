@@ -1267,9 +1267,14 @@ const MainContent: React.FC = () => {
         {activeTab === 'schedule' && (
           <AiringScheduleView
             onSelectMedia={(tmdbId, _title) => {
-              // Try to find in catalog by tmdbId
               const found = fullCatalog.find((m) => m.tmdbId === tmdbId);
-              if (found) handleOpenMedia(found);
+              if (found) {
+                handleOpenMedia(found);
+              } else {
+                fetchFullMediaItem(tmdbId, 'tv').then((m) => {
+                  if (m) handleOpenMedia(m);
+                });
+              }
             }}
           />
         )}
