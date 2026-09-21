@@ -73,8 +73,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Critical In-line Cinema Dark Theme to eliminate any flash of white -->
+    <style>
+      html, body {
+        background-color: #141414 !important;
+        color: #f8fafc !important;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
   </head>
-  <body class="bg-[#141414] text-slate-100 selection:bg-[#E50914] selection:text-white font-sans overflow-x-hidden antialiased min-h-screen">
+  <body style="background-color: #141414; color: #f8fafc;" class="bg-[#141414] text-slate-100 selection:bg-[#E50914] selection:text-white font-sans overflow-x-hidden antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

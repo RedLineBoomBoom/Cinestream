@@ -96,6 +96,25 @@ function ServiceWorkerManager() {
   return null;
 }
 
+// Auto-recover from stale stylesheet or missing asset errors after deployment
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'error',
+    (e) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.tagName === 'LINK' && (target as HTMLLinkElement).rel === 'stylesheet') {
+        const key = 'cinestream_stylesheet_recover';
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1');
+          console.warn('[Cinestream] Stylesheet failed to load, performing reload to sync latest assets...');
+          window.location.reload();
+        }
+      }
+    },
+    true
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ServiceWorkerManager />
