@@ -18,6 +18,7 @@ import {
   Shield,
   RefreshCw,
   Share2,
+  Smartphone,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -368,6 +369,34 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Cinestream App / Download APK Button (Dedicated App Access) */}
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                onSelectTab('app');
+                onClose();
+              }}
+              onMouseEnter={playHover}
+              className="w-full p-3 rounded-xl bg-gradient-to-r from-red-950/70 via-zinc-900 to-black/90 hover:from-red-900/80 hover:via-zinc-800 hover:to-black border border-red-500/40 hover:border-red-500/70 shadow-lg shadow-black/50 transition-all cursor-pointer group flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  <Smartphone className="w-4 h-4 text-[#E50914]" />
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className="text-red-500 font-extrabold tracking-wide">Cinestream App</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#E50914] text-white">APK</span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 font-medium">
+                    {language === 'en' ? 'Download for Android & Smart TV' : 'Unduh APK Android & Smart TV'}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </button>
 
             {/* Exclusive Admin Dashboard Button (ONLY for Verified Admins) */}
             {isAdmin && (
