@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Dices,
   Check,
@@ -62,7 +63,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile.name);
   const [activeTab, setActiveTab] = useState<'overview' | 'customize'>('overview');
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatusMsg, setUpdateStatusMsg] = useState<string | null>(null);
   const [showProfileCard, setShowProfileCard] = useState(false);
@@ -83,13 +84,38 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     }
   };
 
-  // Track viewport size to switch positioning strategy
+  // Track viewport size to switch positioning strategy (mobile/tablet < 1024 vs desktop >= 1024)
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
+    const check = () => setIsMobile(window.innerWidth < 1024);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // Lock background body scroll on mobile/tablet when profile modal is open
+  useEffect(() => {
+    if (!isOpen || !isMobile) return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, [isOpen, isMobile]);
+
+  // ESC key listener to dismiss modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -105,24 +131,20 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     }
   }, [isEditingName]);
 
-  // Click outside listener
+  // Click outside listener (desktop only; mobile uses the full-viewport portal backdrop)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isMobile) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      // If the shareable profile modal is currently open, do not trigger dropdown close from outside clicks
       if (showProfileCard) return;
 
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      // Ignore if click is inside the dropdown itself
       if (dropdownRef.current && dropdownRef.current.contains(target)) {
         return;
       }
 
-      // Ignore if click is on the trigger button (avatar button) or any element with data-profile-trigger
-      // This allows the trigger button's own onClick to properly toggle the dropdown closed instead of reopening!
       if (triggerRef?.current && triggerRef.current.contains(target)) {
         return;
       }
@@ -137,7 +159,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose, showProfileCard, triggerRef]);
+  }, [isOpen, onClose, showProfileCard, triggerRef, isMobile]);
 
   // Always reset showProfileCard and edit states whenever dropdown closes or is hidden
   useEffect(() => {
@@ -163,29 +185,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     randomizeProfile();
   };
 
-  return (
+  const dropdownBody = (
     <>
-      {/* Mobile backdrop dimmer — tap outside to close */}
-      {isMobile && (
-        <div
-          className="fixed inset-0 z-[9989] bg-black/70 backdrop-blur-sm"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      <div
-        ref={dropdownRef}
-        className={`z-[9990] rounded-2xl bg-[#111111] backdrop-blur-xl border border-white/12 shadow-2xl shadow-black/90 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto no-scrollbar ${
-          isMobile
-            // Mobile: fixed to viewport — never goes off-screen
-            ? 'fixed left-2 right-2 top-[4.25rem] max-h-[calc(100dvh-5rem)]'
-            // Desktop: absolute below the avatar button
-            : 'absolute right-0 top-full mt-2 w-96 max-w-[380px] max-h-[calc(100dvh-5rem)]'
-        }`}
-      >
       {/* Header Banner with Profile Palette Gradient */}
-      <div className={`relative h-28 bg-gradient-to-r ${activePalette.gradient} p-4 pt-3.5 flex items-start justify-between overflow-hidden`}>
+      <div className={`relative h-28 bg-gradient-to-r ${activePalette.gradient} p-4 pt-3.5 flex items-start justify-between overflow-hidden shrink-0`}>
         <div className="absolute inset-0 bg-black/25" />
         <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
@@ -219,7 +222,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       </div>
 
       {/* Main Profile Info */}
-      <div className="p-5 pt-0 relative">
+      <div className="p-4 sm:p-5 pt-0 pb-8 relative">
         {/* Floating Avatar & Actions Row */}
         <div className="flex items-start justify-between mb-4">
           <div
@@ -675,7 +678,55 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
         )}
       </div>
-      </div>
+    </>
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        typeof document !== 'undefined' ? (
+          createPortal(
+            <div
+              className="fixed inset-0 z-[10000] flex items-center justify-center p-3 xs:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
+              style={{
+                paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
+                paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+                paddingLeft: 'max(12px, env(safe-area-inset-left, 12px))',
+                paddingRight: 'max(12px, env(safe-area-inset-right, 12px))',
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  playClick();
+                  onClose();
+                }
+              }}
+              onTouchEnd={(e) => {
+                if (e.target === e.currentTarget) {
+                  playClick();
+                  onClose();
+                }
+              }}
+            >
+              <div
+                ref={dropdownRef}
+                className="relative w-full max-w-[420px] max-h-[calc(100dvh-max(32px,env(safe-area-inset-top,16px)+env(safe-area-inset-bottom,16px)))] rounded-3xl bg-[#111111] border border-white/15 shadow-2xl shadow-black/95 text-slate-100 flex flex-col overflow-y-auto no-scrollbar animate-in zoom-in-95 duration-200 select-text"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {dropdownBody}
+              </div>
+            </div>,
+            document.body
+          )
+        ) : null
+      ) : (
+        <div
+          ref={dropdownRef}
+          className="absolute right-0 top-full mt-2 w-96 max-w-[380px] max-h-[calc(100vh-5rem)] rounded-2xl bg-[#111111] backdrop-blur-xl border border-white/12 shadow-2xl shadow-black/90 text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto no-scrollbar z-[9990]"
+        >
+          {dropdownBody}
+        </div>
+      )}
+
       {showProfileCard && (
         <PublicProfileModal onClose={() => setShowProfileCard(false)} />
       )}
