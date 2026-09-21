@@ -310,7 +310,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="relative w-full min-h-[580px] sm:min-h-[600px] lg:h-[82vh] lg:min-h-[620px] lg:max-h-[860px] 2xl:max-h-[920px] 3xl:max-h-[1050px] 4xl:max-h-[1200px] flex items-end justify-start pb-6 sm:pb-10 lg:pb-14 pt-20 sm:pt-24 lg:pt-28 select-none"
+      className="relative w-full min-h-[520px] sm:min-h-[560px] lg:h-[80vh] lg:min-h-[580px] lg:max-h-[820px] 2xl:max-h-[880px] 3xl:max-h-[1000px] 4xl:max-h-[1100px] flex items-end justify-start pb-4 sm:pb-5 lg:pb-7 pt-16 sm:pt-20 lg:pt-24 select-none"
     >
       {/* Full bleed cinematic backdrop */}
       <div className="absolute inset-0 overflow-hidden">
@@ -351,23 +351,32 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
         )}
 
-        {/* Bottom gradient — tall so fully solid before hitting bottom edge */}
+        {/* Bottom gradient — elegant low fade so trailer remains clearly visible */}
         <div
-          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          className={`absolute inset-x-0 bottom-0 pointer-events-none transition-all duration-700 ${
+            showTrailer && trailerKey ? 'h-[36%]' : 'h-[46%]'
+          }`}
           style={{
-            height: '70%',
-            background: 'linear-gradient(to top, #141414 0%, #141414 20%, rgba(20,20,20,0.92) 50%, rgba(20,20,20,0.5) 75%, transparent 100%)',
+            background: showTrailer && trailerKey
+              ? 'linear-gradient(to top, #141414 0%, #141414 10%, rgba(20,20,20,0.65) 35%, rgba(20,20,20,0.15) 70%, transparent 100%)'
+              : 'linear-gradient(to top, #141414 0%, #141414 14%, rgba(20,20,20,0.8) 40%, rgba(20,20,20,0.25) 75%, transparent 100%)',
           }}
         />
-        {/* Left vignette for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/80 to-transparent lg:w-[70%] w-full pointer-events-none" />
+        {/* Left vignette for text readability without obscuring the trailer */}
+        <div
+          className={`absolute inset-0 pointer-events-none transition-all duration-700 ${
+            showTrailer && trailerKey
+              ? 'bg-gradient-to-r from-[#141414]/90 via-[#141414]/30 to-transparent lg:w-[46%] w-full'
+              : 'bg-gradient-to-r from-[#141414]/95 via-[#141414]/45 to-transparent lg:w-[52%] w-full'
+          }`}
+        />
         {/* Top navbar fade */}
-        <div className="absolute top-0 inset-x-0 h-36 sm:h-44 bg-gradient-to-b from-black/85 via-black/35 to-transparent pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-24 sm:h-28 bg-gradient-to-b from-black/75 via-black/20 to-transparent pointer-events-none" />
       </div>
 
       {/* Hero Content */}
       <div className="relative z-10 max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 w-full">
-        <div className="max-w-xl sm:max-w-2xl lg:max-w-3xl 3xl:max-w-4xl space-y-3 sm:space-y-4 lg:space-y-5">
+        <div className="max-w-xl sm:max-w-2xl lg:max-w-3xl 3xl:max-w-4xl space-y-2 sm:space-y-2.5 lg:space-y-3">
           {/* Netflix Signature Metadata Badges */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs">
             {/* Custom Spotlight Badge vs Standard Top 10 */}
@@ -426,12 +435,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
           {/* Grand Cinematic Title - Official Logo Image or Modern High-Impact Typography */}
           {mediaLogo ? (
-            <div className="py-1 sm:py-2 animate-in fade-in zoom-in-95 duration-500 min-h-[60px] sm:min-h-[90px] flex items-center">
+            <div className="py-0.5 sm:py-1 animate-in fade-in zoom-in-95 duration-500 min-h-[48px] sm:min-h-[72px] flex items-center">
               <img
                 key={mediaLogo}
                 src={mediaLogo}
                 alt={displayTitle}
-                className="max-h-20 sm:max-h-28 md:max-h-36 max-w-[85%] sm:max-w-[480px] w-auto object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.9)] filter brightness-110 select-none pointer-events-none"
+                className="max-h-16 sm:max-h-22 md:max-h-28 max-w-[80%] sm:max-w-[420px] w-auto object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.9)] filter brightness-110 select-none pointer-events-none"
                 onError={() => {
                   setMediaLogo(undefined);
                 }}
@@ -439,7 +448,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <h1 className="sr-only">{displayTitle}</h1>
             </div>
           ) : (
-            <h1 className="text-3xl sm:text-5xl lg:text-7xl xl:text-8xl font-display font-black text-white tracking-tight uppercase leading-[0.98] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-display font-black text-white tracking-tight uppercase leading-[1] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">
               {displayTitle}
             </h1>
           )}
@@ -478,12 +487,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
 
           {/* Synopsis */}
-          <p className="text-xs sm:text-sm lg:text-base text-white/80 font-normal max-w-2xl line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow-md transition-opacity duration-300">
+          <p className="text-xs sm:text-sm text-white/80 font-normal max-w-xl line-clamp-2 leading-relaxed drop-shadow-md transition-opacity duration-300">
             {autoHeroSynopsis || getMediaSynopsis(currentMedia, language)}
           </p>
 
           {/* Action CTAs - Signature Netflix Play & More Info Buttons */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1 sm:pt-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5 sm:pt-1">
             {/* Netflix Iconic Solid White Play Button */}
             <a
               href={getMediaWatchUrl(currentMedia.id)}
@@ -497,9 +506,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 onPlay(currentMedia);
               }}
               onMouseEnter={playHover}
-              className="flex items-center justify-center gap-2 sm:gap-3 px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-md bg-white hover:bg-white/80 active:scale-95 text-black font-black text-xs sm:text-base tracking-wide shadow-2xl transition-all duration-200 no-underline cursor-pointer flex-1 sm:flex-initial"
+              className="flex items-center justify-center gap-2 sm:gap-2.5 px-4 sm:px-6 py-2 sm:py-2.5 rounded-md bg-white hover:bg-white/80 active:scale-95 text-black font-black text-xs sm:text-sm tracking-wide shadow-2xl transition-all duration-200 no-underline cursor-pointer flex-1 sm:flex-initial"
             >
-              <Play className="w-4 h-4 sm:w-6 sm:h-6 fill-black text-black" />
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-black text-black" />
               <span>{currentMedia.type === 'movie' ? t('watchMovie') : t('watchSeries')}</span>
             </a>
 
@@ -512,9 +521,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 onOpenDetails(currentMedia);
               }}
               onMouseEnter={playHover}
-              className="flex items-center justify-center gap-2 px-4 sm:px-7 py-2.5 sm:py-3.5 rounded-md bg-white/25 hover:bg-white/20 active:scale-95 text-white font-bold text-xs sm:text-base tracking-wide backdrop-blur-md transition-all duration-200 flex-1 sm:flex-initial"
+              className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-md bg-white/25 hover:bg-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm tracking-wide backdrop-blur-md transition-all duration-200 flex-1 sm:flex-initial"
             >
-              <Info className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <Info className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               <span>{t('detailsReviews')}</span>
             </button>
 
@@ -632,7 +641,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
 
         {/* Desktop Controls & Carousel Thumbnails at Bottom Right */}
-        <div className="hidden lg:flex items-center gap-2.5 2xl:gap-3 absolute bottom-8 sm:bottom-10 lg:bottom-12 3xl:bottom-16 right-4 sm:right-8 lg:right-12 3xl:right-16 z-20">
+        <div className="hidden lg:flex items-center gap-2.5 2xl:gap-3 absolute bottom-4 sm:bottom-5 lg:bottom-7 3xl:bottom-9 right-4 sm:right-8 lg:right-12 3xl:right-16 z-20">
           {/* Audio Mute / Unmute Button for Trailer */}
           {showTrailer && trailerKey && (
             <button
