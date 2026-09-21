@@ -84,7 +84,6 @@ Here is a comprehensive summary of key feature updates, architectural innovation
 | **Series & Episodes** | Cross-season progression, in-player episode drawer, consolidated series cards in viewing history (*Watched Tab*). |
 | **Personalization** | Custom profile personas & color themes, Cloud sync (Supabase), personalized watchlists & history tracking. |
 | **Localization & Audio** | 100% Bilingual (English & Indonesian), dynamic auto-translated synopses, synthetic Web Audio API sound effects without external files. |
-| **Admin Command Center** | Comprehensive analytics dashboard, viewer metrics, global announcements broadcast, content & server management. |
 
 ---
 
