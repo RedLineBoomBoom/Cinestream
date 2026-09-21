@@ -37,7 +37,6 @@ import { CommunityReviewsSection } from './CommunityReviewsSection';
 import { fetchMediaReviews } from '../../services/reviewService';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
-import { WatchPartyButton } from '../party/WatchPartyButton';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -1052,10 +1051,6 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 <Share2 className="w-3.5 h-3.5 text-brand-champagne" />
                 <span className="hidden xs:inline">{copiedLink ? t('copied') : t('share')}</span>
               </button>
-
-              {onOpenWatchParty && (
-                <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
-              )}
             </div>
           </div>
         )}
