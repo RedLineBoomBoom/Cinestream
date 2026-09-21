@@ -15,6 +15,7 @@ export const VALID_TABS = [
   'history',
   'watched',
   'watch-party',
+  'schedule',
   'admin',
 ] as const;
 

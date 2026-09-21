@@ -212,7 +212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Active Admin Sub-Tab
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'users' | 'spotlight' | 'broadcast' | 'issues' | 'stream-tester' | 'reviews' | 'system'
+    'overview' | 'users' | 'spotlight' | 'broadcast' | 'issues' | 'stream-tester' | 'reviews' | 'system' | 'analytics'
   >('overview');
 
   // Spotlight & Editor's Choice State
@@ -980,6 +980,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               id: 'system',
               label: language === 'en' ? 'System & Servers' : 'Sistem & Server',
               icon: Server,
+            },
+            {
+              id: 'analytics',
+              label: language === 'en' ? 'Analytics Dashboard' : 'Dashboard Analitik',
+              icon: Activity,
             },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -3439,6 +3444,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {language === 'en' ? 'Clear Local TMDB Cache' : 'Bersihkan Cache TMDB Lokal'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ TAB: ANALYTICS DASHBOARD ════════════════ */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6">
+              <h3 className="text-base font-display font-bold text-white mb-6 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#E50914]" />
+                {language === 'en' ? 'Platform Analytics Summary' : 'Ringkasan Analitik Platform'}
+              </h3>
+
+              {/* KPI Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {[
+                  {
+                    label: language === 'en' ? 'Registered Profiles' : 'Profil Terdaftar',
+                    value: isLoadingMetrics ? '—' : (totalProfiles ?? 0),
+                    sub: language === 'en' ? 'total users' : 'total pengguna',
+                    color: 'from-red-500/20 to-transparent',
+                    border: 'border-red-500/20',
+                    icon: Users,
+                    iconColor: 'text-red-400',
+                  },
+                  {
+                    label: language === 'en' ? 'Watchlist Entries' : 'Item Watchlist',
+                    value: isLoadingMetrics ? '—' : (totalWatchlist ?? 0),
+                    sub: language === 'en' ? 'total saves' : 'total tersimpan',
+                    color: 'from-violet-500/20 to-transparent',
+                    border: 'border-violet-500/20',
+                    icon: Bookmark,
+                    iconColor: 'text-violet-400',
+                  },
+                  {
+                    label: language === 'en' ? 'Watch History' : 'Riwayat Tonton',
+                    value: isLoadingMetrics ? '—' : (totalHistory ?? 0),
+                    sub: language === 'en' ? 'total records' : 'total rekaman',
+                    color: 'from-sky-500/20 to-transparent',
+                    border: 'border-sky-500/20',
+                    icon: Clock,
+                    iconColor: 'text-sky-400',
+                  },
+                  {
+                    label: language === 'en' ? 'Open Issues' : 'Laporan Terbuka',
+                    value: openIssuesCount ?? 0,
+                    sub: language === 'en' ? 'stream reports' : 'laporan stream',
+                    color: 'from-amber-500/20 to-transparent',
+                    border: 'border-amber-500/20',
+                    icon: AlertTriangle,
+                    iconColor: 'text-amber-400',
+                  },
+                ].map(({ label, value, sub, color, border, icon: Icon, iconColor }) => (
+                  <div key={label} className={`p-4 rounded-2xl bg-gradient-to-br ${color} border ${border} relative overflow-hidden`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{label}</span>
+                      <Icon className={`w-4 h-4 ${iconColor}`} />
+                    </div>
+                    <div className="text-3xl font-display font-black text-white">{value}</div>
+                    <div className="text-[10px] text-slate-500 mt-1">{sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Engagement Ratio Chart */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  {language === 'en' ? 'Engagement Ratios' : 'Rasio Keterlibatan'}
+                </h4>
+                {[
+                  {
+                    label: language === 'en' ? 'Watchlist per User' : 'Watchlist per Pengguna',
+                    value: totalProfiles && totalProfiles > 0 ? Number(((totalWatchlist ?? 0) / totalProfiles).toFixed(1)) : 0,
+                    max: 20,
+                    color: 'bg-violet-500',
+                  },
+                  {
+                    label: language === 'en' ? 'Watch History per User' : 'Riwayat per Pengguna',
+                    value: totalProfiles && totalProfiles > 0 ? Number(((totalHistory ?? 0) / totalProfiles).toFixed(1)) : 0,
+                    max: 50,
+                    color: 'bg-sky-500',
+                  },
+                  {
+                    label: language === 'en' ? 'Issue Resolution Rate' : 'Tingkat Penyelesaian Isu',
+                    value: reports.length > 0 ? Number((((reports.length - openIssuesCount) / reports.length) * 100).toFixed(0)) : 100,
+                    max: 100,
+                    unit: '%',
+                    color: 'bg-emerald-500',
+                  },
+                ].map(({ label, value, max, unit = '', color }) => (
+                  <div key={label}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-slate-300">{label}</span>
+                      <span className="text-xs font-mono text-white font-bold">{value}{unit}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${color}`}
+                        style={{ width: `${Math.min(100, (value / max) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-slate-600 mt-6">
+                {language === 'en'
+                  ? 'Data sourced from Supabase. Refresh from Overview tab to update metrics.'
+                  : 'Data bersumber dari Supabase. Refresh dari tab Overview untuk memperbarui metrik.'}
+              </p>
             </div>
           </div>
         )}

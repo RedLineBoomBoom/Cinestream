@@ -28,6 +28,7 @@ import { WatchPartyProvider, useWatchParty } from './context/WatchPartyContext';
 import { WatchPartyModal } from './components/party/WatchPartyModal';
 import { WatchPartyLobbyView } from './components/party/WatchPartyLobbyView';
 import { PartySyncToast } from './components/party/PartySyncToast';
+import { AiringScheduleView } from './components/discovery/AiringScheduleView';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
 import { PwaUpdateToast } from './components/layout/PwaUpdateToast';
@@ -1247,6 +1248,17 @@ const MainContent: React.FC = () => {
             catalog={fullCatalog}
             onPlayMedia={(m, time, epId) => handleOpenMedia(m, time, epId)}
             onGoHome={() => handleSelectTab('home')}
+          />
+        )}
+
+        {/* VIEW 9: AIRING SCHEDULE */}
+        {activeTab === 'schedule' && (
+          <AiringScheduleView
+            onSelectMedia={(tmdbId, _title) => {
+              // Try to find in catalog by tmdbId
+              const found = fullCatalog.find((m) => m.tmdbId === tmdbId);
+              if (found) handleOpenMedia(found);
+            }}
           />
         )}
           </>

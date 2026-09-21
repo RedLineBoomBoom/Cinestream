@@ -9,6 +9,7 @@ import {
   Sparkles,
   Shield,
   Users,
+  Dices,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -21,6 +22,7 @@ import { BroadcastBanner } from './BroadcastBanner';
 import { getTabUrl } from '../../utils/navigation';
 import { isAdminUser } from '../../utils/admin';
 import type { ModalSearchSource } from '../search/SearchModal';
+import { MoodPickerModal } from '../discovery/MoodPickerModal';
 
 interface NavbarProps {
   activeTab: string;
@@ -52,6 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -83,9 +86,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'watched', label: t('navWatched'), count: completedCount },
     { id: 'history', label: t('navHistory'), count: inProgressCount },
     { id: 'watch-party', label: t('partyTitle'), count: liveRoomsCount },
+    { id: 'schedule', label: language === 'en' ? 'Airing Schedule' : 'Jadwal Tayang' },
   ];
 
   return (
+    <>
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         isScrolled
@@ -196,6 +201,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
             <span className="hidden xl:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold whitespace-nowrap">
               {t('aiSearchTab')}
+            </span>
+          </button>
+
+          {/* Mood Picker / Surprise Me */}
+          <button
+            onClick={() => { playClick(); setShowMoodPicker(true); }}
+            onMouseEnter={playHover}
+            aria-label={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
+            title={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
+            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 xl:px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-amber-100 transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
+          >
+            <Dices className="w-3.5 h-3.5 text-amber-300" />
+            <span className="hidden xl:inline font-bold whitespace-nowrap">
+              {language === 'en' ? 'Surprise Me' : 'Kejutkan Aku'}
             </span>
           </button>
 
@@ -432,5 +451,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
     </header>
+    {showMoodPicker && (
+      <MoodPickerModal onClose={() => setShowMoodPicker(false)} />
+    )}
+  </>
   );
 };

@@ -17,6 +17,7 @@ import {
   Cloud,
   Shield,
   RefreshCw,
+  Share2,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -25,6 +26,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdminUser } from '../../utils/admin';
 import { APP_VERSION, checkForAppUpdate, forceHardRefresh } from '../../utils/pwaUpdate';
+import { PublicProfileModal } from './PublicProfileModal';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
@@ -60,6 +62,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateStatusMsg, setUpdateStatusMsg] = useState<string | null>(null);
+  const [showProfileCard, setShowProfileCard] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -205,16 +208,27 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             </div>
           </div>
 
-          {/* Quick Action: Randomize */}
-          <button
-            onClick={handleRandomize}
-            onMouseEnter={playHover}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all cursor-pointer shadow-md active:scale-95 relative z-20"
-            title={language === 'en' ? 'Randomize Avatar & Colors' : 'Acak Avatar & Warna'}
-          >
-            <Dices className="w-3.5 h-3.5 text-amber-400 animate-spin-once" />
-            <span>{language === 'en' ? 'Shuffle' : 'Acak'}</span>
-          </button>
+          {/* Quick Actions */}
+          <div className="flex items-center gap-1.5 relative z-20">
+            <button
+              onClick={handleRandomize}
+              onMouseEnter={playHover}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all cursor-pointer shadow-md active:scale-95"
+              title={language === 'en' ? 'Randomize Avatar & Colors' : 'Acak Avatar & Warna'}
+            >
+              <Dices className="w-3.5 h-3.5 text-amber-400 animate-spin-once" />
+              <span>{language === 'en' ? 'Shuffle' : 'Acak'}</span>
+            </button>
+            <button
+              onClick={() => { playClick(); setShowProfileCard(true); }}
+              onMouseEnter={playHover}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-xs font-semibold text-violet-300 transition-all cursor-pointer shadow-md active:scale-95"
+              title={language === 'en' ? 'Share Profile Card' : 'Bagikan Kartu Profil'}
+            >
+              <Share2 className="w-3.5 h-3.5 text-violet-400" />
+              <span>{language === 'en' ? 'Share' : 'Bagikan'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Profile Name (Editable) */}
@@ -604,6 +618,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         )}
       </div>
       </div>
+      {showProfileCard && (
+        <PublicProfileModal onClose={() => setShowProfileCard(false)} />
+      )}
     </>
   );
 };
