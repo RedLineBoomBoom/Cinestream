@@ -42,7 +42,7 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
   // Download URLs
   const apkDownloadUrl = '/Cinestream.apk';
   const githubReleaseUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases';
-  const githubMirrorUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases/download/v1.4.4/app-debug.apk';
+  const githubMirrorUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases/latest/download/app-debug.apk';
 
   // Generate QR code for the current URL
   useEffect(() => {

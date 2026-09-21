@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CINESTREAM NOVA](https://img.shields.io/badge/CINESTREAM-FULL_RELEASE_v1.4.4-E50914?style=for-the-badge&logo=netflix&logoColor=white)
+![CINESTREAM NOVA](https://img.shields.io/badge/CINESTREAM-FULL_RELEASE_v1.4.7-E50914?style=for-the-badge&logo=netflix&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)
 ![React 19](https://img.shields.io/badge/React-19.2.8-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
@@ -27,7 +27,7 @@
 
 > [!IMPORTANT]
 > **CINESTREAM NOVA HAS OFFICIALLY GRADUATED FROM BETA TO FULL PRODUCTION RELEASE!**  
-> We are proud to announce that **Cinestream Nova** has successfully completed its Beta testing phase and has officially entered **Full Production Release (v1.4.4)**. Every pillar of the platform—from automated multi-server failover, Cloud profile synchronization, serverless P2P Watch Party, Airing Schedule with exact release timestamps, to real-time Danmaku bullet comments and dedicated Android APK distribution—has achieved enterprise-grade stability, fluid responsiveness, and high performance ready to be experienced across all modern devices.
+> We are proud to announce that **Cinestream Nova** has successfully completed its Beta testing phase and has officially entered **Full Production Release (v1.4.7)**. Every pillar of the platform—from automated multi-server failover, Cloud profile synchronization, serverless P2P Watch Party, Airing Schedule with exact release timestamps, to real-time Danmaku bullet comments and dedicated Android APK distribution—has achieved enterprise-grade stability, fluid responsiveness, and high performance ready to be experienced across all modern devices.
 
 ---
 
