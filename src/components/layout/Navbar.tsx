@@ -11,7 +11,6 @@ import {
   Users,
   Dices,
   Calendar,
-  Smartphone,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';

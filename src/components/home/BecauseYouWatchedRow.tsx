@@ -22,7 +22,6 @@ import { getMediaTitle, getMediaPoster, getMediaBackdrop } from '../../utils/for
 import { MOCK_CATALOG } from '../../data/mockCatalog';
 import {
   fetchBecauseYouWatchedFeed,
-  getCommunityTrendingFeed,
   getAvailableAnchors,
   type RecommendedMediaItem,
   type RecommendationFeedData,
@@ -55,46 +54,38 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
     return getAvailableAnchors(historyItems, fullCatalog);
   }, [historyItems, fullCatalog]);
 
-  // Set initial anchor
+  // Set initial anchor — hanya dari riwayat tontonan nyata
   useEffect(() => {
     if (availableAnchors.length > 0) {
-      // Jika activeAnchor saat ini belum ada atau tidak ada lagi di daftar, gunakan yang pertama
       if (!activeAnchor || !availableAnchors.some((a) => a.id === activeAnchor.id)) {
         setActiveAnchor(availableAnchors[0]);
       }
     } else {
       setActiveAnchor(null);
+      setFeedData(null);
+      setIsLoading(false);
     }
   }, [availableAnchors]);
 
   // Fetch feed saat activeAnchor atau bahasa berubah
   useEffect(() => {
+    if (!activeAnchor) return; // Tidak ada history → tidak load apapun
+
     let isCancelled = false;
     const loadFeed = async () => {
       setIsLoading(true);
       try {
-        if (activeAnchor) {
-          const res = await fetchBecauseYouWatchedFeed(
-            activeAnchor,
-            availableAnchors,
-            fullCatalog,
-            language
-          );
-          if (!isCancelled) {
-            setFeedData(res);
-          }
-        } else {
-          // Fallback rekomendasi komunitas jika belum ada riwayat
-          const commRes = getCommunityTrendingFeed(fullCatalog, language);
-          if (!isCancelled) {
-            setFeedData(commRes);
-          }
+        const res = await fetchBecauseYouWatchedFeed(
+          activeAnchor,
+          availableAnchors,
+          fullCatalog,
+          language
+        );
+        if (!isCancelled) {
+          setFeedData(res);
         }
       } catch (err) {
         console.warn('Gagal memuat feed rekomendasi:', err);
-        if (!isCancelled) {
-          setFeedData(getCommunityTrendingFeed(fullCatalog, language));
-        }
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -150,6 +141,13 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
   };
 
   const items = feedData?.items || [];
+
+  // Jika belum ada riwayat tontonan sama sekali → sembunyikan section ini
+  if (!isLoading && availableAnchors.length === 0) {
+    return null;
+  }
+
+  // Jika sudah ada history tapi rekomendasi masih kosong (dan tidak loading) → sembunyikan
   if (!isLoading && items.length === 0) {
     return null;
   }
@@ -169,9 +167,9 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                {feedData?.type === 'because_you_watched' && activeAnchor ? (
-                  <span>
-                    {t('recBecauseYouWatched')}{' '}
+                <span>
+                  {t('recBecauseYouWatched')}{' '}
+                  {activeAnchor && (
                     <button
                       type="button"
                       onClick={() => onOpenDetails(activeAnchor)}
@@ -180,10 +178,8 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
                     >
                       "{anchorTitle}"
                     </button>
-                  </span>
-                ) : (
-                  <span>{t('recCommunityTrending')}</span>
-                )}
+                  )}
+                </span>
               </h2>
 
               {/* AI Badge */}
@@ -194,9 +190,7 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
             </div>
 
             <p className="text-xs text-slate-400 font-light mt-0.5">
-              {feedData?.type === 'because_you_watched'
-                ? t('recBecauseYouWatchedDesc')
-                : t('recCommunityTrendingDesc')}
+              {t('recBecauseYouWatchedDesc')}
             </p>
           </div>
         </div>
@@ -204,7 +198,7 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
         {/* RIGHT CONTROLS: ANCHOR SWITCHER + REFRESH + CAROUSEL NAVIGATION */}
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
           {/* Anchor Switcher Dropdown (jika memiliki lebih dari 1 tayangan di riwayat) */}
-          {availableAnchors.length > 1 && feedData?.type === 'because_you_watched' && (
+          {availableAnchors.length > 1 && (
             <div className="relative">
               <button
                 type="button"

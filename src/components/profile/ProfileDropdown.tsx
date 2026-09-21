@@ -18,7 +18,6 @@ import {
   Shield,
   RefreshCw,
   Share2,
-  Smartphone,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';

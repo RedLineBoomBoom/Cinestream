@@ -1,19 +1,23 @@
 /**
  * recommendationService.ts
- * Mesin Rekomendasi Pintar AI & Personalisasi Sinematik Cinestream
- * Fitur 3: "Karena Anda Menonton [Judul]..." (Because You Watched [Title]) & Pilihan Spesial
+ * Mesin Rekomendasi Berbasis Konten (Content-Based Filtering) Cinestream
+ * "Because You Watched [Title]" — HANYA berdasarkan riwayat tontonan nyata user
+ *
+ * Prinsip:
+ * - Hanya tampil jika user sudah punya riwayat tontonan nyata
+ * - Kandidat rekomendasi HANYA dari fullCatalog (yang tersedia di Cinestream)
+ * - Skor kecocokan jujur: 50–99% berdasarkan multi-dimensi similarity
+ * - Tidak ada fake "Community Trending" fallback
  */
 
-import type { MediaItem, WatchHistoryItem, PlayProgress } from '../types/media';
-import { fetchTmdbRecommendations } from './tmdb';
+import type { MediaItem, WatchHistoryItem } from '../types/media';
 import { getAllLocalReviews } from './reviewService';
-import { getStoredGeminiApiKey } from './aiSearch';
 import { MOCK_CATALOG } from '../data/mockCatalog';
 import { getMediaTitle } from '../utils/formatters';
 
 export interface RecommendedMediaItem {
   media: MediaItem;
-  matchPercentage: number; // 86% - 99%
+  matchPercentage: number;
   matchReasons: { id: string; en: string }[];
   aiRationaleId: string;
   aiRationaleEn: string;
@@ -21,7 +25,7 @@ export interface RecommendedMediaItem {
 }
 
 export interface RecommendationFeedData {
-  type: 'because_you_watched' | 'top_picks' | 'community_trending';
+  type: 'because_you_watched';
   anchorMedia?: MediaItem;
   availableAnchors: MediaItem[];
   items: RecommendedMediaItem[];
@@ -35,8 +39,8 @@ export interface UserTasteProfile {
   totalWatchedCount: number;
 }
 
-const CACHE_PREFIX = 'cinestream_rec_cache_v1_';
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 menit
+const CACHE_PREFIX = 'cinestream_rec_cache_v2_';
+const CACHE_TTL_MS = 20 * 60 * 1000; // 20 menit
 
 interface CachedData {
   timestamp: number;
@@ -44,26 +48,58 @@ interface CachedData {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 1. PROFIL SELERA PENGGUNA (TASTE PROFILE EXTRACTION)
+// 1. DETEKSI ANCHOR — HANYA DARI HISTORY NYATA
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Kembalikan daftar film acuan berdasarkan riwayat tontonan nyata user.
+ * Jika history kosong → kembalikan [] (jangan fallback ke trending).
+ */
+export function getAvailableAnchors(
+  historyItems: WatchHistoryItem[] = [],
+  fullCatalog: MediaItem[] = []
+): MediaItem[] {
+  const anchors: MediaItem[] = [];
+  const seenIds = new Set<string>();
+
+  // Urutkan dari yang paling baru ditonton
+  const sortedHistory = [...historyItems].sort((a, b) => b.lastWatched - a.lastWatched);
+
+  for (const item of sortedHistory) {
+    if (!item.media) continue;
+    if (seenIds.has(item.media.id)) continue;
+
+    // Pastikan media-nya ada di catalog lokal (supaya bisa jadi acuan yang relevan)
+    const inCatalog = fullCatalog.find((m) => m.id === item.media.id);
+    const mediaToUse = inCatalog || item.media;
+
+    seenIds.add(mediaToUse.id);
+    anchors.push(mediaToUse);
+
+    // Batasi maksimal 10 anchor (yang paling baru)
+    if (anchors.length >= 10) break;
+  }
+
+  return anchors;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. PROFIL SELERA PENGGUNA
 // ─────────────────────────────────────────────────────────────
 
 export function extractUserTasteProfile(
   historyItems: WatchHistoryItem[] = [],
-  continueWatching: PlayProgress[] = [],
-  watchlist: string[] = [],
-  watchlistMediaMap: Record<string, MediaItem> = {}
 ): UserTasteProfile {
   const genreWeights: Record<string, number> = {};
   const recentAnchorIds: string[] = [];
   const highRatedMediaIds: string[] = [];
 
-  // 1. Bobot dari Riwayat Tontonan (Watch History)
   for (const item of historyItems) {
     if (!item.media) continue;
     if (!recentAnchorIds.includes(item.media.id)) {
       recentAnchorIds.push(item.media.id);
     }
-
+    // Bobot lebih tinggi jika selesai ditonton
     const weight = item.completed ? 4 : item.currentTime > 300 ? 2.5 : 1.5;
     for (const g of item.media.genres || []) {
       const normalized = g.trim();
@@ -73,22 +109,13 @@ export function extractUserTasteProfile(
     }
   }
 
-  // 2. Bobot dari Progres Berjalan (Continue Watching)
-  for (const prog of continueWatching) {
-    if (!recentAnchorIds.includes(prog.mediaId)) {
-      recentAnchorIds.push(prog.mediaId);
-    }
-  }
-
-  // 3. Bobot dari Rating & Ulasan Komunitas Pengguna (Rating >= 7)
+  // Bonus dari review dengan rating tinggi
   try {
     const reviews = getAllLocalReviews();
     for (const rev of reviews) {
       if (rev.rating >= 7) {
         highRatedMediaIds.push(rev.mediaId);
-        // Tambahan bobot tinggi jika pengguna memberi bintang 8 - 10
         const bonusWeight = rev.rating >= 9 ? 5 : 3;
-        // Cari di catalog
         const found = MOCK_CATALOG.find((m) => m.id === rev.mediaId);
         if (found?.genres) {
           for (const g of found.genres) {
@@ -99,16 +126,6 @@ export function extractUserTasteProfile(
     }
   } catch {
     // Abaikan kegagalan baca ulasan
-  }
-
-  // 4. Bobot dari Watchlist
-  for (const wId of watchlist) {
-    const media = watchlistMediaMap[wId] || MOCK_CATALOG.find((m) => m.id === wId);
-    if (media?.genres) {
-      for (const g of media.genres) {
-        genreWeights[g] = (genreWeights[g] || 0) + 2;
-      }
-    }
   }
 
   const sortedGenres = Object.entries(genreWeights)
@@ -125,111 +142,132 @@ export function extractUserTasteProfile(
 }
 
 // ─────────────────────────────────────────────────────────────
-// 2. DETEKSI ANCHOR TERBAIK (ACTIVE ANCHOR SELECTION)
+// 3. SKOR KECOCOKAN MULTI-DIMENSI YANG JUJUR
 // ─────────────────────────────────────────────────────────────
 
-export function getAvailableAnchors(
-  historyItems: WatchHistoryItem[] = [],
-  fullCatalog: MediaItem[] = []
-): MediaItem[] {
-  const anchors: MediaItem[] = [];
-  const seenIds = new Set<string>();
+/**
+ * Hitung Jaccard similarity untuk dua set genre.
+ * Jaccard = |A ∩ B| / |A ∪ B|  → nilai 0.0 – 1.0
+ */
+function jaccardGenreSimilarity(genresA: string[], genresB: string[]): number {
+  const setA = new Set(genresA.map((g) => g.toLowerCase()));
+  const setB = new Set(genresB.map((g) => g.toLowerCase()));
+  if (setA.size === 0 && setB.size === 0) return 0;
 
-  // Prioritas 1: Item terakhir di riwayat tontonan
-  for (const item of historyItems) {
-    if (item.media && !seenIds.has(item.media.id)) {
-      seenIds.add(item.media.id);
-      anchors.push(item.media);
-    }
-  }
-
-  // Prioritas 2: Jika masih sedikit, lengkapi dengan catalog terfavorit yang ada
-  if (anchors.length === 0) {
-    for (const item of fullCatalog) {
-      if ((item.featured || item.trending) && !seenIds.has(item.id)) {
-        seenIds.add(item.id);
-        anchors.push(item);
-        if (anchors.length >= 5) break;
-      }
-    }
-  }
-
-  return anchors;
+  const intersection = [...setA].filter((g) => setB.has(g));
+  const union = new Set([...setA, ...setB]);
+  return intersection.length / union.size;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 3. KALKULATOR SKOR KECOCOKAN & TAG ALASAN (MATCH SCORE ENGINE)
-// ─────────────────────────────────────────────────────────────
-
 function computeMatchScoreAndReasons(
-  anchorMedia: MediaItem,
+  anchor: MediaItem,
   candidate: MediaItem
-): {
-  percentage: number;
-  reasons: { id: string; en: string }[];
-} {
-  let score = 84; // Skor dasar awal 84%
+): { percentage: number; reasons: { id: string; en: string }[] } {
+  let score = 0;
   const reasons: { id: string; en: string }[] = [];
 
-  const anchorGenres = (anchorMedia.genres || []).map((g) => g.toLowerCase());
-  const candidateGenres = (candidate.genres || []).map((g) => g.toLowerCase());
+  const anchorGenres = anchor.genres || [];
+  const candidateGenres = candidate.genres || [];
 
-  // Hitung irisan genre
-  const sharedGenres = candidateGenres.filter((g) => anchorGenres.includes(g));
+  // ── A. Genre Similarity (Jaccard) — bobot terbesar: 0–55 poin ──
+  const jaccard = jaccardGenreSimilarity(anchorGenres, candidateGenres);
+  const genreScore = Math.round(jaccard * 55);
+  score += genreScore;
+
+  const sharedGenres = candidateGenres.filter((g) =>
+    anchorGenres.map((x) => x.toLowerCase()).includes(g.toLowerCase())
+  );
   if (sharedGenres.length > 0) {
-    score += Math.min(10, sharedGenres.length * 4);
-    const topShared = sharedGenres.slice(0, 2).map((g) => g.toUpperCase()).join(' • ');
+    const topShared = sharedGenres.slice(0, 2).map((g) =>
+      g.charAt(0).toUpperCase() + g.slice(1)
+    ).join(' & ');
     reasons.push({
       id: `Genre Serupa: ${topShared}`,
-      en: `Shared Genre: ${topShared}`,
+      en: `Matching Genre: ${topShared}`,
     });
   }
 
-  // Skor rating tinggi
+  // ── B. Sutradara / Creator Sama — +15 poin ──
+  if (
+    anchor.director &&
+    candidate.director &&
+    anchor.director !== 'Kreator Sinematik' &&
+    candidate.director !== 'Kreator Sinematik' &&
+    anchor.director.toLowerCase() === candidate.director.toLowerCase()
+  ) {
+    score += 15;
+    reasons.push({
+      id: `Sutradara Sama: ${candidate.director}`,
+      en: `Same Director: ${candidate.director}`,
+    });
+  }
+
+  // ── C. Tipe Format Sama (movie↔movie, series↔series, anime↔anime) — +8 poin ──
+  if (anchor.type === candidate.type) {
+    score += 8;
+    reasons.push({
+      id: `Format Serupa: ${candidate.type.charAt(0).toUpperCase() + candidate.type.slice(1)}`,
+      en: `Same Format: ${candidate.type.charAt(0).toUpperCase() + candidate.type.slice(1)}`,
+    });
+  }
+
+  // ── D. Negara / Asal Produksi Sama — +8 poin ──
+  const anchorCountries = anchor.originCountry || (anchor.country ? [anchor.country] : []);
+  const candidateCountries = candidate.originCountry || (candidate.country ? [candidate.country] : []);
+  const sharedCountry = anchorCountries.some((c) =>
+    candidateCountries.some((d) => d.toLowerCase() === c.toLowerCase())
+  );
+  if (sharedCountry && anchorCountries.length > 0) {
+    score += 8;
+    reasons.push({
+      id: `Produksi ${candidateCountries[0] || candidate.country}`,
+      en: `${candidateCountries[0] || candidate.country} Production`,
+    });
+  }
+
+  // ── E. Rentang Tahun Rilis Berdekatan — +4 poin (≤3 tahun), +2 poin (≤6 tahun) ──
+  if (anchor.year && candidate.year) {
+    const yearDiff = Math.abs(anchor.year - candidate.year);
+    if (yearDiff <= 3) {
+      score += 4;
+      reasons.push({
+        id: `Era Sinema Serupa (${candidate.year})`,
+        en: `Similar Era (${candidate.year})`,
+      });
+    } else if (yearDiff <= 6) {
+      score += 2;
+    }
+  }
+
+  // ── F. Rating Tinggi — +5 poin (≥8.0), +2 poin (≥7.5) ──
   if (candidate.rating >= 8.0) {
-    score += 3;
+    score += 5;
     reasons.push({
       id: `Rating Tinggi ★${candidate.rating}`,
       en: `High Rating ★${candidate.rating}`,
     });
+  } else if (candidate.rating >= 7.5) {
+    score += 2;
   }
 
-  // Kesamaan sutradara / creator
-  if (
-    anchorMedia.director &&
-    candidate.director &&
-    anchorMedia.director !== 'Kreator Sinematik' &&
-    anchorMedia.director.toLowerCase() === candidate.director.toLowerCase()
-  ) {
-    score += 5;
-    reasons.push({
-      id: `Sutradara Sama (${candidate.director})`,
-      en: `Same Director (${candidate.director})`,
-    });
-  }
+  // ── Normalisasi ke rentang 50–99 ──
+  // Max theoretical score = 55+15+8+8+4+5 = 95 poin → map ke 50–99
+  const MAX_RAW = 95;
+  const normalized = 50 + Math.round((score / MAX_RAW) * 49);
+  const finalPercentage = Math.min(99, Math.max(50, normalized));
 
-  // Kesamaan tipe format (movie ke movie, series ke series)
-  if (anchorMedia.type === candidate.type) {
-    score += 1;
-  }
-
-  // Rentang tahun rilis yang berdekatan
-  if (anchorMedia.year && candidate.year && Math.abs(anchorMedia.year - candidate.year) <= 3) {
-    reasons.push({
-      id: `Era Sinematik Serupa (${candidate.year})`,
-      en: `Similar Cinematic Era (${candidate.year})`,
-    });
-  }
-
-  // Batasi persentase realistis 86% s.d. 99%
-  const finalPercentage = Math.min(99, Math.max(86, score));
-
-  // Jika tag alasan masih kurang dari 2, tambahkan tag estetik
+  // Pastikan minimal 2 alasan tampil
   if (reasons.length < 2) {
-    if (candidate.quality?.includes('4K')) {
-      reasons.push({ id: 'Kualitas 4K Ultra HD', en: '4K Ultra HD Quality' });
+    if (candidate.rating >= 7.5) {
+      reasons.push({
+        id: `Rating Komunitas ★${candidate.rating}`,
+        en: `Community Score ★${candidate.rating}`,
+      });
     } else {
-      reasons.push({ id: 'Pilihan Populer Komunitas', en: 'Community Favorite' });
+      reasons.push({
+        id: 'Pilihan Kurasi Editor',
+        en: 'Editor\'s Curated Pick',
+      });
     }
   }
 
@@ -240,115 +278,95 @@ function computeMatchScoreAndReasons(
 }
 
 // ─────────────────────────────────────────────────────────────
-// 4. GENERATOR PENALARAN SINEMATIK AI (AI RATIONALE GENERATOR)
+// 4. GENERATOR PENALARAN AI SINEMATIK
 // ─────────────────────────────────────────────────────────────
 
 export function generateLocalAiRationale(
   anchor: MediaItem,
   candidate: MediaItem
 ): { id: string; en: string } {
-  const anchorTitle = anchor.title || 'tayangan ini';
-  const candGenres = candidate.genres || [];
-  const gStr = candGenres.join(', ').toLowerCase();
+  const anchorTitle = getMediaTitle(anchor, 'id') || anchor.title || 'tayangan ini';
+  const candGenres = (candidate.genres || []).map((g) => g.toLowerCase()).join(' ');
 
-  if (gStr.includes('sci-fi') || gStr.includes('fiksi ilmiah')) {
+  // Sutradara sama — alasan paling kuat
+  if (
+    anchor.director &&
+    candidate.director &&
+    anchor.director !== 'Kreator Sinematik' &&
+    anchor.director.toLowerCase() === candidate.director.toLowerCase()
+  ) {
     return {
-      id: `Memiliki atmosfer fiksi ilmiah epik, misteri antarbintang yang megah, dan sinematografi imersif yang seirama dengan ${anchorTitle}.`,
-      en: `Shares the epic sci-fi atmosphere, grand interstellar mystery, and immersive cinematography found in ${anchorTitle}.`,
+      id: `Karya terbaru dari sutradara yang sama dengan ${anchorTitle}. Gaya penyutradaraan, tone visual, dan ritme narasinya sangat konsisten.`,
+      en: `Another title from the same director as ${anchorTitle}. Expect the same directorial style, visual tone, and narrative rhythm.`,
     };
   }
 
-  if (gStr.includes('action') || gStr.includes('aksi') || gStr.includes('adventure')) {
+  // Genre-based rationale
+  if (candGenres.includes('sci-fi') || candGenres.includes('fiksi ilmiah') || candGenres.includes('science fiction')) {
     return {
-      id: `Menampilkan ketegangan aksi intens, perjuangan karakter yang mendalam, dan dinamika cerita berkecepatan tinggi seperti di ${anchorTitle}.`,
-      en: `Features intense action pacing, high-stakes character struggles, and adrenaline-fueled storytelling reminiscent of ${anchorTitle}.`,
+      id: `Atmosfer fiksi ilmiah yang serupa dengan ${anchorTitle} — universe yang luas, misteri antarbintang, dan sinematografi imersif.`,
+      en: `Shares the expansive sci-fi atmosphere of ${anchorTitle} — vast universe building, interstellar mystery, and immersive cinematography.`,
     };
   }
 
-  if (gStr.includes('drama') || gStr.includes('crime') || gStr.includes('thriller')) {
+  if (candGenres.includes('action') || candGenres.includes('aksi') || candGenres.includes('adventure')) {
     return {
-      id: `Mengangkat kedalaman emosi, konflik moral tajam, dan narasi sinematik berbobot yang disukai penonton ${anchorTitle}.`,
-      en: `Delivers emotional depth, sharp psychological intrigue, and prestige narrative weight praised by fans of ${anchorTitle}.`,
+      id: `Intensitas aksi dan dinamika cerita berkecepatan tinggi yang serupa dengan yang kamu nikmati di ${anchorTitle}.`,
+      en: `Same intensity of action and high-stakes storytelling you enjoyed in ${anchorTitle}.`,
     };
   }
 
-  if (gStr.includes('anime') || gStr.includes('animasi') || candidate.type === 'anime') {
+  if (candGenres.includes('horror') || candGenres.includes('thriller') || candGenres.includes('misteri') || candGenres.includes('mystery')) {
     return {
-      id: `Menyajikan visual memukau, alur petualangan emosional, dan pembangunan dunia fantasi yang sangat dinamis sejiwa dengan ${anchorTitle}.`,
-      en: `Showcases stunning animation craft, emotional character journeys, and breathtaking world-building aligned with ${anchorTitle}.`,
+      id: `Atmosfer gelap, tegangan psikologis, dan teka-teki berlapis yang mirip dengan pengalaman menonton ${anchorTitle}.`,
+      en: `Dark atmosphere, psychological tension, and layered mystery similar to your experience watching ${anchorTitle}.`,
     };
   }
 
-  if (gStr.includes('horror') || gStr.includes('misteri') || gStr.includes('mystery')) {
+  if (candGenres.includes('romance') || candGenres.includes('romantis')) {
     return {
-      id: `Membangun atmosfer suspense gelap, teka-teki misteri berlapis, dan klimaks tak terduga yang memikat penonton ${anchorTitle}.`,
-      en: `Crafts dark psychological suspense, layered puzzle-box tension, and unexpected plot twists that resonate with ${anchorTitle}.`,
+      id: `Dinamika hubungan yang hangat dan emosional seperti yang ada di ${anchorTitle} — kisah cinta yang autentik dan menyentuh hati.`,
+      en: `Warm emotional relationship dynamics like ${anchorTitle} — authentic love stories that genuinely resonate.`,
     };
   }
 
+  if (candGenres.includes('anime') || candGenres.includes('animasi') || candidate.type === 'anime') {
+    return {
+      id: `Visual memukau, pembangunan dunia yang kaya, dan karakter dengan kedalaman emosional setara ${anchorTitle}.`,
+      en: `Stunning visuals, rich world-building, and characters with the same emotional depth as ${anchorTitle}.`,
+    };
+  }
+
+  if (candGenres.includes('drama') || candGenres.includes('family') || candGenres.includes('keluarga')) {
+    return {
+      id: `Kedalaman emosi dan narasi berbobot yang sama seperti yang kamu apresiasi di ${anchorTitle}.`,
+      en: `The same emotional depth and prestigious narrative weight you appreciated in ${anchorTitle}.`,
+    };
+  }
+
+  if (candGenres.includes('comedy') || candGenres.includes('komedi')) {
+    return {
+      id: `Humor yang cerdas dan ringan, sejiwa dengan tone menghibur yang kamu suka dari ${anchorTitle}.`,
+      en: `Smart, breezy humor with the same entertaining tone you enjoyed from ${anchorTitle}.`,
+    };
+  }
+
+  // Fallback jujur
   return {
-    id: `Dipilih khusus oleh algoritma AI Cinestream karena kesamaan ritme cerita, pengakuan kritikus, dan tone sinematik dengan ${anchorTitle}.`,
-    en: `Handpicked by the Cinestream AI engine due to shared narrative cadence, critical acclaim, and cinematic tone with ${anchorTitle}.`,
+    id: `Dipilih berdasarkan kesamaan genre, era sinema, dan profil tontonan kamu — kemungkinan besar kamu akan menyukainya seperti ${anchorTitle}.`,
+    en: `Selected based on shared genre profile, cinematic era, and your viewing patterns — you'll likely enjoy this as much as ${anchorTitle}.`,
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// 5. FEED "BECAUSE YOU WATCHED" — CATALOG-ONLY
+// ─────────────────────────────────────────────────────────────
+
 /**
- * Mencoba meminta alasan rekomendasi personal dari Gemini Flash jika API key tersedia.
- * Fallback seketika ke arketipe sinema lokal tanpa jeda jika offline / tanpa key.
+ * Buat feed rekomendasi berdasarkan anchor film yang dipilih user.
+ * HANYA menggunakan kandidat dari fullCatalog (film yang tersedia di Cinestream).
+ * Tidak memanggil TMDB recommendations endpoint.
  */
-export async function getAiRationaleWithGeminiFallback(
-  anchor: MediaItem,
-  candidate: MediaItem
-): Promise<{ id: string; en: string }> {
-  const localFallback = generateLocalAiRationale(anchor, candidate);
-  const geminiKey = getStoredGeminiApiKey();
-
-  if (!geminiKey) {
-    return localFallback;
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-
-    const prompt = `Berikan 1 kalimat pendek ringkas dan puitis (maksimal 20 kata) mengapa film "${candidate.title}" direkomendasikan kepada penonton yang baru saja menyukai "${anchor.title}". Format JSON: {"id": "kalimat indonesia", "en": "english sentence"}`;
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.3 },
-        }),
-      }
-    );
-
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        if (parsed.id && parsed.en) {
-          return { id: parsed.id, en: parsed.en };
-        }
-      }
-    }
-  } catch {
-    // Gunakan fallback lokal
-  }
-
-  return localFallback;
-}
-
-// ─────────────────────────────────────────────────────────────
-// 5. PENYUSUN FEED "KARENA ANDA MENONTON" (FEED BUILDER)
-// ─────────────────────────────────────────────────────────────
-
 export async function fetchBecauseYouWatchedFeed(
   anchorMedia: MediaItem,
   availableAnchors: MediaItem[],
@@ -364,7 +382,7 @@ export async function fetchBecauseYouWatchedFeed(
       if (Date.now() - parsed.timestamp < CACHE_TTL_MS && parsed.data.items.length > 0) {
         return {
           ...parsed.data,
-          availableAnchors, // Update daftar anchor terkini
+          availableAnchors,
         };
       }
     }
@@ -372,72 +390,40 @@ export async function fetchBecauseYouWatchedFeed(
     // Abaikan cache error
   }
 
-  const rawRecommended: MediaItem[] = [];
-  const seenIds = new Set<string>([anchorMedia.id]);
+  // Exclude anchor sendiri dan semua anchor lain yang sudah ditonton dari kandidat
+  const anchorIdsToExclude = new Set<string>(availableAnchors.map((a) => a.id));
+  anchorIdsToExclude.add(anchorMedia.id);
 
-  // 1. Ambil dari endpoint TMDB Recommendations jika tmdbId ada
-  if (anchorMedia.tmdbId) {
-    try {
-      const tmdbItems = await fetchTmdbRecommendations(
-        anchorMedia.tmdbId,
-        anchorMedia.type,
-        14
-      );
-      for (const item of tmdbItems) {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          rawRecommended.push(item);
-        }
-      }
-    } catch (err) {
-      console.warn('Gagal memuat TMDB recommendations:', err);
-    }
-  }
+  // Kandidat HANYA dari fullCatalog — film yang benar-benar ada di Cinestream
+  const candidates = fullCatalog.filter((item) => !anchorIdsToExclude.has(item.id));
 
-  // 2. Lengkapi dari fullCatalog jika TMDB kurang dari 8 item
-  if (rawRecommended.length < 8) {
-    const anchorGenres = (anchorMedia.genres || []).map((g) => g.toLowerCase());
-    const catalogMatches = fullCatalog.filter((item) => {
-      if (seenIds.has(item.id)) return false;
-      const itemGenres = (item.genres || []).map((g) => g.toLowerCase());
-      return itemGenres.some((g) => anchorGenres.includes(g)) || item.featured || item.trending;
-    });
-
-    for (const match of catalogMatches) {
-      if (!seenIds.has(match.id)) {
-        seenIds.add(match.id);
-        rawRecommended.push(match);
-        if (rawRecommended.length >= 12) break;
-      }
-    }
-  }
-
-  // 3. Hitung skor kecocokan dan alasan untuk setiap kandidat
-  const scoredItems: RecommendedMediaItem[] = rawRecommended.slice(0, 12).map((item) => {
+  // Hitung skor kecocokan untuk setiap kandidat
+  const scoredItems: RecommendedMediaItem[] = candidates.map((item) => {
     const { percentage, reasons } = computeMatchScoreAndReasons(anchorMedia, item);
-    const rationales = generateLocalAiRationale(anchorMedia, item);
+    const rationale = generateLocalAiRationale(anchorMedia, item);
 
     return {
       media: item,
       matchPercentage: percentage,
       matchReasons: reasons,
-      aiRationaleId: rationales.id,
-      aiRationaleEn: rationales.en,
+      aiRationaleId: rationale.id,
+      aiRationaleEn: rationale.en,
       anchorTitle: getMediaTitle(anchorMedia, language),
     };
   });
 
-  // Urutkan berdasarkan persentase kecocokan tertinggi
+  // Urutkan dari skor tertinggi, ambil top 16
   scoredItems.sort((a, b) => b.matchPercentage - a.matchPercentage);
+  const topItems = scoredItems.slice(0, 16);
 
   const feedData: RecommendationFeedData = {
     type: 'because_you_watched',
     anchorMedia,
     availableAnchors,
-    items: scoredItems,
+    items: topItems,
   };
 
-  // Simpan ke sessionStorage
+  // Cache ke sessionStorage
   try {
     const cacheObj: CachedData = {
       timestamp: Date.now(),
@@ -445,46 +431,8 @@ export async function fetchBecauseYouWatchedFeed(
     };
     sessionStorage.setItem(cacheKey, JSON.stringify(cacheObj));
   } catch {
-    // Abaikan penyimpanan jika kuota penuh
+    // Abaikan jika kuota penuh
   }
 
   return feedData;
-}
-
-// ─────────────────────────────────────────────────────────────
-// 6. FEED POPULER KOMUNITAS (GUEST / FALLBACK FEED)
-// ─────────────────────────────────────────────────────────────
-
-export function getCommunityTrendingFeed(
-  fullCatalog: MediaItem[],
-  language: 'id' | 'en' = 'id'
-): RecommendationFeedData {
-  const topCatalog = fullCatalog
-    .filter((m) => m.rating >= 7.8 || m.featured || m.trending)
-    .slice(0, 12);
-
-  const scoredItems: RecommendedMediaItem[] = topCatalog.map((item, idx) => {
-    const baseScore = 98 - (idx * 1); // 98%, 97%, 96% ...
-    const percentage = Math.max(88, baseScore);
-    const genres = (item.genres || []).slice(0, 2).join(' • ');
-
-    return {
-      media: item,
-      matchPercentage: percentage,
-      matchReasons: [
-        { id: `Genre Populer: ${genres}`, en: `Top Genre: ${genres}` },
-        { id: `Skor Komunitas ★${item.rating}`, en: `Community Score ★${item.rating}` },
-        { id: 'Rekomendasi Terhangat', en: 'Trending Spotlight' },
-      ],
-      aiRationaleId: `Karya sinematik berperingkat tinggi yang paling banyak direkomendasikan dan disukai oleh komunitas penonton Cinestream minggu ini.`,
-      aiRationaleEn: `High-rated cinematic masterpiece most praised and recommended by the Cinestream viewer community this week.`,
-      anchorTitle: language === 'en' ? 'Top Community Picks' : 'Pilihan Komunitas',
-    };
-  });
-
-  return {
-    type: 'community_trending',
-    availableAnchors: [],
-    items: scoredItems,
-  };
 }
