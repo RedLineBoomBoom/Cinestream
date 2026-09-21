@@ -40,7 +40,7 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
   const guideSectionRef = useRef<HTMLDivElement>(null);
 
   // Download URLs
-  const apkDownloadUrl = '/Cinestream-v1.4.3.apk';
+  const apkDownloadUrl = `/Cinestream-v${APP_VERSION}.apk`;
   const githubReleaseUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases';
 
   // Generate QR code for the current URL

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![CINESTREAM NOVA](https://img.shields.io/badge/CINESTREAM-FULL_RELEASE_v1.4.3-E50914?style=for-the-badge&logo=netflix&logoColor=white)
+![CINESTREAM NOVA](https://img.shields.io/badge/CINESTREAM-FULL_RELEASE_v1.4.4-E50914?style=for-the-badge&logo=netflix&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge)
 ![React 19](https://img.shields.io/badge/React-19.2.8-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
@@ -27,7 +27,7 @@
 
 > [!IMPORTANT]
 > **CINESTREAM NOVA HAS OFFICIALLY GRADUATED FROM BETA TO FULL PRODUCTION RELEASE!**  
-> We are proud to announce that **Cinestream Nova** has successfully completed its Beta testing phase and has officially entered **Full Production Release (v1.4.3)**. Every pillar of the platform—from automated multi-server failover, Cloud profile synchronization, serverless P2P Watch Party, Airing Schedule with exact release timestamps, to real-time Danmaku bullet comments—has achieved enterprise-grade stability, fluid responsiveness, and high performance ready to be experienced across all modern devices.
+> We are proud to announce that **Cinestream Nova** has successfully completed its Beta testing phase and has officially entered **Full Production Release (v1.4.4)**. Every pillar of the platform—from automated multi-server failover, Cloud profile synchronization, serverless P2P Watch Party, Airing Schedule with exact release timestamps, to real-time Danmaku bullet comments and dedicated Android APK distribution—has achieved enterprise-grade stability, fluid responsiveness, and high performance ready to be experienced across all modern devices.
 
 ---
 
@@ -69,9 +69,14 @@ Here is a comprehensive summary of key feature updates, architectural innovation
 - **Calibrated Autoplay Next Episode**: Intelligent credit-detection triggers next episode countdown seamlessly based on content duration.
 - **Floating PiP Mini Player**: Draggable, snappable mini player with magnetic 4-corner docking and autoscaling subtitles.
 
-### 6. 📱 PWA Engine v1.4.3 & Hot Cache-Busting
+### 6. 📱 PWA Engine v1.4.4 & Hot Cache-Busting
 - **Instant Version Sync**: Automatic Service Worker update detection alerts users and provides 1-click *Hard Reload*, preventing stale cache issues across all PWA devices and mobile browsers.
 - **Mobile Native Adaptation**: Comprehensive safe-area insets optimization for edge-to-edge screens, notches, and navigation bars.
+
+### 7. 📱 Cinestream App (APK Download & Android TV)
+- **Direct APK Distribution**: One-click download for `Cinestream-v1.4.4.apk` with live QR code scanning for seamless mobile sideloading.
+- **Big Screen & Android TV Ready**: Fully compatible with Android TV, Mi Box, and Smart TVs with native remote control D-pad navigation.
+- **Dedicated App Portal (/app)**: Comprehensive installation walkthroughs for Android (APK), Android TV, and Apple iOS (Safari PWA).
 
 ---
 

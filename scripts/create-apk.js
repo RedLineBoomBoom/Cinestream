@@ -95,8 +95,8 @@ const publicDir = path.resolve(__dirname, '../public');
 const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cinestream.app"
-    android:versionCode="10403"
-    android:versionName="1.4.3">
+    android:versionCode="10404"
+    android:versionName="1.4.4">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application
@@ -121,12 +121,13 @@ const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
 
 const files = [
   { name: 'AndroidManifest.xml', content: manifestXml },
-  { name: 'META-INF/MANIFEST.MF', content: 'Manifest-Version: 1.0\nCreated-By: Cinestream Build Engine\nPackage: com.cinestream.app\nVersion: 1.4.3\n' },
-  { name: 'assets/app-info.json', content: JSON.stringify({ name: 'Cinestream', version: '1.4.3', channel: 'production', buildTime: new Date().toISOString() }, null, 2) },
+  { name: 'META-INF/MANIFEST.MF', content: 'Manifest-Version: 1.0\nCreated-By: Cinestream Build Engine\nPackage: com.cinestream.app\nVersion: 1.4.4\n' },
+  { name: 'assets/app-info.json', content: JSON.stringify({ name: 'Cinestream', version: '1.4.4', channel: 'production', buildTime: new Date().toISOString() }, null, 2) },
   { name: 'res/values/strings.xml', content: '<resources><string name="app_name">Cinestream</string></resources>' },
 ];
 
 const apkBuffer = createZip(files);
+fs.writeFileSync(path.join(publicDir, 'Cinestream-v1.4.4.apk'), apkBuffer);
 fs.writeFileSync(path.join(publicDir, 'Cinestream-v1.4.3.apk'), apkBuffer);
 fs.writeFileSync(path.join(publicDir, 'Cinestream.apk'), apkBuffer);
-console.log('Successfully generated Cinestream-v1.4.3.apk and Cinestream.apk in public folder!');
+console.log('Successfully generated Cinestream-v1.4.4.apk, Cinestream-v1.4.3.apk, and Cinestream.apk in public folder!');

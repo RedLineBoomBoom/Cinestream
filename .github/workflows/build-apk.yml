@@ -57,14 +57,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish GitHub Release (v1.4.3)
+      - name: Publish GitHub Release (v1.4.4)
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.4.3
-          name: Cinestream Android & TV App v1.4.3 (Full Production Release)
+          tag_name: v1.4.4
+          name: Cinestream Android & TV App v1.4.4 (Full Production Release)
           body: |
-            ## 🎬 Cinestream App (Android & Android TV) • v1.4.3
+            ## 🎬 Cinestream App (Android & Android TV) • v1.4.4
             Official production release package for Cinestream.
 
             ### ✨ Key Features

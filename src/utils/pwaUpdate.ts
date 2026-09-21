@@ -3,7 +3,7 @@
  * Ensures instant sync across mobile, tablet, desktop PWAs, and browsers.
  */
 
-export const APP_VERSION = '1.4.3';
+export const APP_VERSION = '1.4.4';
 export const UPDATE_AVAILABLE_EVENT = 'cinestream:sw-update-available';
 
 type UpdateCallback = (available: boolean) => void;
