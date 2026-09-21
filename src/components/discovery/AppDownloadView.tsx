@@ -71,11 +71,6 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
     a.click();
     document.body.removeChild(a);
 
-    // Scroll to guide after 600ms so user sees how to install
-    setTimeout(() => {
-      guideSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 600);
-
     setTimeout(() => {
       setDownloadStarted(false);
     }, 6000);
@@ -208,224 +203,230 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-slate-100 pt-24 pb-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto animate-in fade-in duration-300">
-      {/* Top Breadcrumb / Back Button */}
-      {onBackToHome && (
-        <button
-          onClick={() => {
-            playClick();
-            onBackToHome();
-          }}
-          onMouseEnter={playHover}
-          className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer group"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-          <span>{language === 'en' ? 'Back to Home' : 'Kembali ke Beranda'}</span>
-        </button>
-      )}
+    <div className="w-full min-h-screen bg-[#0A0A0A] text-slate-100 overflow-x-hidden animate-in fade-in duration-300">
+      {/* ── FULL-BLEED HERO BANNER SECTION ──────────────────────── */}
+      <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#2a070a] via-[#160608] via-45% to-[#0A0A0A] pt-24 sm:pt-28 pb-16 sm:pb-24 border-b border-white/[0.06]">
+        {/* Cinematic glow ambient background elements spanning full width */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] sm:w-[1500px] h-[500px] bg-red-600/15 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-20 left-0 w-[450px] h-[450px] bg-rose-900/15 rounded-full blur-[110px] pointer-events-none" />
 
-      {/* ── HERO BANNER ────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c0809] via-[#121212] to-black border border-red-500/25 p-6 sm:p-10 lg:p-14 shadow-2xl shadow-red-950/30 mb-12">
-        {/* Glow ambient background elements */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Content Container (Centered, responsive width) */}
+        <div className="max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 w-full relative z-10">
+          {/* Top Breadcrumb / Back Button */}
+          {onBackToHome && (
+            <button
+              onClick={() => {
+                playClick();
+                onBackToHome();
+              }}
+              onMouseEnter={playHover}
+              className="inline-flex items-center gap-2 mb-8 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer group"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              <span>{language === 'en' ? 'Back to Home' : 'Kembali ke Beranda'}</span>
+            </button>
+          )}
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Headline & Actions */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Release Status Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold tracking-wide">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>OFFICIAL FULL RELEASE • v{APP_VERSION}</span>
-            </div>
-
-            {/* Headline */}
-            <div className="space-y-3">
-              <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide uppercase leading-[1.05]">
-                {language === 'en' ? (
-                  <>
-                    Stream Freely. <br />
-                    <span className="bg-gradient-to-r from-[#E50914] via-rose-500 to-amber-400 bg-clip-text text-transparent">
-                      Get Cinestream App.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    Nonton Bebas Iklan. <br />
-                    <span className="bg-gradient-to-r from-[#E50914] via-rose-500 to-amber-400 bg-clip-text text-transparent">
-                      Download Cinestream App.
-                    </span>
-                  </>
-                )}
-              </h1>
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-light max-w-xl">
-                {language === 'en'
-                  ? 'Experience movies, Asian dramas, and anime with multi-server automated failover, live Danmaku floating comments, and remote-friendly navigation on your smartphone and Android TV.'
-                  : 'Nikmati ribuan film, serial drama, dan anime dengan multi-server otomatis, komentar melayang Danmaku, serta kendali remote di smartphone, tablet, dan Android TV / Smart TV Anda.'}
-              </p>
-            </div>
-
-            {/* Spec Highlights Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-center">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Platform' : 'Sistem'}</div>
-                <div className="text-xs font-bold text-white mt-0.5">Android 5.0+</div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
+            {/* Left Column: Headline & Actions */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Release Status Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>OFFICIAL FULL RELEASE • v{APP_VERSION}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-center">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Version' : 'Versi'}</div>
-                <div className="text-xs font-bold text-emerald-400 mt-0.5">v{APP_VERSION} (Full)</div>
+
+              {/* Headline */}
+              <div className="space-y-3">
+                <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white tracking-wide uppercase leading-[1.05]">
+                  {language === 'en' ? (
+                    <>
+                      Stream Freely. <br />
+                      <span className="bg-gradient-to-r from-[#E50914] via-rose-500 to-amber-400 bg-clip-text text-transparent">
+                        Get Cinestream App.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Nonton Bebas Iklan. <br />
+                      <span className="bg-gradient-to-r from-[#E50914] via-rose-500 to-amber-400 bg-clip-text text-transparent">
+                        Download Cinestream App.
+                      </span>
+                    </>
+                  )}
+                </h1>
+                <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-light max-w-xl">
+                  {language === 'en'
+                    ? 'Experience movies, Asian dramas, and anime with multi-server automated failover, live Danmaku floating comments, and remote-friendly navigation on your smartphone and Android TV.'
+                    : 'Nikmati ribuan film, serial drama, dan anime dengan multi-server otomatis, komentar melayang Danmaku, serta kendali remote di smartphone, tablet, dan Android TV / Smart TV Anda.'}
+                </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-center">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Size' : 'Ukuran'}</div>
-                <div className="text-xs font-bold text-white mt-0.5">~18.5 MB</div>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-center">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Security' : 'Keamanan'}</div>
-                <div className="text-xs font-bold text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>{language === 'en' ? 'Safe' : 'Bebas Virus'}</span>
+
+              {/* Spec Highlights Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <div className="p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08] text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Platform' : 'Sistem'}</div>
+                  <div className="text-xs font-bold text-white mt-0.5">Android 5.0+</div>
+                </div>
+                <div className="p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08] text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Version' : 'Versi'}</div>
+                  <div className="text-xs font-bold text-emerald-400 mt-0.5">v{APP_VERSION} (Full)</div>
+                </div>
+                <div className="p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08] text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Size' : 'Ukuran'}</div>
+                  <div className="text-xs font-bold text-white mt-0.5">~18.5 MB</div>
+                </div>
+                <div className="p-3 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08] text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">{language === 'en' ? 'Security' : 'Keamanan'}</div>
+                  <div className="text-xs font-bold text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>{language === 'en' ? 'Safe' : 'Bebas Virus'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Main Action Buttons */}
-            <div className="space-y-3 pt-2">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Primary APK Download Button */}
-                <button
-                  onClick={handleDownloadApk}
-                  onMouseEnter={playHover}
-                  className="flex-1 flex items-center justify-center gap-3 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#E50914] via-red-600 to-rose-600 hover:from-red-600 hover:to-rose-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-red-950/60 hover:shadow-red-900/80 transition-all transform active:scale-98 cursor-pointer group"
-                >
-                  <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
-                  <div className="text-left">
-                    <div className="leading-tight">
-                      {language === 'en' ? 'Download Cinestream APK' : 'Download Cinestream APK'}
-                    </div>
-                    <div className="text-[10px] text-red-200 font-mono font-normal">
-                      {language === 'en' ? `Direct Download (v${APP_VERSION})` : `Unduh Langsung (v${APP_VERSION})`}
-                    </div>
-                  </div>
-                </button>
-
-                {/* Instant PWA Install Button */}
-                <button
-                  onClick={handleTriggerPwaInstall}
-                  onMouseEnter={playHover}
-                  className="flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/12 text-slate-200 hover:text-white font-semibold text-xs tracking-wide transition-all cursor-pointer"
-                  title={language === 'en' ? 'Install directly in browser as PWA' : 'Pasang langsung di browser via PWA'}
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>{language === 'en' ? 'Instant PWA Install' : 'Pasang Versi PWA'}</span>
-                </button>
-              </div>
-
-              {/* GitHub Official Mirror Links */}
-              <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 pt-1">
-                <div className="flex items-center gap-3">
-                  <a
-                    href={githubMirrorUrl}
-                    download={`Cinestream-v${APP_VERSION}.apk`}
-                    className="inline-flex items-center gap-1.5 text-slate-300 hover:text-emerald-400 font-medium transition-colors no-underline"
-                    title="Direct APK Mirror from GitHub Releases"
+              {/* Main Action Buttons */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Primary APK Download Button */}
+                  <button
+                    onClick={handleDownloadApk}
+                    onMouseEnter={playHover}
+                    className="flex-1 flex items-center justify-center gap-3 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#E50914] via-red-600 to-rose-600 hover:from-red-600 hover:to-rose-500 text-white font-bold text-sm tracking-wide shadow-xl shadow-red-950/60 hover:shadow-red-900/80 transition-all transform active:scale-98 cursor-pointer group"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{language === 'en' ? 'Server Mirror (GitHub)' : 'Server Mirror (GitHub)'}</span>
-                  </a>
-                  <span className="text-white/20">•</span>
-                  <a
-                    href={githubReleaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors no-underline"
+                    <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
+                    <div className="text-left">
+                      <div className="leading-tight">
+                        {language === 'en' ? 'Download Cinestream APK' : 'Download Cinestream APK'}
+                      </div>
+                      <div className="text-[10px] text-red-200 font-mono font-normal">
+                        {language === 'en' ? `Direct Download (v${APP_VERSION})` : `Unduh Langsung (v${APP_VERSION})`}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Instant PWA Install Button */}
+                  <button
+                    onClick={handleTriggerPwaInstall}
+                    onMouseEnter={playHover}
+                    className="flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/12 text-slate-200 hover:text-white font-semibold text-xs tracking-wide transition-all cursor-pointer"
+                    title={language === 'en' ? 'Install directly in browser as PWA' : 'Pasang langsung di browser via PWA'}
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>{language === 'en' ? 'All Releases' : 'Semua Rilis'}</span>
-                  </a>
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>{language === 'en' ? 'Instant PWA Install' : 'Pasang Versi PWA'}</span>
+                  </button>
                 </div>
+
+                {/* GitHub Official Mirror Links */}
+                <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 pt-1">
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={githubMirrorUrl}
+                      download={`Cinestream-v${APP_VERSION}.apk`}
+                      className="inline-flex items-center gap-1.5 text-slate-300 hover:text-emerald-400 font-medium transition-colors no-underline"
+                      title="Direct APK Mirror from GitHub Releases"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{language === 'en' ? 'Server Mirror (GitHub)' : 'Server Mirror (GitHub)'}</span>
+                    </a>
+                    <span className="text-white/20">•</span>
+                    <a
+                      href={githubReleaseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors no-underline"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>{language === 'en' ? 'All Releases' : 'Semua Rilis'}</span>
+                    </a>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      guideSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-slate-400 hover:text-white transition-colors underline cursor-pointer text-[11px]"
+                  >
+                    {language === 'en' ? 'View Installation Guide ↓' : 'Lihat Panduan Pasang ↓'}
+                  </button>
+                </div>
+
+                {/* Download Feedback Banner */}
+                {downloadStarted && (
+                  <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      {language === 'en'
+                        ? 'Download starting! Check your notification bar or downloads folder.'
+                        : 'Download dimulai! Periksa bilah notifikasi atau folder download perangkat Anda.'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: QR Code & Mobile Mockup Card */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center">
+              <div className="w-full max-w-sm rounded-2xl bg-black/70 backdrop-blur-xl border border-white/12 p-6 shadow-2xl shadow-black/80 text-center space-y-4">
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  <Smartphone className="w-4 h-4 text-[#E50914]" />
+                  <span>{language === 'en' ? 'Scan to Download on Phone' : 'Scan untuk Download di HP'}</span>
+                </div>
+
+                {/* Live QR Code Canvas */}
+                <div className="relative mx-auto w-48 h-48 bg-white p-2.5 rounded-xl shadow-lg flex items-center justify-center">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="Cinestream App Download QR Code"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
+                      Generating QR...
+                    </div>
+                  )}
+                  {/* Logo badge in center of QR */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-8 h-8 rounded-full bg-[#E50914] border-2 border-white shadow-md flex items-center justify-center">
+                      <span className="font-display font-black text-white text-[10px]">C</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  {language === 'en'
+                    ? 'Point your phone camera to download the APK directly onto your Android device or Smart TV.'
+                    : 'Arahkan kamera HP Anda untuk langsung mendownload APK di smartphone atau tablet.'}
+                </p>
 
                 <button
-                  onClick={() => {
-                    guideSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="text-slate-400 hover:text-white transition-colors underline cursor-pointer text-[11px]"
+                  onClick={handleCopyLink}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-slate-200 text-xs font-semibold transition-all cursor-pointer"
                 >
-                  {language === 'en' ? 'View Installation Guide ↓' : 'Lihat Panduan Pasang ↓'}
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">{language === 'en' ? 'Link Copied!' : 'Link Tersalin!'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{language === 'en' ? 'Copy Download Link' : 'Salin Link Download'}</span>
+                    </>
+                  )}
                 </button>
               </div>
-
-              {/* Download Feedback Banner */}
-              {downloadStarted && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>
-                    {language === 'en'
-                      ? 'Download starting! Check your notification bar or downloads folder.'
-                      : 'Download dimulai! Periksa bilah notifikasi atau folder download perangkat Anda.'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: QR Code & Mobile Mockup Card */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center">
-            <div className="w-full max-w-sm rounded-2xl bg-black/60 backdrop-blur-xl border border-white/12 p-6 shadow-2xl text-center space-y-4">
-              <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-wider">
-                <Smartphone className="w-4 h-4 text-[#E50914]" />
-                <span>{language === 'en' ? 'Scan to Download on Phone' : 'Scan untuk Download di HP'}</span>
-              </div>
-
-              {/* Live QR Code Canvas */}
-              <div className="relative mx-auto w-48 h-48 bg-white p-2.5 rounded-xl shadow-lg flex items-center justify-center">
-                {qrDataUrl ? (
-                  <img
-                    src={qrDataUrl}
-                    alt="Cinestream App Download QR Code"
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
-                    Generating QR...
-                  </div>
-                )}
-                {/* Logo badge in center of QR */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-8 h-8 rounded-full bg-[#E50914] border-2 border-white shadow-md flex items-center justify-center">
-                    <span className="font-display font-black text-white text-[10px]">C</span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                {language === 'en'
-                  ? 'Point your phone camera to download the APK directly onto your Android device or Smart TV.'
-                  : 'Arahkan kamera HP Anda untuk langsung mendownload APK di smartphone atau tablet.'}
-              </p>
-
-              <button
-                onClick={handleCopyLink}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-slate-200 text-xs font-semibold transition-all cursor-pointer"
-              >
-                {copiedLink ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">{language === 'en' ? 'Link Copied!' : 'Link Tersalin!'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{language === 'en' ? 'Copy Download Link' : 'Salin Link Download'}</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── KEY FEATURES OVERVIEW ──────────────────────────────── */}
-      <div className="mb-14">
+      {/* ── LOWER SECTIONS WRAPPER (CONTAINED) ──────────────────── */}
+      <div className="max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 w-full py-16 space-y-16 sm:space-y-20">
+        {/* ── KEY FEATURES OVERVIEW ──────────────────────────────── */}
+        <div>
         <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
           <h2 className="font-display font-black text-2xl sm:text-3xl text-white tracking-wide uppercase">
             {language === 'en' ? 'Why Choose Cinestream App?' : 'Mengapa Harus Cinestream App?'}
@@ -814,5 +815,6 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
         })}
       </div>
     </div>
+  </div>
   );
 };
