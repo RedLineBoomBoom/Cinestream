@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Search,
@@ -59,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -282,6 +283,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Unique Per-Device Profile Avatar Button */}
           <div className="relative">
             <button
+              ref={profileTriggerRef}
+              data-profile-trigger="true"
               onClick={() => {
                 playClick();
                 setMobileMenuOpen(false);
@@ -309,6 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               isOpen={isProfileOpen}
               onClose={() => setIsProfileOpen(false)}
               onSelectTab={onSelectTab}
+              triggerRef={profileTriggerRef}
             />
           </div>
 

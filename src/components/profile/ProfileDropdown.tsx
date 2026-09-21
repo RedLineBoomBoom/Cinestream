@@ -32,12 +32,14 @@ interface ProfileDropdownProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTab: (tab: string) => void;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   isOpen,
   onClose,
   onSelectTab,
+  triggerRef,
 }) => {
   const {
     profile,
@@ -104,20 +106,37 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   // Click outside listener
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       // If the shareable profile modal is currently open, do not trigger dropdown close from outside clicks
       if (showProfileCard) return;
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        onClose();
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // Ignore if click is inside the dropdown itself
+      if (dropdownRef.current && dropdownRef.current.contains(target)) {
+        return;
       }
+
+      // Ignore if click is on the trigger button (avatar button) or any element with data-profile-trigger
+      // This allows the trigger button's own onClick to properly toggle the dropdown closed instead of reopening!
+      if (triggerRef?.current && triggerRef.current.contains(target)) {
+        return;
+      }
+      if (target.closest?.('[data-profile-trigger]')) {
+        return;
+      }
+
+      onClose();
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose, showProfileCard]);
+  }, [isOpen, onClose, showProfileCard, triggerRef]);
 
   // Always reset showProfileCard and edit states whenever dropdown closes or is hidden
   useEffect(() => {
