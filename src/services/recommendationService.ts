@@ -47,6 +47,26 @@ interface CachedData {
   data: RecommendationFeedData;
 }
 
+export function clearRecommendationCache(anchorId?: string, language?: string) {
+  try {
+    if (typeof window === 'undefined') return;
+    if (anchorId) {
+      if (language) {
+        sessionStorage.removeItem(`${CACHE_PREFIX}${anchorId}_${language}`);
+      } else {
+        sessionStorage.removeItem(`${CACHE_PREFIX}${anchorId}_id`);
+        sessionStorage.removeItem(`${CACHE_PREFIX}${anchorId}_en`);
+      }
+    } else {
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith('cinestream_rec_cache_')) {
+          sessionStorage.removeItem(k);
+        }
+      });
+    }
+  } catch {}
+}
+
 // ─────────────────────────────────────────────────────────────
 // 1. DETEKSI ANCHOR — HANYA DARI HISTORY NYATA
 // ─────────────────────────────────────────────────────────────

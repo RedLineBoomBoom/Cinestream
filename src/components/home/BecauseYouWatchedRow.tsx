@@ -23,6 +23,7 @@ import { MOCK_CATALOG } from '../../data/mockCatalog';
 import {
   fetchBecauseYouWatchedFeed,
   getAvailableAnchors,
+  clearRecommendationCache,
   type RecommendedMediaItem,
   type RecommendationFeedData,
 } from '../../services/recommendationService';
@@ -114,10 +115,7 @@ export const BecauseYouWatchedRow: React.FC<BecauseYouWatchedRowProps> = ({
     playClick();
     if (activeAnchor) {
       setIsLoading(true);
-      // Hapus cache sementara untuk me-regenerate variasi
-      try {
-        sessionStorage.removeItem(`cinestream_rec_cache_v1_${activeAnchor.id}_${language}`);
-      } catch {}
+      clearRecommendationCache(activeAnchor.id, language);
       const res = await fetchBecauseYouWatchedFeed(
         activeAnchor,
         availableAnchors,
