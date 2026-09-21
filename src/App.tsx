@@ -29,6 +29,7 @@ import { WatchPartyModal } from './components/party/WatchPartyModal';
 import { WatchPartyLobbyView } from './components/party/WatchPartyLobbyView';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { AiringScheduleView } from './components/discovery/AiringScheduleView';
+import { PublicProfileModal } from './components/profile/PublicProfileModal';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
 import { PwaUpdateToast } from './components/layout/PwaUpdateToast';
@@ -186,6 +187,17 @@ const MainContent: React.FC = () => {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [setAutoJoinCode, setIsPartyOpen]);
+
+  // Handle shared Public Profile URL on load
+  const [sharedProfileUsername, setSharedProfileUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const route = parseCurrentRoute();
+    if (route.type === 'profile') {
+      setSharedProfileUsername(route.username);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   // Custom User Stream Catalog (persisted)
   const [customCatalog, setCustomCatalog] = useState<MediaItem[]>(() => {
@@ -1405,6 +1417,14 @@ const MainContent: React.FC = () => {
 
       {/* ── Offline Network Banner ───────────────────────── */}
       <OfflineBanner />
+
+      {/* ── Shared Public Profile Card Modal ────────────── */}
+      {sharedProfileUsername && (
+        <PublicProfileModal
+          targetUsername={sharedProfileUsername}
+          onClose={() => setSharedProfileUsername(null)}
+        />
+      )}
 
       {/* ── PWA Install Prompt (Floating Banner) ────────── */}
       <PwaInstallPrompt />

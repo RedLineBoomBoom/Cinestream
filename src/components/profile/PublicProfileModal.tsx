@@ -1,27 +1,100 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Check, Share2, Film, Bookmark, Clock, ExternalLink } from 'lucide-react';
-import { useUserProfile } from '../../context/UserProfileContext';
+import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
+import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
 interface PublicProfileModalProps {
   onClose: () => void;
+  targetUsername?: string;
 }
 
-export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose }) => {
-  const { profile, activePalette } = useUserProfile();
-  const { watchlist, historyItems } = useWatchlist();
+export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose, targetUsername }) => {
+  const { profile: myProfile, activePalette: myPalette } = useUserProfile();
+  const { watchlist: myWatchlist, historyItems: myHistoryItems } = useWatchlist();
   const { language } = useLanguage();
   const { playClick } = useSound();
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const profileUrl = `${window.location.origin}/?profile=${encodeURIComponent(profile.name || 'user')}`;
+  const isOtherUser = Boolean(
+    targetUsername &&
+    targetUsername.trim().toLowerCase() !== (myProfile.name || '').trim().toLowerCase()
+  );
 
-  const completedCount = historyItems.filter((h) => h.completed).length;
-  const totalWatched = historyItems.length;
+  const [remoteProfile, setRemoteProfile] = useState<{
+    name: string;
+    emoji?: string;
+    initials?: string;
+    paletteId?: string;
+  } | null>(null);
+  const [remoteWatchlistCount, setRemoteWatchlistCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isOtherUser || !targetUsername) return;
+    let isMounted = true;
+
+    async function loadUser() {
+      if (!isSupabaseConfigured) return;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('name', targetUsername!)
+          .maybeSingle();
+
+        if (data && isMounted) {
+          setRemoteProfile({
+            name: data.name,
+            emoji: data.emoji,
+            initials: data.initials,
+            paletteId: data.theme_palette,
+          });
+
+          const { count } = await supabase
+            .from('watchlist')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', data.id);
+
+          if (count !== null && isMounted) {
+            setRemoteWatchlistCount(count);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching remote public profile:', err);
+      }
+    }
+
+    loadUser();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOtherUser, targetUsername]);
+
+  const displayProfile = isOtherUser
+    ? {
+        name: remoteProfile?.name || targetUsername || 'Cinephile',
+        emoji: remoteProfile?.emoji || '🍿',
+        initials: remoteProfile?.initials || (targetUsername ? targetUsername.slice(0, 2).toUpperCase() : 'CS'),
+        paletteId: remoteProfile?.paletteId || 'netflix-crimson',
+      }
+    : myProfile;
+
+  const displayPalette = isOtherUser
+    ? PROFILE_PALETTES.find((p) => p.id === displayProfile.paletteId) || myPalette
+    : myPalette;
+
+  const displayWatchlistCount = isOtherUser
+    ? (remoteWatchlistCount ?? 0)
+    : myWatchlist.length;
+
+  const completedCount = isOtherUser ? 0 : myHistoryItems.filter((h) => h.completed).length;
+  const totalWatched = isOtherUser ? 0 : myHistoryItems.length;
+
+  const profileUrl = `${window.location.origin}/u/${encodeURIComponent(displayProfile.name || 'user')}`;
 
   const handleCopyLink = async () => {
     playClick();
@@ -36,11 +109,11 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose 
 
   const handleShare = async () => {
     playClick();
-    const title = `${profile.name || 'Cinephile'} on Cinestream`;
+    const title = `${displayProfile.name || 'Cinephile'} on Cinestream`;
     const text =
       language === 'en'
-        ? `Check out my Cinestream profile — ${watchlist.length} watchlisted, ${completedCount} completed!`
-        : `Lihat profil Cinestream-ku — ${watchlist.length} ditambahkan, ${completedCount} selesai ditonton!`;
+        ? `Check out my Cinestream profile — ${displayWatchlistCount} watchlisted, ${completedCount} completed!`
+        : `Lihat profil Cinestream-ku — ${displayWatchlistCount} ditambahkan, ${completedCount} selesai ditonton!`;
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url: profileUrl });
@@ -56,7 +129,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose 
     {
       icon: <Bookmark className="w-4 h-4 text-violet-400" />,
       label: language === 'en' ? 'Watchlist' : 'Watchlist',
-      value: watchlist.length,
+      value: displayWatchlistCount,
       sub: language === 'en' ? 'titles saved' : 'film tersimpan',
     },
     {
@@ -84,7 +157,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header gradient band */}
-        <div className={`h-24 w-full bg-gradient-to-br ${activePalette.gradient} relative`}>
+        <div className={`h-24 w-full bg-gradient-to-br ${displayPalette.gradient} relative`}>
           <button
             onClick={onClose}
             className="absolute top-3 right-3 p-1.5 rounded-xl bg-black/30 hover:bg-black/50 text-white/80 hover:text-white transition-all cursor-pointer"
@@ -98,10 +171,10 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose 
           <div className="flex items-end justify-between -mt-10 mb-4">
             {/* Avatar */}
             <div
-              className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${activePalette.gradient} border-4 border-cinema-950 flex items-center justify-center shadow-2xl`}
+              className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${displayPalette.gradient} border-4 border-cinema-950 flex items-center justify-center shadow-2xl`}
             >
               <span className="text-3xl font-bold text-white select-none">
-                {profile.emoji || profile.initials || (profile.name?.[0]?.toUpperCase() ?? '?')}
+                {displayProfile.emoji || displayProfile.initials || (displayProfile.name?.[0]?.toUpperCase() ?? '?')}
               </span>
             </div>
 
@@ -129,7 +202,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose 
           {/* Name & tagline */}
           <div className="mb-5">
             <h2 className="text-xl font-display font-bold text-white leading-tight">
-              {profile.name || (language === 'en' ? 'Cinephile' : 'Cinephile')}
+              {displayProfile.name || (language === 'en' ? 'Cinephile' : 'Cinephile')}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {language === 'en' ? 'Cinestream Member' : 'Anggota Cinestream'}

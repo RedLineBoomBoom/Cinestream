@@ -10,6 +10,7 @@ import {
   Shield,
   Users,
   Dices,
+  Calendar,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -158,6 +159,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
                 {link.id === 'watch-party' && (
                   <Users className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
+                )}
+                {link.id === 'schedule' && (
+                  <Calendar className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-violet-400'}`} />
                 )}
                 <span>{link.label}</span>
                 {link.id === 'watch-party' && liveRoomsCount > 0 ? (
@@ -387,6 +391,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {link.id === 'watch-party' && (
                     <Users className="w-4 h-4 text-violet-400" />
                   )}
+                  {link.id === 'schedule' && (
+                    <Calendar className="w-4 h-4 text-violet-400" />
+                  )}
                   <span>{link.label}</span>
                 </div>
                 {link.id === 'watch-party' && liveRoomsCount > 0 ? (
@@ -405,6 +412,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
+
+          {/* Mood Picker / Surprise Me (Mobile Drawer) */}
+          <button
+            onClick={() => {
+              playClick();
+              setMobileMenuOpen(false);
+              setShowMoodPicker(true);
+            }}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-md text-sm font-semibold transition-all cursor-pointer bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-red-500/15 border border-amber-500/30 text-amber-200 hover:text-white hover:bg-amber-500/25"
+          >
+            <div className="flex items-center gap-2.5">
+              <Dices className="w-4 h-4 text-amber-400 animate-spin-once" />
+              <span>{language === 'en' ? 'Mood Picker — Surprise Me!' : 'Mood Picker — Kejutkan Aku!'}</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              🎲 {language === 'en' ? 'Spin' : 'Putar'}
+            </span>
+          </button>
 
           {/* Exclusive Admin Quick Access (Mobile Drawer, ONLY for Admins) */}
           {isAdmin && (

@@ -2,6 +2,7 @@ export type RouteInfo =
   | { type: 'watch'; mediaId: string; episodeId?: string }
   | { type: 'party'; code: string }
   | { type: 'legal'; tab: 'privacy' | 'terms' }
+  | { type: 'profile'; username: string }
   | { type: 'tab'; tab: string };
 
 export const VALID_TABS = [
@@ -119,6 +120,21 @@ export function parseCurrentRoute(): RouteInfo {
   }
   if (/^\/(?:terms(?:\.html)?|ketentuan-layanan|tos)/i.test(pathname) || /^#\/?(?:terms|ketentuan-layanan|tos)/i.test(hash)) {
     return { type: 'legal', tab: 'terms' };
+  }
+
+  // 3c. Check Public Profile route in pathname, hash, or query (/u/username, #/u/username, or ?profile=username)
+  const profilePathMatch = pathname.match(/^\/u\/([^/?#]+)/i);
+  if (profilePathMatch) {
+    return { type: 'profile', username: decodeURIComponent(profilePathMatch[1]) };
+  }
+  const profileHashMatch = hash.match(/^#\/u\/([^/?#]+)/i);
+  if (profileHashMatch) {
+    return { type: 'profile', username: decodeURIComponent(profileHashMatch[1]) };
+  }
+  const searchParams = new URLSearchParams(search);
+  const profileQuery = searchParams.get('profile');
+  if (profileQuery) {
+    return { type: 'profile', username: decodeURIComponent(profileQuery) };
   }
 
   // 4. Check clean section tabs in pathname (e.g. /movie, /series, /watchlist)
