@@ -92,11 +92,33 @@ function computeCRC32(buf) {
 }
 
 const publicDir = path.resolve(__dirname, '../public');
-const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
+
+// Extract APP_VERSION from pwaUpdate.ts
+let appVersion = '1.4.6';
+try {
+  const pwaUpdatePath = path.resolve(__dirname, '../src/utils/pwaUpdate.ts');
+  const pwaContent = fs.readFileSync(pwaUpdatePath, 'utf8');
+  const match = pwaContent.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+  if (match && match[1]) {
+    appVersion = match[1];
+  }
+} catch (e) {
+  console.warn('Could not read version from pwaUpdate.ts, defaulting to', appVersion);
+}
+
+const canonicalApkPath = path.join(publicDir, 'Cinestream.apk');
+const versionedApkPath = path.join(publicDir, `Cinestream-v${appVersion}.apk`);
+
+// If canonical Cinestream.apk exists and is a real binary APK (>1MB), synchronize to versioned file
+if (fs.existsSync(canonicalApkPath) && fs.statSync(canonicalApkPath).size > 1000000) {
+  fs.copyFileSync(canonicalApkPath, versionedApkPath);
+  console.log(`Successfully synced real APK (${(fs.statSync(canonicalApkPath).size / 1024 / 1024).toFixed(2)} MB) to Cinestream-v${appVersion}.apk and Cinestream.apk`);
+} else {
+  const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cinestream.app"
-    android:versionCode="10404"
-    android:versionName="1.4.4">
+    android:versionCode="10406"
+    android:versionName="${appVersion}">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application
@@ -119,15 +141,15 @@ const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
     </application>
 </manifest>`;
 
-const files = [
-  { name: 'AndroidManifest.xml', content: manifestXml },
-  { name: 'META-INF/MANIFEST.MF', content: 'Manifest-Version: 1.0\nCreated-By: Cinestream Build Engine\nPackage: com.cinestream.app\nVersion: 1.4.4\n' },
-  { name: 'assets/app-info.json', content: JSON.stringify({ name: 'Cinestream', version: '1.4.4', channel: 'production', buildTime: new Date().toISOString() }, null, 2) },
-  { name: 'res/values/strings.xml', content: '<resources><string name="app_name">Cinestream</string></resources>' },
-];
+  const files = [
+    { name: 'AndroidManifest.xml', content: manifestXml },
+    { name: 'META-INF/MANIFEST.MF', content: `Manifest-Version: 1.0\nCreated-By: Cinestream Build Engine\nPackage: com.cinestream.app\nVersion: ${appVersion}\n` },
+    { name: 'assets/app-info.json', content: JSON.stringify({ name: 'Cinestream', version: appVersion, channel: 'production', buildTime: new Date().toISOString() }, null, 2) },
+    { name: 'res/values/strings.xml', content: '<resources><string name="app_name">Cinestream</string></resources>' },
+  ];
 
-const apkBuffer = createZip(files);
-fs.writeFileSync(path.join(publicDir, 'Cinestream-v1.4.4.apk'), apkBuffer);
-fs.writeFileSync(path.join(publicDir, 'Cinestream-v1.4.3.apk'), apkBuffer);
-fs.writeFileSync(path.join(publicDir, 'Cinestream.apk'), apkBuffer);
-console.log('Successfully generated Cinestream-v1.4.4.apk, Cinestream-v1.4.3.apk, and Cinestream.apk in public folder!');
+  const apkBuffer = createZip(files);
+  fs.writeFileSync(versionedApkPath, apkBuffer);
+  fs.writeFileSync(canonicalApkPath, apkBuffer);
+  console.log(`Generated fallback Cinestream-v${appVersion}.apk and Cinestream.apk in public folder`);
+}

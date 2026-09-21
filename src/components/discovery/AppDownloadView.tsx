@@ -40,8 +40,9 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
   const guideSectionRef = useRef<HTMLDivElement>(null);
 
   // Download URLs
-  const apkDownloadUrl = `/Cinestream-v${APP_VERSION}.apk`;
+  const apkDownloadUrl = '/Cinestream.apk';
   const githubReleaseUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases';
+  const githubMirrorUrl = 'https://github.com/RedLineBoomBoom/Cinestream/releases/download/v1.4.4/app-debug.apk';
 
   // Generate QR code for the current URL
   useEffect(() => {
@@ -319,17 +320,29 @@ export const AppDownloadView: React.FC<AppDownloadViewProps> = ({ onBackToHome }
                 </button>
               </div>
 
-              {/* GitHub Official Mirror Link */}
+              {/* GitHub Official Mirror Links */}
               <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 pt-1">
-                <a
-                  href={githubReleaseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors no-underline"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>{language === 'en' ? 'Mirror: GitHub Official Releases' : 'Mirror: Rilis Resmi di GitHub'}</span>
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={githubMirrorUrl}
+                    download={`Cinestream-v${APP_VERSION}.apk`}
+                    className="inline-flex items-center gap-1.5 text-slate-300 hover:text-emerald-400 font-medium transition-colors no-underline"
+                    title="Direct APK Mirror from GitHub Releases"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{language === 'en' ? 'Server Mirror (GitHub)' : 'Server Mirror (GitHub)'}</span>
+                  </a>
+                  <span className="text-white/20">•</span>
+                  <a
+                    href={githubReleaseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-400 transition-colors no-underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'All Releases' : 'Semua Rilis'}</span>
+                  </a>
+                </div>
 
                 <button
                   onClick={() => {
