@@ -227,28 +227,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </button>
 
-          {/* Cinestream App / Download APK Button */}
-          <button
-            onClick={() => {
-              playClick();
-              onSelectTab('app');
-            }}
-            onMouseEnter={playHover}
-            aria-label="Cinestream App"
-            title={language === 'en' ? 'Download Cinestream App (Android & TV APK)' : 'Download Cinestream App (APK Android & TV)'}
-            className={`flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 xl:px-3 rounded-full border transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 ${
-              activeTab === 'app'
-                ? 'bg-[#E50914] text-white border-red-500 shadow-red-950/40'
-                : 'bg-red-950/25 hover:bg-red-900/40 text-red-200 hover:text-white border-red-500/35 hover:border-red-500/60'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5 text-red-400" />
-            <span className="hidden xl:inline font-bold whitespace-nowrap">App</span>
-            <span className="hidden 2xl:inline text-[9px] px-1 py-0.2 rounded bg-red-600/30 text-red-300 font-mono font-bold">
-              APK
-            </span>
-          </button>
-
           {/* Quick Search */}
           <button
             onClick={() => {
@@ -460,30 +438,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               🎲 {language === 'en' ? 'Spin' : 'Putar'}
             </span>
           </button>
-
-          {/* Cinestream App Mobile Link */}
-          <a
-            href="/app"
-            onClick={(e) => {
-              e.preventDefault();
-              playClick();
-              onSelectTab('app');
-              setMobileMenuOpen(false);
-            }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all no-underline cursor-pointer border ${
-              activeTab === 'app'
-                ? 'bg-[#E50914] text-white font-bold shadow-md border-red-600'
-                : 'bg-gradient-to-r from-red-950/40 via-zinc-900/40 to-black/60 text-red-200 border-red-500/35 hover:bg-red-900/40'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Smartphone className="w-4 h-4 text-[#E50914]" />
-              <span className="font-bold">Cinestream App</span>
-            </div>
-            <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
-              APK / TV
-            </span>
-          </a>
 
           {/* Exclusive Admin Quick Access (Mobile Drawer, ONLY for Admins) */}
           {isAdmin && (
