@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { MobileNav } from './components/layout/MobileNav';
 import { Footer } from './components/layout/Footer';
@@ -194,10 +194,32 @@ const MainContent: React.FC = () => {
   useEffect(() => {
     const route = parseCurrentRoute();
     if (route.type === 'profile') {
+      try {
+        if (sessionStorage.getItem(`cinestream_dismissed_profile_${route.username}`) === 'true') {
+          window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
+          return;
+        }
+      } catch {}
+
       setSharedProfileUsername(route.username);
-      window.history.replaceState(null, '', window.location.pathname);
+      // Immediately clean the URL to activeTab / '/' so PWA restarts and browser refreshes never get stuck in /u/...
+      window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
     }
-  }, []);
+  }, [activeTab]);
+
+  const handleCloseSharedProfile = useCallback(() => {
+    setSharedProfileUsername((prev) => {
+      if (prev) {
+        try {
+          sessionStorage.setItem(`cinestream_dismissed_profile_${prev}`, 'true');
+        } catch {}
+      }
+      return null;
+    });
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/u/')) {
+      window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
+    }
+  }, [activeTab]);
 
   // Custom User Stream Catalog (persisted)
   const [customCatalog, setCustomCatalog] = useState<MediaItem[]>(() => {
@@ -762,6 +784,9 @@ const MainContent: React.FC = () => {
     const handleNavigation = () => {
       const route = parseCurrentRoute();
 
+      // Ensure any open shared profile modal is closed on back/forward navigation
+      setSharedProfileUsername(null);
+
       if (route.type === 'watch') {
         setLegalModalTab(null);
         if (selectedMedia?.id !== route.mediaId) {
@@ -797,6 +822,16 @@ const MainContent: React.FC = () => {
         setIsPartyOpen(true);
       } else if (route.type === 'legal') {
         setLegalModalTab(route.tab);
+      } else if (route.type === 'profile') {
+        setLegalModalTab(null);
+        try {
+          if (sessionStorage.getItem(`cinestream_dismissed_profile_${route.username}`) === 'true') {
+            window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
+            return;
+          }
+        } catch {}
+        setSharedProfileUsername(route.username);
+        window.history.replaceState({ type: 'tab', tab: activeTab || 'home' }, '', getTabUrl(activeTab || 'home'));
       }
     };
 
@@ -806,7 +841,7 @@ const MainContent: React.FC = () => {
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener('hashchange', handleNavigation);
     };
-  }, [selectedMedia?.id, setAutoJoinCode, setIsPartyOpen, isAdmin]);
+  }, [selectedMedia?.id, setAutoJoinCode, setIsPartyOpen, isAdmin, activeTab]);
 
   // Persist activeTab whenever it changes
   useEffect(() => {
@@ -1428,7 +1463,7 @@ const MainContent: React.FC = () => {
       {sharedProfileUsername && (
         <PublicProfileModal
           targetUsername={sharedProfileUsername}
-          onClose={() => setSharedProfileUsername(null)}
+          onClose={handleCloseSharedProfile}
         />
       )}
 

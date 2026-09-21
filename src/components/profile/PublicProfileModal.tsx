@@ -147,16 +147,44 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
     },
   ];
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    const handlePopState = () => {
+      onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [onClose]);
+
   const accentColor = displayPalette?.accent || '#E50914';
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-pointer select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          playClick();
+          onClose();
+        }
+      }}
+      onTouchEnd={(e) => {
+        if (e.target === e.currentTarget) {
+          playClick();
+          onClose();
+        }
+      }}
     >
       <div
         ref={cardRef}
-        className="relative w-full max-w-sm bg-[#121212] border border-white/15 rounded-3xl overflow-hidden shadow-2xl shadow-black/90 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-sm bg-[#121212] border border-white/15 rounded-3xl overflow-hidden shadow-2xl shadow-black/90 animate-in zoom-in-95 duration-200 cursor-default select-text"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header gradient band with cinematic vignette */}
@@ -166,11 +194,22 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
 
           {/* Close button with frosted glass circle */}
           <button
-            onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md border border-white/15 flex items-center justify-center text-white/90 hover:text-white transition-all cursor-pointer z-10 active:scale-95"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              playClick();
+              onClose();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
+              playClick();
+              onClose();
+            }}
+            className="absolute top-3 right-3 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all cursor-pointer z-30 active:scale-95 touch-manipulation shadow-lg"
             title={language === 'en' ? 'Close' : 'Tutup'}
+            aria-label={language === 'en' ? 'Close profile card' : 'Tutup kartu profil'}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
@@ -272,6 +311,20 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
               {copied ? (language === 'en' ? '✓ Copied' : '✓ Tersalin') : (language === 'en' ? 'Copy' : 'Salin')}
             </span>
           </div>
+
+          {/* Dismiss button for mobile/PWA convenience */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              playClick();
+              onClose();
+            }}
+            className="w-full mt-3 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer text-center active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <X className="w-3.5 h-3.5 text-slate-400" />
+            <span>{language === 'en' ? 'Close & Return to Home' : 'Tutup & Kembali ke Beranda'}</span>
+          </button>
         </div>
       </div>
     </div>,
