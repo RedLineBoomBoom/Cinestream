@@ -21,7 +21,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useWatchParty } from '../../context/WatchPartyContext';
 import { ProfileDropdown } from '../profile/ProfileDropdown';
 import { BroadcastBanner } from './BroadcastBanner';
-import { WatchPartyButton } from '../party/WatchPartyButton';
 import { getTabUrl } from '../../utils/navigation';
 import { isAdminUser } from '../../utils/admin';
 import type { ModalSearchSource } from '../search/SearchModal';
@@ -93,6 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'watched', label: t('navWatched'), count: completedCount },
     { id: 'history', label: t('navHistory'), count: inProgressCount },
     { id: 'schedule', label: language === 'en' ? 'Airing Schedule' : 'Jadwal Tayang' },
+    { id: 'watch-party', label: t('partyTitle'), count: liveRoomsCount },
   ];
 
   return (
@@ -165,8 +165,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {link.id === 'schedule' && (
                   <Calendar className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-violet-400'}`} />
                 )}
+                {link.id === 'watch-party' && (
+                  <Users className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
+                )}
                 <span>{link.label}</span>
-                {link.count !== undefined && link.count > 0 ? (
+                {link.id === 'watch-party' && liveRoomsCount > 0 ? (
+                  <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    </span>
+                    {liveRoomsCount}
+                  </span>
+                ) : link.count !== undefined && link.count > 0 ? (
                   <span
                     className={`text-[9px] px-1 py-0.5 rounded-full font-bold leading-none ${
                       isActive ? 'bg-[#E50914] text-white' : 'bg-white/20 text-white'
@@ -181,15 +192,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
-
-          {/* Watch Party & Live Public Lobby (Nav Bar Bagian Tengah) */}
-          <div className="flex items-center pl-1 xl:pl-1.5 shrink-0">
-            <WatchPartyButton
-              onClick={() => onSelectTab('watch-party')}
-              variant="nav"
-              isActive={activeTab === 'watch-party'}
-            />
-          </div>
         </nav>
 
         {/* Right Controls */}
@@ -419,9 +421,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {link.id === 'schedule' && (
                     <Calendar className="w-4 h-4 text-violet-400" />
                   )}
+                  {link.id === 'watch-party' && (
+                    <Users className="w-4 h-4 text-violet-400" />
+                  )}
                   <span>{link.label}</span>
                 </div>
-                {link.count !== undefined && link.count > 0 ? (
+                {link.id === 'watch-party' && liveRoomsCount > 0 ? (
+                  <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-400/30">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    </span>
+                    {liveRoomsCount} Live
+                  </span>
+                ) : link.count !== undefined && link.count > 0 ? (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-brand-crimson text-white">
                     {link.count}
                   </span>
@@ -429,41 +442,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
-
-          {/* Mobile Watch Party / Public Lobby */}
-          <a
-            href="/watch-party"
-            onClick={(e) => {
-              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
-              e.preventDefault();
-              playClick();
-              setMobileMenuOpen(false);
-              onSelectTab('watch-party');
-            }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all border mt-1 cursor-pointer no-underline ${
-              activeTab === 'watch-party'
-                ? 'bg-[#E50914] text-white font-bold shadow-md border-red-600'
-                : 'bg-gradient-to-r from-violet-950/40 to-indigo-950/40 text-violet-200 hover:text-white border-violet-500/25'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Users className={`w-4 h-4 ${activeTab === 'watch-party' ? 'text-white' : 'text-violet-400'}`} />
-              <span className="font-semibold">{t('partyTitle')}</span>
-            </div>
-            {liveRoomsCount > 0 ? (
-              <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-400/30">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                </span>
-                {liveRoomsCount} Live
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                {t('partyLobbyTab')}
-              </span>
-            )}
-          </a>
 
           {/* Mood Picker / Surprise Me (Mobile Drawer) */}
           <button

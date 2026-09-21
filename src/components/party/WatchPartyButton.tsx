@@ -30,14 +30,14 @@ export const WatchPartyButton: React.FC<WatchPartyButtonProps> = ({ onClick, var
           handleClick();
         }}
         onMouseEnter={playHover}
-        className={`relative px-2.5 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 group border no-underline ${
+        className={`relative px-2 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 group no-underline ${
           isActive
-            ? 'bg-white/10 text-white font-bold border-white/25 shadow-sm'
+            ? 'bg-white/10 text-white font-bold shadow-sm'
             : isConnected
-            ? 'bg-violet-600/30 text-white font-bold border-violet-400/50 shadow-sm shadow-violet-500/20'
+            ? 'bg-violet-600/30 text-white font-bold shadow-sm'
             : liveRoomsCount > 0
-            ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 font-semibold border-emerald-500/35 hover:border-emerald-400/60 shadow-sm shadow-emerald-950/40'
-            : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white font-normal border-white/10 hover:border-violet-500/30'
+            ? 'text-emerald-300 font-semibold hover:bg-emerald-950/40'
+            : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
         }`}
         title={isConnected ? `${t('partyTitle')} (${activeCount})` : liveRoomsCount > 0 ? `${liveRoomsCount} ${t('partyLobbyTab')} Live` : t('partyTitle')}
       >
