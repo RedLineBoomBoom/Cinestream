@@ -56,6 +56,7 @@ export const PwaInstallPrompt: React.FC = () => {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      (window as any).__cinestreamDeferredPrompt = e;
       // Delay to not interrupt the initial page experience
       setTimeout(() => setIsVisible(true), 4000);
     };

@@ -29,6 +29,7 @@ import { WatchPartyModal } from './components/party/WatchPartyModal';
 import { WatchPartyLobbyView } from './components/party/WatchPartyLobbyView';
 import { PartySyncToast } from './components/party/PartySyncToast';
 import { AiringScheduleView } from './components/discovery/AiringScheduleView';
+import { AppDownloadView } from './components/discovery/AppDownloadView';
 import { PublicProfileModal } from './components/profile/PublicProfileModal';
 import { CinestreamIntro } from './components/layout/CinestreamIntro';
 import { PwaInstallPrompt } from './components/layout/PwaInstallPrompt';
@@ -1312,6 +1313,13 @@ const MainContent: React.FC = () => {
                 });
               }
             }}
+          />
+        )}
+
+        {/* VIEW 10: CINESTREAM APP & APK DOWNLOAD PAGE */}
+        {activeTab === 'app' && (
+          <AppDownloadView
+            onBackToHome={() => handleSelectTab('home')}
           />
         )}
           </>

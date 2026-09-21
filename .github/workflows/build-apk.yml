@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Cinestream Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -54,3 +56,24 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish GitHub Release (v1.4.3)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.4.3
+          name: Cinestream Android & TV App v1.4.3 (Full Production Release)
+          body: |
+            ## 🎬 Cinestream App (Android & Android TV) • v1.4.3
+            Official production release package for Cinestream.
+
+            ### ✨ Key Features
+            - **100% Ad-Free**: No pop-ups, malicious redirects, or intrusive banner ads.
+            - **Multi-Server Streaming**: Automated failover between high-speed servers.
+            - **Android TV & Remote Navigation**: Full D-pad remote control support for TV boxes and Smart TVs.
+            - **Live Danmaku Comments**: Synchronized real-time bullet reactions across community viewers.
+            - **WebRTC Watch Party**: Host and join serverless synced watch sessions with in-player chat.
+            - **Lightweight**: Low battery usage with hardware GPU rendering.
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

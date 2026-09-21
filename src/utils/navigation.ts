@@ -18,6 +18,7 @@ export const VALID_TABS = [
   'watch-party',
   'schedule',
   'admin',
+  'app',
 ] as const;
 
 export type ValidTab = (typeof VALID_TABS)[number];
@@ -39,6 +40,11 @@ const TAB_ALIASES: Record<string, ValidTab> = {
   lobby: 'watch-party',
   nobar: 'watch-party',
   watchparty: 'watch-party',
+  apk: 'app',
+  application: 'app',
+  download: 'app',
+  apps: 'app',
+  android: 'app',
 };
 
 /**

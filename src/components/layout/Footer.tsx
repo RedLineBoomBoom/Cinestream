@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Shield, Lock, FileText } from 'lucide-react';
+import { Play, Shield, Lock, FileText, Smartphone } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION, checkForAppUpdate } from '../../utils/pwaUpdate';
 
@@ -76,6 +76,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
               >
                 <FileText className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform" />
                 <span>{t('termsOfService')}</span>
+              </a>
+
+              <a
+                href="/app"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/30 hover:bg-[#E50914]/20 hover:border-[#E50914]/50 hover:text-white text-red-200 border border-red-500/30 transition-all duration-200 text-[11px] font-medium group no-underline cursor-pointer"
+              >
+                <Smartphone className="w-3 h-3 text-[#E50914] group-hover:scale-110 transition-transform" />
+                <span>{language === 'en' ? 'Download App (APK)' : 'Unduh Aplikasi (APK)'}</span>
               </a>
             </div>
           </div>
