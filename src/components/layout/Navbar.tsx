@@ -11,9 +11,6 @@ import {
   Users,
   Dices,
   Calendar,
-  ChevronDown,
-  Clock,
-  CheckCircle2,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -62,9 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
-  const moreDropdownRef = useRef<HTMLDivElement>(null);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -76,18 +71,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Close more menu when clicking outside
-  useEffect(() => {
-    if (!showMoreMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target as Node)) {
-        setShowMoreMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showMoreMenu]);
 
   // Track active overlay to hide background floating search bars
   useEffect(() => {
@@ -119,29 +102,27 @@ export const Navbar: React.FC<NavbarProps> = ({
       count: watchlistCount !== undefined ? watchlistCount : watchlist.length,
     },
     {
+      id: 'watched',
+      label: t('navWatched'),
+      fullLabel: t('navWatched'),
+      count: completedCount,
+    },
+    {
+      id: 'history',
+      label: language === 'en' ? 'History' : 'Riwayat',
+      fullLabel: t('navHistory'),
+      count: inProgressCount,
+    },
+    {
       id: 'schedule',
       label: language === 'en' ? 'Schedule' : 'Jadwal',
       fullLabel: language === 'en' ? 'Airing Schedule' : 'Jadwal Tayang',
     },
     {
       id: 'watch-party',
-      label: t('partyTitle'),
+      label: language === 'en' ? 'Watch Party' : 'Nobar',
       fullLabel: t('partyTitle'),
       count: liveRoomsCount,
-    },
-    {
-      id: 'watched',
-      label: t('navWatched'),
-      fullLabel: t('navWatched'),
-      count: completedCount,
-      isSecondary: true,
-    },
-    {
-      id: 'history',
-      label: t('navHistory'),
-      fullLabel: t('navHistory'),
-      count: inProgressCount,
-      isSecondary: true,
     },
   ];
 
@@ -192,7 +173,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           {navLinks.map((link) => {
             const isActive = activeTab === link.id;
             const targetUrl = getTabUrl(link.id);
-            const isSecondary = (link as any).isSecondary;
             return (
               <a
                 key={link.id}
@@ -204,9 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSelectTab(link.id);
                 }}
                 onMouseEnter={playHover}
-                className={`relative px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded text-[11.5px] xl:text-xs 2xl:text-[13px] tracking-normal transition-all duration-200 items-center gap-1.5 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
-                  isSecondary ? 'hidden 2xl:flex' : 'flex'
-                } ${
+                className={`relative px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded text-[11.5px] xl:text-xs 2xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'text-white font-bold bg-white/10 shadow-sm'
                     : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
@@ -247,88 +225,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
-
-          {/* Secondary More Dropdown (for Watched & History on screens < 2xl) */}
-          <div className="relative 2xl:hidden" ref={moreDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setShowMoreMenu((prev) => !prev)}
-              onMouseEnter={() => setShowMoreMenu(true)}
-              className={`relative px-2 xl:px-2.5 py-1.5 rounded text-[11.5px] xl:text-xs tracking-normal transition-all duration-200 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'watched' || activeTab === 'history'
-                  ? 'text-white font-bold bg-white/10 shadow-sm'
-                  : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
-              }`}
-            >
-              <span>{language === 'en' ? 'More' : 'Lainnya'}</span>
-              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${showMoreMenu ? 'rotate-180' : ''}`} />
-              {(completedCount > 0 || inProgressCount > 0) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />
-              )}
-              {(activeTab === 'watched' || activeTab === 'history') && (
-                <span className="absolute bottom-0 inset-x-2 xl:inset-x-3 h-[2px] bg-[#E50914] rounded-full" />
-              )}
-            </button>
-
-            {showMoreMenu && (
-              <div
-                onMouseLeave={() => setShowMoreMenu(false)}
-                className="absolute left-0 top-full mt-1.5 w-48 rounded-xl bg-[#141414]/98 backdrop-blur-2xl border border-white/12 shadow-2xl shadow-black/90 p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
-              >
-                <a
-                  href={getTabUrl('watched')}
-                  onClick={(e) => {
-                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
-                    e.preventDefault();
-                    playClick();
-                    setShowMoreMenu(false);
-                    onSelectTab('watched');
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    activeTab === 'watched'
-                      ? 'bg-[#E50914] text-white font-bold'
-                      : 'text-slate-200 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{t('navWatched')}</span>
-                  </div>
-                  {completedCount > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-mono">
-                      {completedCount}
-                    </span>
-                  )}
-                </a>
-
-                <a
-                  href={getTabUrl('history')}
-                  onClick={(e) => {
-                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
-                    e.preventDefault();
-                    playClick();
-                    setShowMoreMenu(false);
-                    onSelectTab('history');
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors mt-0.5 ${
-                    activeTab === 'history'
-                      ? 'bg-[#E50914] text-white font-bold'
-                      : 'text-slate-200 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{t('navHistory')}</span>
-                  </div>
-                  {inProgressCount > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-mono">
-                      {inProgressCount}
-                    </span>
-                  )}
-                </a>
-              </div>
-            )}
-          </div>
         </nav>
 
         {/* Right Controls */}
