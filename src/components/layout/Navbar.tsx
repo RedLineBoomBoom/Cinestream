@@ -11,6 +11,9 @@ import {
   Users,
   Dices,
   Calendar,
+  ChevronDown,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -59,7 +62,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreDropdownRef = useRef<HTMLDivElement>(null);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -71,6 +76,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
 
   // Track active overlay to hide background floating search bars
   useEffect(() => {
@@ -85,13 +102,47 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [mobileMenuOpen, isProfileOpen]);
 
   const navLinks = [
-    { id: 'home', label: t('navHome') },
-    { id: 'advanced-search', label: t('navAdvancedSearch') },
-    { id: 'watchlist', label: t('navWatchlist'), count: watchlistCount !== undefined ? watchlistCount : watchlist.length },
-    { id: 'watched', label: t('navWatched'), count: completedCount },
-    { id: 'history', label: t('navHistory'), count: inProgressCount },
-    { id: 'schedule', label: language === 'en' ? 'Airing Schedule' : 'Jadwal Tayang' },
-    { id: 'watch-party', label: t('partyTitle'), count: liveRoomsCount },
+    {
+      id: 'home',
+      label: t('navHome'),
+      fullLabel: t('navHome'),
+    },
+    {
+      id: 'advanced-search',
+      label: language === 'en' ? 'Explore' : 'Jelajahi',
+      fullLabel: t('navAdvancedSearch'),
+    },
+    {
+      id: 'watchlist',
+      label: t('navWatchlist'),
+      fullLabel: t('navWatchlist'),
+      count: watchlistCount !== undefined ? watchlistCount : watchlist.length,
+    },
+    {
+      id: 'schedule',
+      label: language === 'en' ? 'Schedule' : 'Jadwal',
+      fullLabel: language === 'en' ? 'Airing Schedule' : 'Jadwal Tayang',
+    },
+    {
+      id: 'watch-party',
+      label: t('partyTitle'),
+      fullLabel: t('partyTitle'),
+      count: liveRoomsCount,
+    },
+    {
+      id: 'watched',
+      label: t('navWatched'),
+      fullLabel: t('navWatched'),
+      count: completedCount,
+      isSecondary: true,
+    },
+    {
+      id: 'history',
+      label: t('navHistory'),
+      fullLabel: t('navHistory'),
+      count: inProgressCount,
+      isSecondary: true,
+    },
   ];
 
   return (
@@ -114,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           : 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}
     >
-      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-4 sm:px-8 lg:px-12 3xl:px-16 flex items-center justify-between gap-4 xl:gap-6">
+      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3 sm:px-6 lg:px-6 xl:px-8 2xl:px-12 flex items-center justify-between gap-2 lg:gap-3 xl:gap-6">
         {/* Brand Logo - Modern Netflix-Style Streaming Identity */}
         <a
           href="/"
@@ -125,22 +176,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             onSelectTab('home');
           }}
           onMouseEnter={playHover}
-          className="flex items-center gap-2.5 cursor-pointer select-none group no-underline text-inherit"
+          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group no-underline text-inherit shrink-0"
         >
-          <div className="w-8 h-8 rounded bg-[#E50914] flex items-center justify-center shadow-lg shadow-red-900/50 group-hover:scale-105 transition-transform duration-200">
+          <div className="w-8 h-8 rounded bg-[#E50914] flex items-center justify-center shadow-lg shadow-red-900/50 group-hover:scale-105 transition-transform duration-200 shrink-0">
             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
           </div>
 
-          <span className="font-display font-black text-xl lg:text-xl xl:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)]">
+          <span className="font-display font-black text-xl lg:text-xl xl:text-2xl 2xl:text-3xl tracking-tight text-[#E50914] leading-none uppercase drop-shadow-[0_2px_10px_rgba(229,9,20,0.4)] whitespace-nowrap">
             CINESTREAM
           </span>
         </a>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 min-w-0">
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 shrink max-w-fit mx-auto">
           {navLinks.map((link) => {
             const isActive = activeTab === link.id;
             const targetUrl = getTabUrl(link.id);
+            const isSecondary = (link as any).isSecondary;
             return (
               <a
                 key={link.id}
@@ -152,7 +204,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSelectTab(link.id);
                 }}
                 onMouseEnter={playHover}
-                className={`relative px-2 xl:px-3 py-1.5 rounded text-[11.5px] xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`relative px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded text-[11.5px] xl:text-xs 2xl:text-[13px] tracking-normal transition-all duration-200 items-center gap-1.5 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
+                  isSecondary ? 'hidden 2xl:flex' : 'flex'
+                } ${
                   isActive
                     ? 'text-white font-bold bg-white/10 shadow-sm'
                     : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
@@ -167,7 +221,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {link.id === 'watch-party' && (
                   <Users className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
                 )}
-                <span>{link.label}</span>
+                <span className="hidden 2xl:inline">{link.fullLabel || link.label}</span>
+                <span className="2xl:hidden">{link.label}</span>
+
                 {link.id === 'watch-party' && liveRoomsCount > 0 ? (
                   <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
                     <span className="relative flex h-1.5 w-1.5">
@@ -191,10 +247,92 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
+
+          {/* Secondary More Dropdown (for Watched & History on screens < 2xl) */}
+          <div className="relative 2xl:hidden" ref={moreDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu((prev) => !prev)}
+              onMouseEnter={() => setShowMoreMenu(true)}
+              className={`relative px-2 xl:px-2.5 py-1.5 rounded text-[11.5px] xl:text-xs tracking-normal transition-all duration-200 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'watched' || activeTab === 'history'
+                  ? 'text-white font-bold bg-white/10 shadow-sm'
+                  : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
+              }`}
+            >
+              <span>{language === 'en' ? 'More' : 'Lainnya'}</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${showMoreMenu ? 'rotate-180' : ''}`} />
+              {(completedCount > 0 || inProgressCount > 0) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />
+              )}
+              {(activeTab === 'watched' || activeTab === 'history') && (
+                <span className="absolute bottom-0 inset-x-2 xl:inset-x-3 h-[2px] bg-[#E50914] rounded-full" />
+              )}
+            </button>
+
+            {showMoreMenu && (
+              <div
+                onMouseLeave={() => setShowMoreMenu(false)}
+                className="absolute left-0 top-full mt-1.5 w-48 rounded-xl bg-[#141414]/98 backdrop-blur-2xl border border-white/12 shadow-2xl shadow-black/90 p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+              >
+                <a
+                  href={getTabUrl('watched')}
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                    e.preventDefault();
+                    playClick();
+                    setShowMoreMenu(false);
+                    onSelectTab('watched');
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    activeTab === 'watched'
+                      ? 'bg-[#E50914] text-white font-bold'
+                      : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{t('navWatched')}</span>
+                  </div>
+                  {completedCount > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-mono">
+                      {completedCount}
+                    </span>
+                  )}
+                </a>
+
+                <a
+                  href={getTabUrl('history')}
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                    e.preventDefault();
+                    playClick();
+                    setShowMoreMenu(false);
+                    onSelectTab('history');
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors mt-0.5 ${
+                    activeTab === 'history'
+                      ? 'bg-[#E50914] text-white font-bold'
+                      : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{t('navHistory')}</span>
+                  </div>
+                  {inProgressCount > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-mono">
+                      {inProgressCount}
+                    </span>
+                  )}
+                </a>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-1 lg:gap-1.5 xl:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0">
           {/* AI Search Quick Button */}
           <button
             onClick={() => {
@@ -204,10 +342,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={t('aiSearchTab')}
             title={t('aiSearchTab')}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 xl:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
+            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 2xl:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            <span className="hidden xl:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold whitespace-nowrap">
+            <span className="hidden 2xl:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold whitespace-nowrap">
               {t('aiSearchTab')}
             </span>
           </button>
@@ -218,10 +356,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
             title={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 xl:px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-amber-100 transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95"
+            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 2xl:px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-amber-100 transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
           >
             <Dices className="w-3.5 h-3.5 text-amber-300" />
-            <span className="hidden xl:inline font-bold whitespace-nowrap">
+            <span className="hidden 2xl:inline font-bold whitespace-nowrap">
               {language === 'en' ? 'Surprise Me' : 'Kejutkan Aku'}
             </span>
           </button>
@@ -234,10 +372,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             onMouseEnter={playHover}
             aria-label={t('searchQuick')}
-            className="flex items-center justify-center gap-1.5 w-8 h-8 lg:w-auto lg:h-auto lg:px-2.5 lg:py-1.5 xl:px-3 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs"
+            title={t('searchQuick')}
+            className="flex items-center justify-center gap-1.5 w-8 h-8 lg:w-auto lg:h-auto lg:px-2.5 lg:py-1.5 2xl:px-3 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs shrink-0"
           >
             <Search className="w-3.5 h-3.5 text-white" />
-            <span className="hidden xl:inline font-normal text-slate-200 whitespace-nowrap">{t('searchQuick')}</span>
+            <span className="hidden 2xl:inline font-normal text-slate-200 whitespace-nowrap">{t('searchQuick')}</span>
             <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-slate-400 font-mono border border-white/10">
               ⌘K
             </kbd>
@@ -251,7 +390,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             onMouseEnter={playHover}
             aria-label={t('switchLang')}
-            className="flex items-center justify-center gap-1 h-8 px-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group"
+            className="flex items-center justify-center gap-1 h-8 px-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group shrink-0"
             title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
           >
             <Globe className="w-3.5 h-3.5 text-white/90 group-hover:rotate-12 transition-transform duration-300" />
@@ -268,7 +407,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onSelectTab('admin');
               }}
               onMouseEnter={playHover}
-              className={`flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+              className={`flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer shrink-0 ${
                 activeTab === 'admin'
                   ? 'bg-[#E50914] text-white border-[#E50914] shadow-lg shadow-red-950/40'
                   : 'bg-red-950/40 hover:bg-red-900/60 text-red-200 border-red-500/40 hover:border-red-500/70'
@@ -276,12 +415,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Admin Command Center"
             >
               <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xl:inline text-[11px] uppercase tracking-wider font-mono">Admin</span>
+              <span className="hidden 2xl:inline text-[11px] uppercase tracking-wider font-mono">Admin</span>
             </button>
           )}
 
           {/* Unique Per-Device Profile Avatar Button */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               ref={profileTriggerRef}
               data-profile-trigger="true"
