@@ -4,6 +4,7 @@ import { X, Copy, Check, Share2, Film, Bookmark, Clock, ExternalLink } from 'luc
 import { useUserProfile, PROFILE_PALETTES } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
@@ -13,6 +14,8 @@ interface PublicProfileModalProps {
 }
 
 export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose, targetUsername }) => {
+  useBodyScrollLock(true);
+
   const { profile: myProfile, activePalette: myPalette } = useUserProfile();
   const { watchlist: myWatchlist, historyItems: myHistoryItems } = useWatchlist();
   const { language } = useLanguage();
@@ -168,7 +171,7 @@ export const PublicProfileModal: React.FC<PublicProfileModalProps> = ({ onClose,
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10005] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-pointer select-none"
+      className="fixed inset-0 z-[10005] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-pointer select-none overscroll-contain"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           playClick();

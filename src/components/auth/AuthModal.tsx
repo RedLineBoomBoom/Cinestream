@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 import {
@@ -30,6 +31,8 @@ export const AuthModal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useBodyScrollLock(isAuthModalOpen);
 
   if (!isAuthModalOpen) return null;
 
@@ -135,11 +138,11 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overscroll-contain">
       {/* Backdrop */}
       <div
         onClick={closeAuthModal}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 touch-none"
       />
 
       {/* Modal Dialog Card */}

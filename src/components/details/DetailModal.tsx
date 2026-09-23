@@ -22,6 +22,7 @@ import { fetchMediaReviews } from '../../services/reviewService';
 import { EpisodeCountdownBadge } from '../common/EpisodeCountdownBadge';
 import { MovieCard } from '../home/MovieCard';
 import { useWatchlist } from '../../context/WatchlistContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getImdbUrl } from '../../services/imdb';
@@ -49,6 +50,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   onPlayMedia,
   catalog,
 }) => {
+  useBodyScrollLock(Boolean(media));
+
   if (!media) return null;
 
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
@@ -210,8 +213,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
     .slice(0, 4);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto bg-black/90 backdrop-blur-2xl">
-      <div className="fixed inset-0" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto bg-black/90 backdrop-blur-2xl overscroll-contain">
+      <div className="fixed inset-0 touch-none" onClick={onClose} />
 
       {/* Modal Box */}
       <div

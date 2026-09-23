@@ -24,6 +24,7 @@ import type { MediaItem } from '../../types/media';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSound } from '../../context/SoundContext';
 import { useWatchlist } from '../../context/WatchlistContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { formatMediaDuration } from '../../utils/formatters';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
@@ -275,6 +276,9 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
     }
   };
 
+  // Lock background body scroll while filmography/curation modal is open
+  useBodyScrollLock(Boolean(isOpen && target));
+
   if (!isOpen || !target) return null;
 
   const isPerson = target.type === 'cast' || target.type === 'director';
@@ -298,14 +302,14 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
   const avatarUrl = target.avatar || personProfile?.avatar;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-cinema-950/85 backdrop-blur-xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-cinema-950/85 backdrop-blur-xl animate-in fade-in duration-300 overscroll-contain">
       {/* Backdrop click to close */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <div className="absolute inset-0 touch-none" onClick={onClose} />
 
       {/* Modal Box */}
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-5xl max-h-[92vh] bg-[#181818] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative z-10 w-full max-w-5xl max-h-[92vh] bg-[#181818] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 overscroll-contain"
       >
         {/* Header Profile Section */}
         <div className="relative p-5 sm:p-7 border-b border-white/10 bg-[#141414] flex-shrink-0">
@@ -404,7 +408,7 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
               <div
                 className={`text-xs text-slate-300 leading-relaxed font-light transition-all duration-300 ${
                   isBioExpanded
-                    ? 'max-h-60 overflow-y-auto pr-2 custom-scrollbar space-y-1.5'
+                    ? 'max-h-60 overflow-y-auto pr-2 custom-scrollbar space-y-1.5 overscroll-contain'
                     : 'line-clamp-2 text-slate-400/90'
                 }`}
               >
@@ -530,7 +534,7 @@ export const FilmographyModal: React.FC<FilmographyModalProps> = ({
         </div>
 
         {/* Media Grid Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar overscroll-contain">
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
               {Array.from({ length: 10 }).map((_, idx) => (

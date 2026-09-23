@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Lock, FileText, ExternalLink, Shield } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 
 interface LegalModalProps {
@@ -37,12 +38,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overscroll-contain">
       {/* Click outside backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <div className="absolute inset-0 touch-none" onClick={onClose} />
 
       {/* Modal Dialog Card */}
       <div className="relative w-full max-w-3xl max-h-[90vh] bg-[#121214] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 z-10">

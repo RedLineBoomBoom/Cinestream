@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Play, Link, AlertTriangle } from 'lucide-react';
 import type { MediaItem, Server } from '../../types/media';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 
 interface CustomStreamModalProps {
@@ -20,6 +21,8 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
   const [posterUrl, setPosterUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { playClick, playSuccess } = useSound();
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -107,8 +110,8 @@ export const CustomStreamModal: React.FC<CustomStreamModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl">
-      <div className="fixed inset-0" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl overscroll-contain">
+      <div className="fixed inset-0 touch-none" onClick={onClose} />
 
       <div className="relative w-full max-w-lg bg-cinema-900 border border-white/[0.1] rounded-3xl shadow-2xl p-6 sm:p-8 z-10 space-y-5">
         <button

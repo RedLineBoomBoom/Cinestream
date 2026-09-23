@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Shuffle, Sparkles, Star, Play, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 import { fetchFullMediaItem } from '../../services/tmdb';
 import { translateText } from '../../services/translator';
@@ -117,6 +118,8 @@ export interface MoodRecommendation {
 }
 
 export const MoodPickerModal: React.FC<MoodPickerModalProps> = ({ onClose, onSelectMedia }) => {
+  useBodyScrollLock(true);
+
   const { language } = useLanguage();
   const { playClick, playSuccess, playWhoosh } = useSound();
   const [isSpinning, setIsSpinning] = useState(false);
@@ -368,9 +371,11 @@ export const MoodPickerModal: React.FC<MoodPickerModalProps> = ({ onClose, onSel
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200 overscroll-contain"
       onClick={onClose}
     >
+      {/* Backdrop touch blocker */}
+      <div className="absolute inset-0 touch-none" />
       <div
         className="relative w-full max-w-2xl bg-cinema-950/95 border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}

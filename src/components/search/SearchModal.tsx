@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { MediaItem } from '../../types/media';
 import { useSound } from '../../context/SoundContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useLanguage } from '../../context/LanguageContext';
 import { getAbsoluteWatchUrl } from '../../utils/navigation';
 import {
@@ -239,11 +240,13 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     }
   };
 
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 p-3 sm:p-4 bg-black/40 backdrop-blur-md animate-fade-in">
-      <div className="fixed inset-0" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 p-3 sm:p-4 bg-black/40 backdrop-blur-md animate-fade-in overscroll-contain">
+      <div className="fixed inset-0 touch-none" onClick={onClose} />
 
       <div className="relative w-full max-w-3xl lg:max-w-4xl bg-[#181818] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[88vh]">
         {/* Search Input Bar */}

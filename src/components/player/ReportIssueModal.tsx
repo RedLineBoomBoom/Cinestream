@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { MediaItem, Server, Episode } from '../../types/media';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 import { useAuth } from '../../context/AuthContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -44,6 +45,8 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
   const { playClick, playSuccess, playHover } = useSound();
   const { user } = useAuth();
   const { profile } = useUserProfile();
+
+  useBodyScrollLock(isOpen);
 
   const [selectedIssue, setSelectedIssue] = useState<IssueType>('playback_error');
   const [description, setDescription] = useState('');
@@ -157,11 +160,11 @@ export const ReportIssueModal: React.FC<ReportIssueModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 overscroll-contain">
       {/* Backdrop */}
       <div
         onClick={() => !isSubmitting && onClose()}
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity touch-none"
       />
 
       {/* Modal Dialog */}

@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useSound } from '../../context/SoundContext';
 
 interface VpnDnsNoticeModalProps {
@@ -25,13 +26,10 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
   const { playClick, playHover } = useSound();
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -41,8 +39,6 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -62,14 +58,14 @@ export const VpnDnsNoticeModal: React.FC<VpnDnsNoticeModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in overscroll-contain"
       onClick={handleDismiss}
       role="dialog"
       aria-modal="true"
       aria-labelledby="vpn-dns-notice-title"
     >
       {/* Backdrop overlay for reliable outside click */}
-      <div className="absolute inset-0" onClick={handleDismiss} />
+      <div className="absolute inset-0 touch-none" onClick={handleDismiss} />
 
       {/* Main Modal Card */}
       <div
