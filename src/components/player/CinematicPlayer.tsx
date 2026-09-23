@@ -274,6 +274,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
   // Stream Issue Report Modal State
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const sleepTimerOptionRef = useRef<SleepTimerOption>(null);
+  const triggerSleepRef = useRef<() => void>(() => {});
 
   // Auto Next Episode Preference State (persisted in localStorage)
   const [localIsAutoNext, setLocalIsAutoNext] = useState<boolean>(() => {
@@ -338,6 +340,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     if (nextCountdown <= 0) {
       setShowNextPrompt(false);
+      if (sleepTimerOptionRef.current === 'end-of-episode') {
+        triggerSleepRef.current();
+        return;
+      }
       onNextEpisode?.();
       return;
     }
@@ -421,43 +427,125 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   const [hasVerifiedTime, setHasVerifiedTime] = useState(false);
   const hasVerifiedTimeRef = useRef(false);
 
-  // Sleep Timer State & Countdown
+  const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
+  const hasPlayedThisSession = useRef(false);
+  const updateProgressRef = useRef(updateProgress);
+  updateProgressRef.current = updateProgress;
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
+  // Sleep Timer State, Refs & Drift-free Countdown
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false);
   const [sleepTimerOption, setSleepTimerOption] = useState<SleepTimerOption>(null);
   const [sleepRemaining, setSleepRemaining] = useState<number | null>(null);
   const [isSleeping, setIsSleeping] = useState(false);
+  const sleepTargetTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!sleepTimerOption) {
+    sleepTimerOptionRef.current = sleepTimerOption;
+  }, [sleepTimerOption]);
+
+  const triggerSleep = useCallback(() => {
+    // 1. Native HTML5 Video Element
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+      } catch {}
+    }
+    // 2. Embedded Iframe Players (Multi-protocol postMessage broadcast)
+    if (iframeRef.current?.contentWindow) {
+      try {
+        broadcastIframePause(iframeRef.current.contentWindow);
+        broadcastIframeVolume(iframeRef.current.contentWindow, 0);
+      } catch {}
+    }
+
+    // Save exact progress before sleep
+    if (currentTimeRef.current > 0) {
+      const safeEpId = mediaRef.current.type === 'movie' ? undefined : currentEpisode?.id;
+      updateProgressRef.current(
+        {
+          mediaId: mediaRef.current.id,
+          episodeId: safeEpId,
+          currentTime: currentTimeRef.current,
+          duration: durationRef.current || initialDuration,
+          lastWatched: Date.now(),
+        },
+        mediaRef.current
+      );
+    }
+
+    setIsPlaying(false);
+    setIsActivelyWatching(false);
+    setShowNextPrompt(false);
+    setIsSleeping(true);
+    setSleepTimerOption(null);
+    setSleepRemaining(null);
+    sleepTargetTimeRef.current = null;
+  }, [currentEpisode?.id, initialDuration]);
+
+  useEffect(() => {
+    triggerSleepRef.current = triggerSleep;
+  }, [triggerSleep]);
+
+  const handleSelectSleepTimer = useCallback((opt: SleepTimerOption) => {
+    setSleepTimerOption(opt);
+    if (!opt) {
+      sleepTargetTimeRef.current = null;
       setSleepRemaining(null);
       return;
     }
-    if (typeof sleepTimerOption === 'number') {
-      setSleepRemaining(sleepTimerOption * 60);
+    if (typeof opt === 'number') {
+      sleepTargetTimeRef.current = Date.now() + opt * 60 * 1000;
+      setSleepRemaining(opt * 60);
+    } else if (opt === 'end-of-episode') {
+      sleepTargetTimeRef.current = null;
+      const curDur = durationRef.current || duration || initialDuration;
+      const curTime = currentTimeRef.current;
+      const rem = curDur > curTime ? Math.max(0, Math.round(curDur - curTime)) : null;
+      setSleepRemaining(rem);
     }
-  }, [sleepTimerOption]);
+  }, [duration, initialDuration]);
 
+  // Robust, drift-free interval for Sleep Timer countdown
   useEffect(() => {
-    if (sleepRemaining === null || sleepRemaining <= 0) return;
+    if (!sleepTimerOption) {
+      return;
+    }
 
     const interval = setInterval(() => {
-      setSleepRemaining((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(interval);
-          if (videoRef.current) {
-            videoRef.current.pause();
-          }
-          setIsPlaying(false);
-          setIsSleeping(true);
-          setSleepTimerOption(null);
-          return null;
+      if (sleepTimerOption === 'end-of-episode') {
+        const curDur = durationRef.current || duration || initialDuration;
+        const curTime = currentTimeRef.current;
+        if (curDur > 0 && curTime > 0) {
+          const rem = Math.max(0, Math.round(curDur - curTime));
+          setSleepRemaining(rem);
         }
-        return prev - 1;
-      });
+        return;
+      }
+
+      if (typeof sleepTimerOption === 'number' && sleepTargetTimeRef.current) {
+        const diffSec = Math.round((sleepTargetTimeRef.current - Date.now()) / 1000);
+        if (diffSec <= 0) {
+          clearInterval(interval);
+          triggerSleep();
+        } else {
+          setSleepRemaining(diffSec);
+        }
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sleepRemaining]);
+  }, [sleepTimerOption, triggerSleep, duration, initialDuration]);
 
   useEffect(() => {
     hasVerifiedTimeRef.current = false;
@@ -888,22 +976,6 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     }, 1800);
   }, [isTheaterMode, onToggleTheaterMode, playClick, t]);
 
-  const currentTimeRef = useRef(currentTime);
-  const durationRef = useRef(duration);
-  const hasPlayedThisSession = useRef(false);
-  const updateProgressRef = useRef(updateProgress);
-  updateProgressRef.current = updateProgress;
-  const mediaRef = useRef(media);
-  mediaRef.current = media;
-
-  useEffect(() => {
-    currentTimeRef.current = currentTime;
-  }, [currentTime]);
-
-  useEffect(() => {
-    durationRef.current = duration;
-  }, [duration]);
-  
   // Menus
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
@@ -1017,6 +1089,10 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       if (isExplicitEnded) {
         // Video file actually finished playing (e.g. after watching full credits to completion)
         setShowNextPrompt(false);
+        if (sleepTimerOptionRef.current === 'end-of-episode') {
+          triggerSleep();
+          return;
+        }
         if (isAutoNextRef.current && nextEpisodeRef.current && onNextEpisodeRef.current) {
           onNextEpisodeRef.current();
         }
@@ -1067,12 +1143,18 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       );
     }
 
+    // If Sleep Timer is set to 'end-of-episode', pause playback & activate sleep mode immediately!
+    if (sleepTimerOptionRef.current === 'end-of-episode') {
+      triggerSleep();
+      return;
+    }
+
     // Auto-prompt countdown for series next episode (video continues rolling in background)
     if (nextEpisodeRef.current && onNextEpisodeRef.current) {
       setNextCountdown(8);
       setShowNextPrompt(true);
     }
-  }, [currentEpisode?.id, initialDuration, duration]);
+  }, [currentEpisode?.id, initialDuration, duration, triggerSleep]);
 
   // Register watch session in Watch History
   useEffect(() => {
@@ -2270,7 +2352,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
 
-      const playerKeys = [' ', 'Space', 'f', 'F', 't', 'T', 'Escape', 'm', 'M', 'ArrowLeft', 'ArrowRight', 'p', 'P', 's', 'S', 'n', 'N'];
+      const playerKeys = [' ', 'Space', 'f', 'F', 't', 'T', 'Escape', 'm', 'M', 'ArrowLeft', 'ArrowRight', 'p', 'P', 's', 'S', 'n', 'N', 'z', 'Z'];
       if (playerKeys.includes(e.key) || playerKeys.includes(e.code)) {
         setShowControls(true);
         resetHideTimer();
@@ -2278,6 +2360,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
       if (e.code === 'Space') {
         e.preventDefault();
+        if (isSleeping) {
+          setIsSleeping(false);
+          if (!isEmbedStream) togglePlay();
+          return;
+        }
         togglePlay();
       } else if (e.shiftKey && (e.key === 'N' || e.key === 'n')) {
         if (nextEpisode && onNextEpisode) {
@@ -2325,6 +2412,11 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           e.preventDefault();
           handleSmartFailover();
         }
+      } else if (e.key === 'z' || e.key === 'Z') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          setIsSleepTimerOpen((prev) => !prev);
+        }
       } else if (isMiniPlayer && (e.key === '+' || e.key === '=')) {
         e.preventDefault();
         setMiniPlayerWidth((prev) => {
@@ -2345,7 +2437,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, duration, isFullscreen, isTheaterMode, isMiniPlayer, toggleTheaterMode, onToggleMiniPlayer, onOpenWatchParty, handleSmartFailover, resetHideTimer, nextEpisode, prevEpisode, onNextEpisode, onPrevEpisode, triggerNextEpisode, triggerPrevEpisode]);
+  }, [isPlaying, isSleeping, isEmbedStream, togglePlay, duration, isFullscreen, isTheaterMode, isMiniPlayer, toggleTheaterMode, onToggleMiniPlayer, onOpenWatchParty, handleSmartFailover, resetHideTimer, nextEpisode, prevEpisode, onNextEpisode, onPrevEpisode, triggerNextEpisode, triggerPrevEpisode]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
@@ -2536,11 +2628,14 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             onClick={() => {
               playClick();
               setIsSleeping(false);
-              togglePlay();
+              if (!isEmbedStream) {
+                togglePlay();
+              }
             }}
-            className="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xl shadow-indigo-900/40 transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xl shadow-indigo-900/40 transition-all cursor-pointer flex items-center gap-2"
           >
-            {language === 'en' ? 'Resume Watching' : 'Lanjutkan Menonton'}
+            <Play className="w-4 h-4 fill-white" />
+            <span>{language === 'en' ? 'Resume Watching' : 'Lanjutkan Menonton'}</span>
           </button>
         </div>
       )}
@@ -2866,6 +2961,31 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
                   <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
                 )}
 
+                {/* Sleep Timer Button for Embed Streams */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setIsSleepTimerOpen(true);
+                  }}
+                  onMouseEnter={playHover}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full border text-[10px] sm:text-[11px] font-medium transition-all backdrop-blur-md cursor-pointer ${
+                    sleepTimerOption !== null
+                      ? 'bg-indigo-600/35 border-indigo-400/60 text-indigo-200 shadow-lg shadow-indigo-950/40'
+                      : 'bg-cinema-950/85 hover:bg-white/20 border-white/10 text-slate-300'
+                  }`}
+                  title={language === 'en' ? 'Sleep Timer (Z)' : 'Pengatur Waktu Tidur (Z)'}
+                >
+                  <Moon className={`w-3.5 h-3.5 ${sleepTimerOption !== null ? 'text-indigo-400 animate-pulse' : 'text-slate-400'}`} />
+                  <span className={sleepTimerOption !== null ? 'inline text-[10px] sm:text-[11px] font-bold' : 'hidden sm:inline'}>
+                    {sleepTimerOption === 'end-of-episode'
+                      ? (language === 'en' ? 'End Ep' : 'Akhir Ep')
+                      : sleepRemaining !== null
+                      ? `${Math.ceil(sleepRemaining / 60)}m`
+                      : (language === 'en' ? 'Sleep' : 'Tidur')}
+                  </span>
+                </button>
+
                 {/* Report Stream Issue Button */}
                 <button
                   onClick={() => {
@@ -2961,7 +3081,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           <iframe
             ref={iframeRef}
             key={videoSource}
-            src={videoSource}
+            src={isSleeping ? 'about:blank' : videoSource}
             title={media.title}
             className={`border-0 z-0 absolute top-0 left-0 ${isMiniPlayer ? '' : 'w-full h-full'} ${
               isResizing || isDraggingPlayer ? 'pointer-events-none' : ''
@@ -3131,15 +3251,19 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             }}
             onMouseEnter={playHover}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all backdrop-blur-md cursor-pointer ${
-              sleepRemaining !== null
+              sleepTimerOption !== null
                 ? 'bg-indigo-600/35 border-indigo-400/60 text-indigo-200 shadow-lg shadow-indigo-950/40'
                 : 'bg-black/60 hover:bg-white/15 border-white/[0.12] text-slate-300'
             }`}
-            title={language === 'en' ? 'Sleep Timer' : 'Pengatur Waktu Tidur'}
+            title={language === 'en' ? 'Sleep Timer (Z)' : 'Pengatur Waktu Tidur (Z)'}
           >
-            <Moon className={`w-3 h-3 ${sleepRemaining !== null ? 'text-indigo-400 animate-pulse' : 'text-slate-400'}`} />
-            <span className="hidden sm:inline font-light">
-              {sleepRemaining !== null ? `${Math.ceil(sleepRemaining / 60)}m` : 'Sleep'}
+            <Moon className={`w-3.5 h-3.5 ${sleepTimerOption !== null ? 'text-indigo-400 animate-pulse' : 'text-slate-400'}`} />
+            <span className={sleepTimerOption !== null ? 'inline text-xs font-semibold' : 'hidden sm:inline font-light'}>
+              {sleepTimerOption === 'end-of-episode'
+                ? (language === 'en' ? 'End Ep' : 'Akhir Ep')
+                : sleepRemaining !== null
+                ? `${Math.ceil(sleepRemaining / 60)}m`
+                : (language === 'en' ? 'Sleep' : 'Tidur')}
             </span>
           </button>
         </div>
@@ -3373,6 +3497,31 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
             {onOpenWatchParty && (
               <WatchPartyButton onClick={onOpenWatchParty} variant="compact" />
             )}
+
+            {/* Sleep Timer Button for Native Player Bottom Bar */}
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsSleepTimerOpen(true);
+              }}
+              onMouseEnter={playHover}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                sleepTimerOption !== null
+                  ? 'text-indigo-300 bg-indigo-600/30 border border-indigo-400/40'
+                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+              }`}
+              title={language === 'en' ? 'Sleep Timer (Z)' : 'Pengatur Waktu Tidur (Z)'}
+            >
+              <Moon className={`w-4 h-4 ${sleepTimerOption !== null ? 'text-indigo-400 animate-pulse' : ''}`} />
+              {sleepTimerOption !== null && (
+                <span className="text-[10px] font-bold text-indigo-300">
+                  {sleepTimerOption === 'end-of-episode'
+                    ? 'Ep'
+                    : `${Math.ceil((sleepRemaining ?? 0) / 60)}m`}
+                </span>
+              )}
+            </button>
 
             {/* Floating Mini Player Button (Only in normal player view) */}
             {onToggleMiniPlayer && !isFullscreen && (
@@ -3701,15 +3850,9 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       onClose={() => setIsSleepTimerOpen(false)}
       activeOption={sleepTimerOption}
       remainingSeconds={sleepRemaining}
-      onSelectOption={(opt) => {
-        setSleepTimerOption(opt);
-        if (opt === null) {
-          setSleepRemaining(null);
-        } else if (typeof opt === 'number') {
-          setSleepRemaining(opt * 60);
-        }
-      }}
-      hasEpisode={Boolean(media.seasons)}
+      onSelectOption={handleSelectSleepTimer}
+      hasEpisode={Boolean((media.seasons && media.seasons.length > 0) || currentEpisode || media.type !== 'movie')}
+      isMovie={media.type === 'movie'}
     />
   </div>
   );

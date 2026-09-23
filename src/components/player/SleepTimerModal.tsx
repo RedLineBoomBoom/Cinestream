@@ -12,6 +12,7 @@ interface SleepTimerModalProps {
   remainingSeconds: number | null;
   onSelectOption: (option: SleepTimerOption) => void;
   hasEpisode?: boolean;
+  isMovie?: boolean;
 }
 
 export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
@@ -21,14 +22,19 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   remainingSeconds,
   onSelectOption,
   hasEpisode = false,
+  isMovie = false,
 }) => {
   const { language } = useLanguage();
 
   if (!isOpen) return null;
 
   const formatRemaining = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    if (hours > 0) {
+      return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
@@ -39,21 +45,21 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
     { label: '45 ' + (language === 'en' ? 'Minutes' : 'Menit'), value: 45 },
     { label: '60 ' + (language === 'en' ? 'Minutes' : 'Menit'), value: 60 },
     { label: '90 ' + (language === 'en' ? 'Minutes' : 'Menit'), value: 90 },
-    ...(hasEpisode
-      ? [
-          {
-            label: language === 'en' ? 'End of Episode' : 'Akhir Episode Ini',
-            value: 'end-of-episode' as SleepTimerOption,
-            desc: language === 'en' ? 'Pauses when this episode ends' : 'Dijeda saat episode ini selesai',
-          },
-        ]
-      : []),
+    {
+      label: language === 'en'
+        ? (hasEpisode ? 'End of Episode' : isMovie ? 'End of Movie' : 'End of Video')
+        : (hasEpisode ? 'Akhir Episode Ini' : isMovie ? 'Akhir Film Ini' : 'Akhir Tayangan Ini'),
+      value: 'end-of-episode' as SleepTimerOption,
+      desc: language === 'en'
+        ? (hasEpisode ? 'Pauses when this episode ends' : isMovie ? 'Pauses when this movie finishes' : 'Pauses when current playback finishes')
+        : (hasEpisode ? 'Dijeda saat episode ini selesai' : isMovie ? 'Dijeda saat film ini selesai' : 'Dijeda saat tayangan ini selesai'),
+    },
   ];
 
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+        className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
         onClick={onClose}
       >
         <motion.div
@@ -93,14 +99,22 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
           </div>
 
           {/* Active Countdown Banner (if running) */}
-          {activeOption !== null && remainingSeconds !== null && (
+          {activeOption !== null && (
             <div className="my-4 p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-between">
               <div className="flex items-center gap-2 text-indigo-300 text-xs font-semibold">
                 <Clock className="w-4 h-4 animate-pulse text-indigo-400" />
-                <span>{language === 'en' ? 'Time remaining:' : 'Sisa waktu:'}</span>
+                <span>
+                  {activeOption === 'end-of-episode'
+                    ? (language === 'en' ? 'Active: End of Video' : 'Aktif: Akhir Tayangan')
+                    : (language === 'en' ? 'Time remaining:' : 'Sisa waktu:')}
+                </span>
               </div>
               <span className="font-mono text-sm font-black text-indigo-200">
-                {formatRemaining(remainingSeconds)}
+                {remainingSeconds !== null && remainingSeconds > 0
+                  ? formatRemaining(remainingSeconds)
+                  : activeOption === 'end-of-episode'
+                  ? (language === 'en' ? 'Until End' : 'Hingga Selesai')
+                  : '0:00'}
               </span>
             </div>
           )}
