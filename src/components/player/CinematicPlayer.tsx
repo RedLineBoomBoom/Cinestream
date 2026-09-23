@@ -2612,6 +2612,13 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
           seasonEpisodeKey={currentEpisode ? `s${currentEpisode.seasonNumber ?? 1}e${currentEpisode.episodeNumber}` : 'movie'}
           currentTime={currentTime}
           isPlaying={isPlaying}
+          showControls={showControls}
+          isFullscreen={isFullscreen || isPortraitFullscreen}
+          isTheaterMode={isTheaterMode}
+          isSleeping={isSleeping}
+          onControlsMouseEnter={handleControlsMouseEnter}
+          onControlsMouseLeave={handleControlsMouseLeave}
+          onMouseMove={handleMouseMove}
         />
       )}
 

@@ -24,6 +24,12 @@ interface DanmakuOverlayProps {
   currentTime: number;
   isPlaying: boolean;
   isFullscreen?: boolean;
+  isTheaterMode?: boolean;
+  showControls?: boolean;
+  isSleeping?: boolean;
+  onControlsMouseEnter?: () => void;
+  onControlsMouseLeave?: () => void;
+  onMouseMove?: () => void;
 }
 
 const TRACKS_COUNT = 4; // 4 vertical lanes
@@ -33,6 +39,11 @@ export const DanmakuOverlay: React.FC<DanmakuOverlayProps> = ({
   seasonEpisodeKey = 'movie',
   currentTime,
   isPlaying,
+  showControls = true,
+  isSleeping = false,
+  onControlsMouseEnter,
+  onControlsMouseLeave,
+  onMouseMove,
 }) => {
   const { profile } = useUserProfile();
   const { language } = useLanguage();
@@ -204,7 +215,16 @@ export const DanmakuOverlay: React.FC<DanmakuOverlayProps> = ({
       )}
 
       {/* ── Danmaku Quick Controls Pill (Top Right under player toolbar) ── */}
-      <div className="absolute top-16 right-4 z-30 flex items-center gap-2 pointer-events-auto">
+      <div
+        onMouseEnter={onControlsMouseEnter}
+        onMouseLeave={onControlsMouseLeave}
+        onMouseMove={onMouseMove}
+        className={`absolute top-16 right-4 z-30 flex items-center gap-2 transition-all duration-300 ${
+          ((showControls ?? true) || isInputOpen) && !isSleeping
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 -translate-y-3 pointer-events-none'
+        }`}
+      >
         <button
           type="button"
           onClick={toggleEnabled}
@@ -224,10 +244,10 @@ export const DanmakuOverlay: React.FC<DanmakuOverlayProps> = ({
             type="button"
             onClick={() => setIsInputOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-black/60 hover:bg-white/15 border border-white/15 text-slate-200 hover:text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
-            title="Tulis Komentar di Menit Ini"
+            title={language === 'en' ? 'Write Timed Comment' : 'Tulis Komentar di Menit Ini'}
           >
             <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Komentar</span>
+            <span className="hidden sm:inline">{language === 'en' ? 'Comment' : 'Komentar'}</span>
           </button>
         )}
       </div>
