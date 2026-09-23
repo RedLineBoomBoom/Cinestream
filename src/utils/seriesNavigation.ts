@@ -1,4 +1,5 @@
-﻿import type { Episode, Season } from '../types/media';
+import type { Episode, Season, NextEpisodeAirInfo } from '../types/media';
+import { getSeriesStatus } from './formatters';
 
 /**
  * Resolves the true season number of an episode by checking:
@@ -325,3 +326,109 @@ export function getAdjacentEpisodes({
     allEpisodes,
   };
 }
+
+/**
+ * Determines whether an episode is currently unreleased / upcoming.
+ * Only episodes belonging to an ongoing season that have not yet reached
+ * their air date, or exceed the verified released episode count, are considered unreleased.
+ * Episodes that have active video servers or have reached their air date are ALWAYS released.
+ */
+export function isEpisodeUnreleased(
+  ep: Episode | undefined | null,
+  media: {
+    type?: string;
+    mediaType?: string;
+    status?: string;
+    isOngoing?: boolean;
+    totalEpisodes?: number;
+    releasedEpisodes?: number;
+    currentSeasonTotalEpisodes?: number;
+    currentSeasonReleasedEpisodes?: number;
+    nextEpisodeToAir?: string;
+    nextEpisodeInfo?: NextEpisodeAirInfo;
+    seasons?: Season[];
+    totalSeasons?: number;
+    currentSeason?: number;
+    completedSeasons?: number[];
+    ongoingSeason?: number;
+  } | null | undefined
+): boolean {
+  if (!ep || !media) return false;
+
+  const type = media.type || (media as any).mediaType;
+  if (type === 'movie') return false;
+  if (!media.isOngoing) return false;
+
+  const seriesStatus = getSeriesStatus(media);
+  if (!seriesStatus?.isOngoing) return false;
+
+  const sNum = resolveEpisodeSeasonNumber(ep, media.seasons);
+  const ongoingSeason =
+    seriesStatus.ongoingSeason ??
+    seriesStatus.currentSeason ??
+    (media.seasons && media.seasons.length > 0 ? media.seasons.length : 1);
+
+  // If this episode belongs to an earlier season than the ongoing season, it is completed & released!
+  if (sNum < ongoingSeason) {
+    return false;
+  }
+
+  // If this episode belongs to a future season that hasn't started yet, it is unreleased.
+  if (sNum > ongoingSeason) {
+    return true;
+  }
+
+  // If the episode already contains playable streaming servers with valid URLs, it is definitely playable!
+  if (ep.servers && ep.servers.length > 0 && ep.servers.some((s) => Boolean(s.url && s.url.trim()))) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  // 1. Explicit airDate on the episode
+  if (ep.airDate) {
+    if (ep.airDate <= todayStr) {
+      return false; // Already aired
+    }
+    return true; // Future date
+  }
+
+  // 2. Explicit nextEpisodeInfo match
+  if (media.nextEpisodeInfo && media.nextEpisodeInfo.seasonNumber === sNum) {
+    if (media.nextEpisodeInfo.airDate && media.nextEpisodeInfo.airDate <= todayStr) {
+      if (ep.episodeNumber <= media.nextEpisodeInfo.episodeNumber) {
+        return false;
+      }
+    } else if (media.nextEpisodeInfo.airDate && media.nextEpisodeInfo.airDate > todayStr) {
+      if (ep.episodeNumber >= media.nextEpisodeInfo.episodeNumber) {
+        return true;
+      }
+    }
+  }
+
+  // 3. Fallback threshold check strictly for the ongoing season
+  const effectiveNextEpNum =
+    media.nextEpisodeInfo &&
+    media.nextEpisodeInfo.seasonNumber === sNum &&
+    media.nextEpisodeInfo.airDate &&
+    media.nextEpisodeInfo.airDate <= todayStr
+      ? media.nextEpisodeInfo.episodeNumber
+      : 0;
+
+  const baseThreshold =
+    typeof media.currentSeasonReleasedEpisodes === 'number' && media.currentSeasonReleasedEpisodes > 0
+      ? media.currentSeasonReleasedEpisodes
+      : (typeof media.releasedEpisodes === 'number' && media.releasedEpisodes > 0 && sNum === 1
+          ? media.releasedEpisodes
+          : undefined);
+
+  const releasedThreshold = Math.max(baseThreshold || 0, effectiveNextEpNum);
+
+  if (releasedThreshold > 0 && ep.episodeNumber > releasedThreshold) {
+    return true;
+  }
+
+  return false;
+}
+

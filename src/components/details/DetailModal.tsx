@@ -32,6 +32,7 @@ import {
   getFlattenedEpisodes,
   resolveEpisodeSeasonNumber,
   resolveEpisodeNumber,
+  isEpisodeUnreleased,
 } from '../../utils/seriesNavigation';
 import { useAutoTranslateSynopsis } from '../../services/translator';
 
@@ -135,23 +136,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   // Filter nextEpisode if it has not been released yet
   const nextEpisode = React.useMemo(() => {
     if (!rawNextEpisode) return undefined;
-    if (!media.isOngoing) return rawNextEpisode;
-
-    const sNum = rawNextEpisode.seasonNumber ?? 1;
-    if (media.nextEpisodeInfo && media.nextEpisodeInfo.seasonNumber === sNum) {
-      if (rawNextEpisode.episodeNumber >= media.nextEpisodeInfo.episodeNumber) {
-        return undefined;
-      }
-    }
-    if (rawNextEpisode.airDate) {
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      if (rawNextEpisode.airDate > todayStr) {
-        return undefined;
-      }
-    }
-    const relThreshold = media.currentSeasonReleasedEpisodes ?? media.releasedEpisodes;
-    if (typeof relThreshold === 'number' && relThreshold > 0 && rawNextEpisode.episodeNumber > relThreshold) {
+    if (isEpisodeUnreleased(rawNextEpisode, media)) {
       return undefined;
     }
     return rawNextEpisode;
@@ -266,7 +251,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           {/* Top Video Player Section */}
           <div className="space-y-3">
             <CinematicPlayer
-              key={media.id}
+              key={`${media.id}-${currentEpisode?.id || 'main'}`}
               media={media}
               currentEpisode={currentEpisode}
               activeServer={activeServer}

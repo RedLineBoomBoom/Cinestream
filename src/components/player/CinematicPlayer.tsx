@@ -1008,6 +1008,8 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     durationRef.current = initialDuration;
     setBuffered(0);
     setIsBuffering(false);
+    hasVerifiedTimeRef.current = false;
+    setHasVerifiedTime(false);
   }, [currentEpisode?.id, autoPlay, initialDuration]);
 
   const handleEpisodeEnded = useCallback((isExplicitEnded = false, force = false) => {
@@ -1025,20 +1027,25 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
     // Must have actually had playback in this session, unless explicitly forced by seek/user action
     if (!hasPlayedThisSession.current && !isExplicitEnded && !force) return;
 
-    const curDur =
+    let curDur =
       (videoRef.current?.duration && !isNaN(videoRef.current.duration) && videoRef.current.duration > 0)
         ? videoRef.current.duration
         : durationRef.current || duration || initialDuration;
     const curTime = currentTimeRef.current;
 
-    // Absolute safety guard: An episode can NEVER end in the early or middle part of playback.
-    // Must be genuinely near the end (within the end credits window or past 85% of duration).
-    // This strictly rejects midroll ads, HLS chunk events, and premature triggers in the middle of the episode!
+    // Safety guard against midroll ads or premature triggers in the early part of playback.
     if (!force) {
       const isNearEnd = isNearEndOrCredits(curTime, curDur);
       if (!isNearEnd) {
-        if (!isExplicitEnded || hasVerifiedTimeRef.current) {
+        // If not near estimated end, only accept explicit end if playback duration was significant
+        // (e.g. at least 60 seconds played or >= 50% of estimated duration) to reject short pre-roll ads.
+        const hasSubstantialPlayback = curTime >= 60 || (curDur > 0 && curTime >= curDur * 0.5);
+        if (!isExplicitEnded || !hasSubstantialPlayback) {
           return;
+        }
+        // If explicit ended occurred and curTime was substantial, adjust curDur to actual ended time
+        if (curTime > 0 && curDur > curTime) {
+          curDur = curTime;
         }
       }
     }

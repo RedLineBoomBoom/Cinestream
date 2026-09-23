@@ -61,6 +61,7 @@ import {
   getFlattenedEpisodes,
   resolveEpisodeSeasonNumber,
   resolveEpisodeNumber,
+  isEpisodeUnreleased,
 } from '../../utils/seriesNavigation';
 
 interface WatchSectionProps {
@@ -378,23 +379,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
   // Filter nextEpisode if it has not been released yet
   const nextEpisode = React.useMemo(() => {
     if (!rawNextEpisode) return undefined;
-    if (!activeMedia.isOngoing) return rawNextEpisode;
-
-    const sNum = rawNextEpisode.seasonNumber ?? 1;
-    if (activeMedia.nextEpisodeInfo && activeMedia.nextEpisodeInfo.seasonNumber === sNum) {
-      if (rawNextEpisode.episodeNumber >= activeMedia.nextEpisodeInfo.episodeNumber) {
-        return undefined;
-      }
-    }
-    if (rawNextEpisode.airDate) {
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      if (rawNextEpisode.airDate > todayStr) {
-        return undefined;
-      }
-    }
-    const relThreshold = activeMedia.currentSeasonReleasedEpisodes ?? activeMedia.releasedEpisodes;
-    if (typeof relThreshold === 'number' && relThreshold > 0 && rawNextEpisode.episodeNumber > relThreshold) {
+    if (isEpisodeUnreleased(rawNextEpisode, activeMedia)) {
       return undefined;
     }
     return rawNextEpisode;
@@ -1137,7 +1122,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             )}
 
             <CinematicPlayer
-              key={activeMedia.id}
+              key={`${activeMedia.id}-${currentEpisode?.id || 'main'}`}
               media={activeMedia}
               currentEpisode={currentEpisode}
               activeServer={activeServer}

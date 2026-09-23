@@ -5,6 +5,7 @@ import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSeriesStatus } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
+import { isEpisodeUnreleased as checkEpisodeUnreleased } from '../../utils/seriesNavigation';
 import { useReleaseCountdown } from '../../hooks/useReleaseCountdown';
 import { translateText } from '../../services/translator';
 
@@ -467,54 +468,19 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const isEpisodeUnreleased = (ep: Episode): boolean => {
-    if (!isThisSeasonOngoing) return false;
-
-    // 1. Explicit airDate on the episode:
-    // If air date is today or in the past, the episode has reached or passed its release date!
-    // It is 100% RELEASED and PLAYABLE!
-    if (ep.airDate) {
-      if (ep.airDate <= todayStr) {
-        return false;
-      }
-      return true;
-    }
-
-    // 2. Explicit nextEpisodeInfo match
-    if (nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum) {
-      // If the scheduled next episode's air date has arrived (today or past),
-      // then that episode is officially released!
-      if (nextEpisodeInfo.airDate && nextEpisodeInfo.airDate <= todayStr) {
-        if (ep.episodeNumber <= nextEpisodeInfo.episodeNumber) {
-          return false;
-        }
-      } else if (nextEpisodeInfo.airDate && nextEpisodeInfo.airDate > todayStr) {
-        // Air date is in the future
-        if (ep.episodeNumber >= nextEpisodeInfo.episodeNumber) {
-          return true;
-        }
-      }
-    }
-
-    // 3. Fallback threshold check
-    const effectiveNextEpNum =
-      nextEpisodeInfo && nextEpisodeInfo.seasonNumber === sNum && nextEpisodeInfo.airDate && nextEpisodeInfo.airDate <= todayStr
-        ? nextEpisodeInfo.episodeNumber
-        : 0;
-
-    const baseThreshold =
-      typeof currentSeasonReleasedEpisodes === 'number' && currentSeasonReleasedEpisodes > 0
-        ? currentSeasonReleasedEpisodes
-        : (typeof releasedEpisodes === 'number' && releasedEpisodes > 0 && sNum === 1
-            ? releasedEpisodes
-            : undefined);
-
-    const releasedThreshold = Math.max(baseThreshold || 0, effectiveNextEpNum);
-
-    if (releasedThreshold > 0 && ep.episodeNumber > releasedThreshold) {
-      return true;
-    }
-
-    return false;
+    return checkEpisodeUnreleased(ep, {
+      status,
+      isOngoing,
+      totalEpisodes,
+      releasedEpisodes,
+      currentSeasonTotalEpisodes,
+      currentSeasonReleasedEpisodes,
+      nextEpisodeToAir,
+      nextEpisodeInfo,
+      seasons,
+      currentSeason: sNum,
+      ongoingSeason: seriesStatus?.ongoingSeason,
+    });
   };
 
   const unreleasedEps = currentSeason.episodes.filter(isEpisodeUnreleased);
