@@ -25,6 +25,8 @@ import {
   SkipBack,
   SkipForward,
   Flag,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import type { MediaItem, Server, Episode, Season } from '../../types/media';
 import { FilmographyModal } from '../explore/FilmographyModal';
@@ -548,11 +550,60 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
     }
   }, [isTheaterMode, isMiniPlayer]);
 
-  // YouTube Trailer State
+  // YouTube Trailer State & Fullscreen Controller
   const [trailerInfo, setTrailerInfo] = useState<{ key?: string; url: string }>({
     key: media.trailerYoutubeKey,
     url: media.trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(media.title + ' official trailer')}`,
   });
+  const [isTrailerFullscreen, setIsTrailerFullscreen] = useState(false);
+  const trailerContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const toggleTrailerFullscreen = useCallback(() => {
+    const elem = trailerContainerRef.current;
+    if (!elem) return;
+    const fsElem = document.fullscreenElement || (document as any).webkitFullscreenElement;
+    const isCurrentTrailerFs = Boolean(fsElem && (fsElem === elem || elem.contains(fsElem)));
+
+    if (!isCurrentTrailerFs) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {
+          setIsTrailerFullscreen(true);
+        });
+      } else if ((elem as any).webkitRequestFullscreen) {
+        try {
+          (elem as any).webkitRequestFullscreen();
+        } catch {
+          setIsTrailerFullscreen(true);
+        }
+      } else {
+        setIsTrailerFullscreen(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        try {
+          (document as any).webkitExitFullscreen();
+        } catch {}
+      }
+      setIsTrailerFullscreen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleTrailerFsChange = () => {
+      const fsElem = document.fullscreenElement || (document as any).webkitFullscreenElement;
+      const isFs = Boolean(fsElem && trailerContainerRef.current && (fsElem === trailerContainerRef.current || trailerContainerRef.current.contains(fsElem)));
+      setIsTrailerFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleTrailerFsChange);
+    document.addEventListener('webkitfullscreenchange', handleTrailerFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleTrailerFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleTrailerFsChange);
+    };
+  }, []);
 
   // Official Title Logo State
   const [mediaLogo, setMediaLogo] = useState<string | undefined>(media.logoUrl);
@@ -1017,12 +1068,15 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
               <button
                 onClick={() => {
                   playClick();
+                  try {
+                    window.dispatchEvent(new CustomEvent('cinestream:playback-control', { detail: { action: 'pause' } }));
+                  } catch {}
                   setActiveTab('trailer');
                   const tabsEl = document.getElementById('watch-section-tabs');
                   if (tabsEl) tabsEl.scrollIntoView({ behavior: 'smooth' });
                 }}
                 onMouseEnter={playHover}
-                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-red-600/15 hover:bg-red-600 border border-red-500/30 text-red-300 hover:text-white text-xs font-medium transition-all shadow-sm group"
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-red-600/15 hover:bg-red-600 border border-red-500/30 text-red-300 hover:text-white text-xs font-medium transition-all shadow-sm group cursor-pointer"
               >
                 <span className="text-xs group-hover:scale-110 transition-transform">▶️</span>
                 <span>{t('watchTrailer')}</span>
@@ -1558,6 +1612,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             <button
               onClick={() => {
                 playClick();
+                try {
+                  window.dispatchEvent(new CustomEvent('cinestream:playback-control', { detail: { action: 'pause' } }));
+                } catch {}
                 setActiveTab('trailer');
               }}
               onMouseEnter={playHover}
@@ -1862,27 +1919,75 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                     </p>
                   </div>
 
-                  <a
-                    href={trailerInfo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={playClick}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-md hover:scale-105"
-                  >
-                    <span>{t('watchOnYoutube')}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    {trailerInfo.key && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playClick();
+                          toggleTrailerFullscreen();
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/15 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                        title={isTrailerFullscreen ? t('exitFullscreen') : t('fullscreen')}
+                      >
+                        {isTrailerFullscreen ? (
+                          <>
+                            <Minimize2 className="w-3.5 h-3.5" />
+                            <span>{t('exitFullscreen')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3.5 h-3.5 text-brand-champagne" />
+                            <span>{t('fullscreen')}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <a
+                      href={trailerInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={playClick}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-md hover:scale-105"
+                    >
+                      <span>{t('watchOnYoutube')}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
 
                 {trailerInfo.key ? (
-                  <div className="relative aspect-video w-full max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+                  <div
+                    ref={trailerContainerRef}
+                    className={`relative aspect-video w-full max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl transition-all ${
+                      isTrailerFullscreen
+                        ? 'fixed inset-0 z-[99999] max-w-none rounded-none border-none w-screen h-screen'
+                        : ''
+                    }`}
+                  >
                     <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${trailerInfo.key}?rel=0&modestbranding=1&autoplay=1`}
+                      src={`https://www.youtube-nocookie.com/embed/${trailerInfo.key}?rel=0&modestbranding=1&autoplay=1&fs=1&enablejsapi=1`}
                       title={`${displayTitle} Official Trailer`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *; fullscreen *"
                       allowFullScreen
+                      // @ts-expect-error - vendor fullscreen attributes
+                      webkitallowfullscreen="true"
+                      mozallowfullscreen="true"
                       className="w-full h-full border-0"
                     />
+
+                    {/* Floating Exit Fullscreen Button in Trailer Fullscreen Mode */}
+                    {isTrailerFullscreen && (
+                      <button
+                        type="button"
+                        onClick={toggleTrailerFullscreen}
+                        className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xl hover:scale-105"
+                        title={t('exitFullscreen')}
+                      >
+                        <Minimize2 className="w-5 h-5 text-white" />
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="aspect-video w-full max-w-5xl mx-auto rounded-2xl border border-white/10 bg-black/60 flex flex-col items-center justify-center text-center p-8 space-y-4">

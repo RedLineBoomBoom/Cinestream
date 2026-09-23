@@ -2051,12 +2051,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
       onToggleMiniPlayer?.();
     }
 
-    const isCurrentlyFs = Boolean(
+    const fsElem = (
       document.fullscreenElement ||
       (document as any).webkitFullscreenElement ||
       (document as any).mozFullScreenElement ||
-      (document as any).msFullscreenElement ||
-      isFullscreen
+      (document as any).msFullscreenElement
+    );
+
+    const isCurrentlyFs = Boolean(
+      (fsElem && (fsElem === elem || elem.contains(fsElem))) ||
+      isFullscreen ||
+      isPortraitFullscreen
     );
 
     if (!isCurrentlyFs) {
@@ -2136,12 +2141,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         }
       } catch {}
 
-      if (
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement
-      ) {
+      if (fsElem && (fsElem === elem || elem.contains(fsElem))) {
         if (document.exitFullscreen) {
           document.exitFullscreen().catch(() => {});
         } else if ((document as any).webkitExitFullscreen) {
@@ -2162,11 +2162,17 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
   // Sync fullscreen state with native document fullscreen events
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const isFs = Boolean(
+      const fsElem = (
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
         (document as any).mozFullScreenElement ||
         (document as any).msFullscreenElement
+      );
+      // Strictly verify that the element in fullscreen belongs to THIS player container
+      const isFs = Boolean(
+        fsElem &&
+        containerRef.current &&
+        (fsElem === containerRef.current || containerRef.current.contains(fsElem))
       );
       setIsFullscreen(isFs);
       onFullscreenChange?.(isFs);
