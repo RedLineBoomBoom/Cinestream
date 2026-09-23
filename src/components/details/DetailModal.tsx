@@ -251,7 +251,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           {/* Top Video Player Section */}
           <div className="space-y-3">
             <CinematicPlayer
-              key={`${media.id}-${currentEpisode?.id || 'main'}`}
+              key={media.id}
               media={media}
               currentEpisode={currentEpisode}
               activeServer={activeServer}

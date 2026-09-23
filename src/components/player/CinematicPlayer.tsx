@@ -2987,6 +2987,7 @@ export const CinematicPlayer: React.FC<CinematicPlayerProps> = ({
         </div>
       ) : (
         <video
+          key={videoSource}
           ref={videoRef}
           src={videoSource}
           autoPlay={autoPlay}

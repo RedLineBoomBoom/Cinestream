@@ -443,7 +443,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
         });
       }
 
-      if (autoScroll) {
+      if (autoScroll && !isFullscreen) {
         window.scrollTo({ top: 120, behavior: 'smooth' });
       }
     },
@@ -1122,7 +1122,7 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
             )}
 
             <CinematicPlayer
-              key={`${activeMedia.id}-${currentEpisode?.id || 'main'}`}
+              key={activeMedia.id}
               media={activeMedia}
               currentEpisode={currentEpisode}
               activeServer={activeServer}
