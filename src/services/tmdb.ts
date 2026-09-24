@@ -110,10 +110,16 @@ export function calculateSeriesStatusFromTmdb(tvData: any) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const lastEp = tvData.last_episode_to_air;
-  let currentSeasonReleasedEpisodes =
-    lastEp?.season_number === latestSeason?.season_number
-      ? lastEp?.episode_number || 0
-      : latestSeason?.episode_count || 0;
+  let currentSeasonReleasedEpisodes = 0;
+  if (lastEp?.season_number === latestSeason?.season_number) {
+    currentSeasonReleasedEpisodes = lastEp?.episode_number || 0;
+  } else if (lastEp && lastEp.season_number < (latestSeason?.season_number || 1)) {
+    // If the last aired episode was from an earlier season, 0 episodes have aired yet in latest season!
+    currentSeasonReleasedEpisodes = 0;
+  } else {
+    const isExplicitlyEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
+    currentSeasonReleasedEpisodes = isExplicitlyEnded ? (latestSeason?.episode_count || 0) : 0;
+  }
 
   const nextEp = tvData.next_episode_to_air;
   // If next_episode_to_air has already reached its air date (today or past), it is officially released!
@@ -1189,6 +1195,28 @@ export async function fetchFullMediaItem(
       currentSeason = statusCalc.currentSeason;
       completedSeasons = statusCalc.completedSeasons;
       seasonBreakdown = statusCalc.seasonBreakdown;
+
+      // Ground truth: If seasons contains actual episodes with future air dates, it is definitely on-going!
+      if (seasons && seasons.length > 0) {
+        const seasonWithFutureEps = seasons.find((s) =>
+          Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && e.airDate > todayStr))
+        );
+        if (seasonWithFutureEps) {
+          isOngoing = true;
+          ongoingSeason = seasonWithFutureEps.seasonNumber;
+          currentSeason = ongoingSeason;
+          const eps = seasonWithFutureEps.episodes || [];
+          const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && e.airDate <= todayStr)).length;
+          currentSeasonReleasedEpisodes = relEpsInSeason;
+          currentSeasonTotalEpisodes = eps.length;
+          completedSeasons = seasons
+            .map((s) => s.seasonNumber)
+            .filter((n) => typeof n === 'number' && n > 0 && n < ongoingSeason!);
+          const completedLabel = completedSeasons.length > 0 ? `${formatSeasonRange(completedSeasons)} COMPLETE` : undefined;
+          const ongoingLabel = ongoingSeason ? `S${ongoingSeason} ON GOING` : undefined;
+          seasonBreakdown = completedLabel && ongoingLabel ? `${completedLabel} • ${ongoingLabel}` : (ongoingLabel || completedLabel);
+        }
+      }
     }
 
     const item: MediaItem = {

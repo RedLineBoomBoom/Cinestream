@@ -381,6 +381,8 @@ interface EpisodeListProps {
   releasedEpisodes?: number;
   currentSeasonTotalEpisodes?: number;
   currentSeasonReleasedEpisodes?: number;
+  completedSeasons?: number[];
+  ongoingSeason?: number;
   mediaId?: string;
   nextEpisodeToAir?: string;
   nextEpisodeInfo?: NextEpisodeAirInfo;
@@ -396,6 +398,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
   releasedEpisodes,
   currentSeasonTotalEpisodes,
   currentSeasonReleasedEpisodes,
+  completedSeasons,
+  ongoingSeason,
   mediaId,
   nextEpisodeToAir,
   nextEpisodeInfo,
@@ -454,15 +458,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     totalEpisodes,
     currentSeasonTotalEpisodes: currentSeasonTotalEpisodes || currentSeason.episodes.length || totalEpisodes,
     currentSeasonReleasedEpisodes: currentSeasonReleasedEpisodes,
+    completedSeasons,
+    ongoingSeason,
     seasons,
     nextEpisodeToAir,
     nextEpisodeInfo,
   });
-
-  const isThisSeasonOngoing = Boolean(
-    seriesStatus?.isOngoing &&
-    (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length))
-  );
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -479,9 +480,16 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
       nextEpisodeInfo,
       seasons,
       currentSeason: sNum,
-      ongoingSeason: seriesStatus?.ongoingSeason,
+      completedSeasons,
+      ongoingSeason: ongoingSeason || seriesStatus?.ongoingSeason,
     });
   };
+
+  const isThisSeasonOngoing = Boolean(
+    currentSeason.episodes?.some(isEpisodeUnreleased) ||
+    (seriesStatus?.isOngoing &&
+      (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length)))
+  );
 
   const unreleasedEps = currentSeason.episodes.filter(isEpisodeUnreleased);
   const firstUnreleasedEp = unreleasedEps.length > 0 ? unreleasedEps[0] : undefined;
@@ -561,9 +569,11 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 sm:mx-0 sm:px-0 scroll-smooth">
             {seasons.map((season, idx) => {
               const sNum = season.seasonNumber;
+              const hasSeasonUnreleased = season.episodes?.some(isEpisodeUnreleased);
               const isThisSeasonOngoing = Boolean(
-                seriesStatus?.isOngoing &&
-                (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length))
+                hasSeasonUnreleased ||
+                (seriesStatus?.isOngoing &&
+                  (seriesStatus.ongoingSeason ? sNum === seriesStatus.ongoingSeason : sNum === (seriesStatus?.currentSeason || seasons.length)))
               );
               const isSelected = selectedSeasonIdx === idx;
 

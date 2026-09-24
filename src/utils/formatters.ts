@@ -264,6 +264,31 @@ export function getSeriesStatus(
     };
   };
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const hasNextEpInFuture = Boolean(
+    (item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr) ||
+    (item.nextEpisodeInfo?.airDate && item.nextEpisodeInfo.airDate > todayStr)
+  );
+
+  // 0. Ground Truth Inspection: If seasons array with episodes is provided, check actual episode air dates!
+  if (item.seasons && item.seasons.length > 0) {
+    const regularSeasons = item.seasons.filter((s) => (s.seasonNumber || 0) > 0);
+    // Find the season that contains future/unreleased episodes
+    const seasonWithFutureEps = regularSeasons.find((s) =>
+      Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && e.airDate > todayStr))
+    );
+
+    if (seasonWithFutureEps) {
+      const ongoingSNum = Number(seasonWithFutureEps.seasonNumber || derivedSeasonNumber || 1);
+      const eps = seasonWithFutureEps.episodes || [];
+      const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && e.airDate <= todayStr)).length;
+      const totEpsInSeason = eps.length || seasonWithFutureEps.episodeCount || 10;
+      const progressText = relEpsInSeason > 0 && totEpsInSeason > 0 ? `Ep ${relEpsInSeason}/${totEpsInSeason}` : undefined;
+      return buildResult(true, relEpsInSeason, totEpsInSeason, progressText, ongoingSNum);
+    }
+  }
+
   // 1. If explicit isOngoing is provided
   if (typeof item.isOngoing === 'boolean') {
     let isOngoing = item.isOngoing;
@@ -287,10 +312,6 @@ export function getSeriesStatus(
     const relEp = item.currentSeasonReleasedEpisodes ?? item.releasedEpisodes;
     const totEp = item.currentSeasonTotalEpisodes ?? item.totalEpisodes;
 
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const hasNextEpInFuture = Boolean(item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr);
-
     // Critical check: if all episodes of the current/latest season have already been released
     if (
       isOngoing &&
@@ -313,10 +334,6 @@ export function getSeriesStatus(
   // 2. Check episodes count in current / latest season
   const relEp = item.currentSeasonReleasedEpisodes ?? item.releasedEpisodes;
   const totEp = item.currentSeasonTotalEpisodes ?? item.totalEpisodes;
-
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const hasNextEpInFuture = Boolean(item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr);
 
   if (typeof relEp === 'number' && typeof totEp === 'number' && totEp > 0) {
     const isOngoing = relEp < totEp || hasNextEpInFuture;

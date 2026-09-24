@@ -1659,6 +1659,8 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 releasedEpisodes={activeMedia.releasedEpisodes}
                 currentSeasonTotalEpisodes={activeMedia.currentSeasonTotalEpisodes}
                 currentSeasonReleasedEpisodes={activeMedia.currentSeasonReleasedEpisodes}
+                completedSeasons={activeMedia.completedSeasons}
+                ongoingSeason={activeMedia.ongoingSeason}
                 nextEpisodeToAir={activeMedia.nextEpisodeToAir}
                 nextEpisodeInfo={activeMedia.nextEpisodeInfo}
                 onSelectEpisode={(ep) => {

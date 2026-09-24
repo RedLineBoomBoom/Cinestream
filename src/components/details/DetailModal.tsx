@@ -529,6 +529,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               releasedEpisodes={media.releasedEpisodes}
               currentSeasonTotalEpisodes={media.currentSeasonTotalEpisodes}
               currentSeasonReleasedEpisodes={media.currentSeasonReleasedEpisodes}
+              completedSeasons={media.completedSeasons}
+              ongoingSeason={media.ongoingSeason}
               nextEpisodeToAir={media.nextEpisodeToAir}
               nextEpisodeInfo={media.nextEpisodeInfo}
               onSelectEpisode={(ep) => handleSelectEpisode(ep, true)}

@@ -357,15 +357,26 @@ export function isEpisodeUnreleased(
 
   const type = media.type || (media as any).mediaType;
   if (type === 'movie') return false;
-  if (!media.isOngoing) return false;
 
-  const seriesStatus = getSeriesStatus(media);
-  if (!seriesStatus?.isOngoing) return false;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  // 1. Explicit airDate on the episode: The absolute gold standard of truth!
+  if (ep.airDate) {
+    if (ep.airDate > todayStr) {
+      return true; // Future date -> definitely unreleased!
+    }
+    return false; // Aired today or in the past -> officially released!
+  }
 
   const sNum = resolveEpisodeSeasonNumber(ep, media.seasons);
+  const seriesStatus = getSeriesStatus(media);
+
   const ongoingSeason =
-    seriesStatus.ongoingSeason ??
-    seriesStatus.currentSeason ??
+    media.ongoingSeason ??
+    seriesStatus?.ongoingSeason ??
+    media.currentSeason ??
+    seriesStatus?.currentSeason ??
     (media.seasons && media.seasons.length > 0 ? media.seasons.length : 1);
 
   // If this episode belongs to an earlier season than the ongoing season, it is completed & released!
@@ -376,22 +387,6 @@ export function isEpisodeUnreleased(
   // If this episode belongs to a future season that hasn't started yet, it is unreleased.
   if (sNum > ongoingSeason) {
     return true;
-  }
-
-  // If the episode already contains playable streaming servers with valid URLs, it is definitely playable!
-  if (ep.servers && ep.servers.length > 0 && ep.servers.some((s) => Boolean(s.url && s.url.trim()))) {
-    return false;
-  }
-
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  // 1. Explicit airDate on the episode
-  if (ep.airDate) {
-    if (ep.airDate <= todayStr) {
-      return false; // Already aired
-    }
-    return true; // Future date
   }
 
   // 2. Explicit nextEpisodeInfo match
