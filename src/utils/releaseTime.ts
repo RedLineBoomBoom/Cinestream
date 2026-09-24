@@ -160,16 +160,13 @@ export function getAirDateTimestamp(airDate?: string | null, options?: AirTimeOp
     const month = parseInt(dateMatch[2], 10);
     const day = parseInt(dateMatch[3], 10);
 
-    if (options?.useBroadcastTime) {
-      const airTimeWIB = resolveAirTimeWIB(options);
-      const [hWib, mWib] = airTimeWIB.split(':').map(Number);
-      return Date.UTC(year, month - 1, day, (hWib || 14) - 7, mWib || 0, 0, 0);
-    }
+    // Official release time aligned with global broadcast & streaming network schedule.
+    // Standard streaming originals premiere at 00:00 PT / 03:00 ET = 07:00 UTC = 14:00 WIB.
+    const airTimeWIB = resolveAirTimeWIB(options);
+    const [hWib, mWib] = airTimeWIB.split(':').map(Number);
 
-    // Default for TV & streaming catalog:
-    // Once the release calendar date arrives (00:00:00 local time),
-    // the episode is officially released & watchable on streaming embeds worldwide.
-    return new Date(year, month - 1, day, 0, 0, 0).getTime();
+    // WIB is UTC+7 -> UTC hour is hWib - 7
+    return Date.UTC(year, month - 1, day, (hWib || 14) - 7, mWib || 0, 0, 0);
   }
 
   // Fallback to standard Date parse
