@@ -7,6 +7,7 @@ import { getSeriesStatus } from '../../utils/formatters';
 import { getAbsoluteWatchUrl, getMediaWatchUrl } from '../../utils/navigation';
 import { isEpisodeUnreleased as checkEpisodeUnreleased } from '../../utils/seriesNavigation';
 import { useReleaseCountdown } from '../../hooks/useReleaseCountdown';
+import { isAirDateReleased } from '../../utils/releaseTime';
 import { translateText } from '../../services/translator';
 
 export function isDefaultOrEmptySynopsis(text?: string): boolean {
@@ -120,7 +121,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
     (episodeInfo?.overview && !isDefaultOrEmptySynopsis(episodeInfo.overview) ? episodeInfo.overview : undefined) ||
     synopsis;
 
-  const isPlayable = Boolean(onPlayEpisode) && (countdown.isToday || countdown.isPassed);
+  const isPlayable = Boolean(onPlayEpisode) && countdown.isPassed;
 
   return (
     <div
@@ -169,10 +170,10 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
 
         {/* Floating status on thumbnail */}
         <div className={`absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/85 text-[8.5px] font-mono flex items-center gap-1 border ${
-          countdown.isToday || countdown.isPassed ? 'text-emerald-300 border-emerald-500/40' : 'text-amber-300 border-amber-500/30'
+          isPlayable ? 'text-emerald-300 border-emerald-500/40' : 'text-amber-300 border-amber-500/30'
         }`}>
           <Sparkles className="w-2.5 h-2.5 text-current" />
-          <span>{countdown.isToday ? t('airingToday') : countdown.isPassed ? (language === 'id' ? 'Telah Rilis' : 'Released') : t('upcomingRelease')}</span>
+          <span>{isPlayable ? (countdown.isToday ? t('airingToday') : (language === 'id' ? 'Telah Rilis' : 'Released')) : (countdown.isToday ? (language === 'id' ? 'Rilis Hari Ini' : 'Airing Today') : t('upcomingRelease'))}</span>
         </div>
       </div>
 
@@ -184,7 +185,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
               isPlayable ? 'text-emerald-300' : 'text-amber-300'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPlayable ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              {t('episode')} {epNumber} • {isPlayable ? (language === 'id' ? 'Rilis Hari Ini' : 'Airing Today') : t('upcomingEpisode')}
+              {t('episode')} {epNumber} • {isPlayable ? (countdown.isToday ? (language === 'id' ? 'Rilis Hari Ini' : 'Released Today') : (language === 'id' ? 'Telah Rilis' : 'Released')) : (countdown.isToday ? (language === 'id' ? 'Rilis Hari Ini' : 'Airing Today') : t('upcomingEpisode'))}
             </span>
           </div>
 
@@ -194,7 +195,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
               : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
           }`}>
             {isPlayable ? <Play className="w-2.5 h-2.5 fill-current" /> : <Lock className="w-2.5 h-2.5" />}
-            <span>{countdown.isToday ? t('airingToday') : countdown.countdownText || t('upcomingRelease')}</span>
+            <span>{countdown.countdownText || (isPlayable ? (language === 'id' ? 'Putar' : 'Play') : t('upcomingRelease'))}</span>
           </span>
         </div>
 
@@ -209,7 +210,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
         />
 
         {/* Countdown display or Play button */}
-        {countdown.isValid && !countdown.isPassed && !countdown.isToday ? (
+        {countdown.isValid && !countdown.isPassed ? (
           <div className="mt-2 flex flex-wrap items-center gap-1 sm:gap-1.5">
             <div className="px-2 py-1 rounded-md bg-black/60 border border-amber-500/20 min-w-[38px] text-center shadow-inner">
               <span className="block text-xs font-mono font-black text-amber-200">
@@ -250,7 +251,10 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
             {countdown.formattedDate && (
               <div className="ml-1.5 sm:ml-3 flex items-center gap-1.5 text-[10px] text-slate-300">
                 <Calendar className="w-3 h-3 text-amber-400/80 shrink-0" />
-                <span>{t('airDateLabel')}: <strong className="text-amber-300 font-medium">{countdown.formattedDate}</strong></span>
+                <span>
+                  {t('airDateLabel')}: <strong className="text-amber-300 font-medium">{countdown.formattedDate}</strong>
+                  {countdown.releaseTimeStr ? ` (${countdown.releaseTimeStr} WIB)` : ''}
+                </span>
               </div>
             )}
           </div>
@@ -301,7 +305,7 @@ interface LockedEpisodeCardProps {
 const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language, onSelectEpisode }) => {
   const { t } = useLanguage();
   const countdown = useReleaseCountdown(episode.airDate, language);
-  const isPlayable = Boolean(onSelectEpisode) && (countdown.isToday || countdown.isPassed);
+  const isPlayable = Boolean(onSelectEpisode) && countdown.isPassed;
 
   return (
     <div
@@ -346,7 +350,13 @@ const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language
               : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
           }`}>
             {isPlayable ? <Play className="w-2.5 h-2.5 fill-current" /> : <Lock className="w-2.5 h-2.5" />}
-            <span>{countdown.isToday ? t('airingToday') : countdown.formattedDate || t('upcomingRelease')}</span>
+            <span>
+              {countdown.isPassed
+                ? (countdown.isToday ? (language === 'id' ? 'Telah Rilis Hari Ini' : 'Released Today') : (language === 'id' ? 'Telah Rilis' : 'Released'))
+                : countdown.isToday
+                ? (countdown.releaseTimeStr ? `${language === 'id' ? 'Hari Ini' : 'Today'} • ${countdown.countdownText}` : t('airingToday'))
+                : countdown.formattedDate || t('upcomingRelease')}
+            </span>
           </span>
         </div>
 
@@ -465,9 +475,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     nextEpisodeInfo,
   });
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
   const isEpisodeUnreleased = (ep: Episode): boolean => {
     return checkEpisodeUnreleased(ep, {
       status,
@@ -505,7 +512,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     currentSeason.episodes.length >= maxSeasonEpisodes;
 
   const nextAirDate = nextEpisodeInfo?.airDate || nextEpisodeToAir;
-  const hasFutureNextAirDate = Boolean(nextAirDate && nextAirDate > todayStr);
+  const hasFutureNextAirDate = Boolean(nextAirDate && !isAirDateReleased(nextAirDate));
 
   const shouldAppendUpcomingCard =
     isThisSeasonOngoing &&

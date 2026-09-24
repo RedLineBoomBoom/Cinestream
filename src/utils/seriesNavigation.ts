@@ -1,5 +1,6 @@
 import type { Episode, Season, NextEpisodeAirInfo } from '../types/media';
 import { getSeriesStatus } from './formatters';
+import { isAirDateReleased, isAirDateUnreleased } from './releaseTime';
 
 /**
  * Resolves the true season number of an episode by checking:
@@ -358,15 +359,9 @@ export function isEpisodeUnreleased(
   const type = media.type || (media as any).mediaType;
   if (type === 'movie') return false;
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
   // 1. Explicit airDate on the episode: The absolute gold standard of truth!
   if (ep.airDate) {
-    if (ep.airDate > todayStr) {
-      return true; // Future date -> definitely unreleased!
-    }
-    return false; // Aired today or in the past -> officially released!
+    return isAirDateUnreleased(ep.airDate);
   }
 
   const sNum = resolveEpisodeSeasonNumber(ep, media.seasons);
@@ -391,11 +386,14 @@ export function isEpisodeUnreleased(
 
   // 2. Explicit nextEpisodeInfo match
   if (media.nextEpisodeInfo && media.nextEpisodeInfo.seasonNumber === sNum) {
-    if (media.nextEpisodeInfo.airDate && media.nextEpisodeInfo.airDate <= todayStr) {
+    const isNextEpReleased = media.nextEpisodeInfo.airDate
+      ? isAirDateReleased(media.nextEpisodeInfo.airDate)
+      : false;
+    if (isNextEpReleased) {
       if (ep.episodeNumber <= media.nextEpisodeInfo.episodeNumber) {
         return false;
       }
-    } else if (media.nextEpisodeInfo.airDate && media.nextEpisodeInfo.airDate > todayStr) {
+    } else if (media.nextEpisodeInfo.airDate) {
       if (ep.episodeNumber >= media.nextEpisodeInfo.episodeNumber) {
         return true;
       }
@@ -407,7 +405,7 @@ export function isEpisodeUnreleased(
     media.nextEpisodeInfo &&
     media.nextEpisodeInfo.seasonNumber === sNum &&
     media.nextEpisodeInfo.airDate &&
-    media.nextEpisodeInfo.airDate <= todayStr
+    isAirDateReleased(media.nextEpisodeInfo.airDate)
       ? media.nextEpisodeInfo.episodeNumber
       : 0;
 

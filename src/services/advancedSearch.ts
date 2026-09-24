@@ -9,6 +9,7 @@ import { createMovieServers, createTvServers } from '../data/mockCatalog';
 import { getTmdbApiKey, getTvShowDetailsFast, calculateSeriesStatusFromTmdb } from './tmdb';
 import { GENRE_NAME_TO_ID } from './curation';
 import { translateText } from './translator';
+import { isAirDateUnreleased } from '../utils/releaseTime';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_W500 = 'https://image.tmdb.org/t/p/w500';
@@ -615,9 +616,7 @@ export async function searchAdvanced(
           const tvData = tvDetailsMap.get(item.id);
           if (tvData) {
             tvStatus = tvData.status || 'Ended';
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && tvData.next_episode_to_air.air_date > todayStr);
+            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && isAirDateUnreleased(tvData.next_episode_to_air.air_date));
             nextEpisodeToAir = isNextEpFuture ? tvData.next_episode_to_air?.air_date : undefined;
             if (isNextEpFuture && tvData.next_episode_to_air?.air_date) {
               const nEp = tvData.next_episode_to_air;

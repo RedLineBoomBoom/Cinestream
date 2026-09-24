@@ -1,4 +1,5 @@
 import type { MediaItem, Server, NextEpisodeAirInfo } from '../types/media';
+import { isAirDateReleased, isAirDateUnreleased } from './releaseTime';
 
 export function formatTime(seconds: number): string {
   if (isNaN(seconds)) return "00:00";
@@ -264,11 +265,9 @@ export function getSeriesStatus(
     };
   };
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const hasNextEpInFuture = Boolean(
-    (item.nextEpisodeToAir && item.nextEpisodeToAir > todayStr) ||
-    (item.nextEpisodeInfo?.airDate && item.nextEpisodeInfo.airDate > todayStr)
+    (item.nextEpisodeToAir && isAirDateUnreleased(item.nextEpisodeToAir)) ||
+    (item.nextEpisodeInfo?.airDate && isAirDateUnreleased(item.nextEpisodeInfo.airDate))
   );
 
   // 0. Ground Truth Inspection: If seasons array with episodes is provided, check actual episode air dates!
@@ -276,13 +275,13 @@ export function getSeriesStatus(
     const regularSeasons = item.seasons.filter((s) => (s.seasonNumber || 0) > 0);
     // Find the season that contains future/unreleased episodes
     const seasonWithFutureEps = regularSeasons.find((s) =>
-      Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && e.airDate > todayStr))
+      Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && isAirDateUnreleased(e.airDate)))
     );
 
     if (seasonWithFutureEps) {
       const ongoingSNum = Number(seasonWithFutureEps.seasonNumber || derivedSeasonNumber || 1);
       const eps = seasonWithFutureEps.episodes || [];
-      const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && e.airDate <= todayStr)).length;
+      const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && isAirDateReleased(e.airDate))).length;
       const totEpsInSeason = eps.length || seasonWithFutureEps.episodeCount || 10;
       const progressText = relEpsInSeason > 0 && totEpsInSeason > 0 ? `Ep ${relEpsInSeason}/${totEpsInSeason}` : undefined;
       return buildResult(true, relEpsInSeason, totEpsInSeason, progressText, ongoingSNum);

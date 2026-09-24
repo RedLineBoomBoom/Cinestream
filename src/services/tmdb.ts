@@ -3,6 +3,7 @@ import { createMovieServers, createTvServers } from '../data/mockCatalog';
 import { fetchImdbDetails, getImdbUrl } from './imdb';
 import { translateText } from './translator';
 import { formatSeasonRange, NON_LATIN_REGEX } from '../utils/formatters';
+import { isAirDateReleased, isAirDateUnreleased } from '../utils/releaseTime';
 
 const DEFAULT_TMDB_API_KEY = '4e44d9029b1270a757cddc766a1bcb63';
 
@@ -106,9 +107,6 @@ export function calculateSeriesStatusFromTmdb(tvData: any) {
   const latestSeason = regularSeasons[regularSeasons.length - 1];
   const currentSeasonTotalEpisodes = latestSeason?.episode_count || tvData.number_of_episodes;
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
   const lastEp = tvData.last_episode_to_air;
   let currentSeasonReleasedEpisodes = 0;
   if (lastEp?.season_number === latestSeason?.season_number) {
@@ -122,8 +120,9 @@ export function calculateSeriesStatusFromTmdb(tvData: any) {
   }
 
   const nextEp = tvData.next_episode_to_air;
-  // If next_episode_to_air has already reached its air date (today or past), it is officially released!
-  if (nextEp && nextEp.air_date && nextEp.air_date <= todayStr) {
+  // If next_episode_to_air has already reached its air time (today or past), it is officially released!
+  const isNextEpReleased = nextEp?.air_date ? isAirDateReleased(nextEp.air_date) : false;
+  if (nextEp && nextEp.air_date && isNextEpReleased) {
     if (nextEp.season_number === latestSeason?.season_number) {
       currentSeasonReleasedEpisodes = Math.max(currentSeasonReleasedEpisodes, nextEp.episode_number || 0);
     }
@@ -136,8 +135,8 @@ export function calculateSeriesStatusFromTmdb(tvData: any) {
     totalEpisodes && currentSeasonReleasedEpisodes >= currentSeasonTotalEpisodes ? totalEpisodes : 0
   );
 
-  // A next episode is only truly upcoming if its air date is strictly in the future!
-  const hasNextEp = Boolean(nextEp?.air_date && nextEp.air_date > todayStr);
+  // A next episode is only truly upcoming if its air time has not yet passed!
+  const hasNextEp = Boolean(nextEp?.air_date && isAirDateUnreleased(nextEp.air_date));
   const nextEpSeason = hasNextEp ? nextEp?.season_number : undefined;
   const isEnded = tvData.status === 'Ended' || tvData.status === 'Canceled';
 
@@ -417,9 +416,7 @@ export async function searchTMDB(query: string, page = 1, lang: 'id' | 'en' = 'i
 
             tvStatus = tvData.status;
             totalEpisodes = tvData.number_of_episodes;
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && tvData.next_episode_to_air.air_date > todayStr);
+            const isNextEpFuture = Boolean(tvData.next_episode_to_air?.air_date && isAirDateUnreleased(tvData.next_episode_to_air.air_date));
             nextEpisodeToAir = isNextEpFuture ? tvData.next_episode_to_air?.air_date : undefined;
             if (isNextEpFuture && tvData.next_episode_to_air?.air_date) {
               const nEp = tvData.next_episode_to_air;
@@ -1166,9 +1163,7 @@ export async function fetchFullMediaItem(
     if (!isMovie) {
       tvStatus = data.status;
       totalEpisodes = data.number_of_episodes;
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const isNextEpFuture = Boolean(data.next_episode_to_air?.air_date && data.next_episode_to_air.air_date > todayStr);
+      const isNextEpFuture = Boolean(data.next_episode_to_air?.air_date && isAirDateUnreleased(data.next_episode_to_air.air_date));
       nextEpisodeToAir = isNextEpFuture ? data.next_episode_to_air?.air_date : undefined;
       if (isNextEpFuture && data.next_episode_to_air?.air_date) {
         const nEp = data.next_episode_to_air;
@@ -1199,14 +1194,14 @@ export async function fetchFullMediaItem(
       // Ground truth: If seasons contains actual episodes with future air dates, it is definitely on-going!
       if (seasons && seasons.length > 0) {
         const seasonWithFutureEps = seasons.find((s) =>
-          Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && e.airDate > todayStr))
+          Array.isArray(s.episodes) && s.episodes.some((e) => Boolean(e.airDate && isAirDateUnreleased(e.airDate)))
         );
         if (seasonWithFutureEps) {
           isOngoing = true;
           ongoingSeason = seasonWithFutureEps.seasonNumber;
           currentSeason = ongoingSeason;
           const eps = seasonWithFutureEps.episodes || [];
-          const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && e.airDate <= todayStr)).length;
+          const relEpsInSeason = eps.filter((e) => Boolean(e.airDate && isAirDateReleased(e.airDate))).length;
           currentSeasonReleasedEpisodes = relEpsInSeason;
           currentSeasonTotalEpisodes = eps.length;
           completedSeasons = seasons

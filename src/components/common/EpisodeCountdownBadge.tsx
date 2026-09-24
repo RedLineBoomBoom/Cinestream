@@ -27,11 +27,14 @@ export const EpisodeCountdownBadge: React.FC<EpisodeCountdownBadgeProps> = ({
   if (countdown.isToday) {
     return (
       <span
-        className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider border flex items-center gap-1.5 bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm animate-pulse ${className}`}
-        title={`${t('airDateLabel')}: ${countdown.formattedDate}`}
+        className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider border flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm ${className}`}
+        title={`${t('airDateLabel')}: ${countdown.formattedDate}${countdown.releaseTimeStr ? ` (${countdown.releaseTimeStr} WIB)` : ''}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-        <span>{epPrefix ? `${epPrefix}: ` : ''}{t('airingToday')}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+        <span>
+          {epPrefix ? `${epPrefix}: ` : ''}
+          {language === 'id' ? `Hari ini • ${countdown.countdownText}` : `Today • in ${countdown.countdownText}`}
+        </span>
       </span>
     );
   }

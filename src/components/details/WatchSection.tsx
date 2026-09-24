@@ -199,9 +199,9 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
       if (found) {
         if (lastHist.completed && found.seasonNumber !== undefined) {
           const nextInSeason = findEpisode(seasons, undefined, found.seasonNumber, found.episodeNumber + 1);
-          if (nextInSeason) return nextInSeason;
+          if (nextInSeason && !isEpisodeUnreleased(nextInSeason, targetMedia)) return nextInSeason;
           const nextSeasonEp = findEpisode(seasons, undefined, found.seasonNumber + 1, 1);
-          if (nextSeasonEp) return nextSeasonEp;
+          if (nextSeasonEp && !isEpisodeUnreleased(nextSeasonEp, targetMedia)) return nextSeasonEp;
         }
         return found;
       }

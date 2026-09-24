@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { getAirDateTimestamp, resolveAirTimeWIB, type AirTimeOptions } from '../utils/releaseTime';
 
 export interface CountdownData {
   days: number;
@@ -11,28 +12,27 @@ export interface CountdownData {
   isValid: boolean;
   formattedDate: string;
   countdownText: string;
+  releaseTimeStr?: string;
 }
 
 /**
- * Calculates remaining time until a given air date (YYYY-MM-DD or ISO string).
+ * Calculates remaining time until a given air date (YYYY-MM-DD or ISO string)
+ * with exact broadcast/streaming release hour synchronization.
  * Updates every 1 second reactively.
  */
-export function useReleaseCountdown(airDate?: string, language: 'id' | 'en' = 'id'): CountdownData {
+export function useReleaseCountdown(
+  airDate?: string,
+  language: 'id' | 'en' = 'id',
+  options?: AirTimeOptions
+): CountdownData {
   const targetTime = useMemo(() => {
-    if (!airDate) return null;
-    try {
-      // Check if YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}$/.test(airDate)) {
-        // Target 00:00:00 local time
-        const [year, month, day] = airDate.split('-').map(Number);
-        return new Date(year, month - 1, day, 0, 0, 0).getTime();
-      }
-      const parsed = new Date(airDate).getTime();
-      return isNaN(parsed) ? null : parsed;
-    } catch {
-      return null;
-    }
-  }, [airDate]);
+    return getAirDateTimestamp(airDate, options);
+  }, [airDate, options?.showId, options?.originalLanguage, JSON.stringify(options?.networks || []), JSON.stringify(options?.originCountry || [])]);
+
+  const releaseTimeStr = useMemo(() => {
+    if (!airDate) return undefined;
+    return resolveAirTimeWIB(options);
+  }, [airDate, options?.showId, options?.originalLanguage, JSON.stringify(options?.networks || []), JSON.stringify(options?.originCountry || [])]);
 
   const [now, setNow] = useState(() => Date.now());
 
@@ -60,6 +60,7 @@ export function useReleaseCountdown(airDate?: string, language: 'id' | 'en' = 'i
         isValid: false,
         formattedDate: '',
         countdownText: '',
+        releaseTimeStr: undefined,
       };
     }
 
@@ -83,36 +84,24 @@ export function useReleaseCountdown(airDate?: string, language: 'id' | 'en' = 'i
       formattedDate = airDate;
     }
 
-    if (isSameDay) {
-      return {
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        totalMs: 0,
-        isToday: true,
-        isPassed: false,
-        isValid: true,
-        formattedDate,
-        countdownText: language === 'id' ? 'Tayang Hari Ini' : 'Airing Today',
-      };
-    }
-
     const diff = targetTime - now;
 
     if (diff <= 0) {
-      // Past the date
+      // Past the release time
       return {
         days: 0,
         hours: 0,
         minutes: 0,
         seconds: 0,
         totalMs: 0,
-        isToday: false,
+        isToday: isSameDay,
         isPassed: true,
         isValid: true,
         formattedDate,
-        countdownText: language === 'id' ? 'Segera Hadir' : 'Coming Soon',
+        countdownText: isSameDay
+          ? (language === 'id' ? 'Telah Rilis Hari Ini' : 'Released Today')
+          : (language === 'id' ? 'Telah Rilis' : 'Released'),
+        releaseTimeStr,
       };
     }
 
@@ -145,11 +134,12 @@ export function useReleaseCountdown(airDate?: string, language: 'id' | 'en' = 'i
       minutes,
       seconds,
       totalMs: diff,
-      isToday: false,
+      isToday: isSameDay,
       isPassed: false,
       isValid: true,
       formattedDate,
       countdownText,
+      releaseTimeStr,
     };
-  }, [targetTime, now, airDate, language]);
+  }, [targetTime, now, airDate, language, releaseTimeStr]);
 }
