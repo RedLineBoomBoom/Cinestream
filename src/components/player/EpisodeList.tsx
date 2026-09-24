@@ -121,7 +121,7 @@ const UpcomingEpisodeCard: React.FC<UpcomingEpisodeCardProps> = ({
     (episodeInfo?.overview && !isDefaultOrEmptySynopsis(episodeInfo.overview) ? episodeInfo.overview : undefined) ||
     synopsis;
 
-  const isPlayable = Boolean(onPlayEpisode) && countdown.isPassed;
+  const isPlayable = Boolean(onPlayEpisode) && (countdown.isToday || countdown.isPassed);
 
   return (
     <div
@@ -305,7 +305,7 @@ interface LockedEpisodeCardProps {
 const LockedEpisodeCard: React.FC<LockedEpisodeCardProps> = ({ episode, language, onSelectEpisode }) => {
   const { t } = useLanguage();
   const countdown = useReleaseCountdown(episode.airDate, language);
-  const isPlayable = Boolean(onSelectEpisode) && countdown.isPassed;
+  const isPlayable = Boolean(onSelectEpisode) && (countdown.isToday || countdown.isPassed);
 
   return (
     <div

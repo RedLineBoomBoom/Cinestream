@@ -84,6 +84,7 @@ export interface AirTimeOptions {
   originalLanguage?: string;
   originCountry?: string[];
   showId?: number;
+  useBroadcastTime?: boolean;
 }
 
 /**
@@ -159,11 +160,16 @@ export function getAirDateTimestamp(airDate?: string | null, options?: AirTimeOp
     const month = parseInt(dateMatch[2], 10);
     const day = parseInt(dateMatch[3], 10);
 
-    const airTimeWIB = resolveAirTimeWIB(options);
-    const [hWib, mWib] = airTimeWIB.split(':').map(Number);
+    if (options?.useBroadcastTime) {
+      const airTimeWIB = resolveAirTimeWIB(options);
+      const [hWib, mWib] = airTimeWIB.split(':').map(Number);
+      return Date.UTC(year, month - 1, day, (hWib || 14) - 7, mWib || 0, 0, 0);
+    }
 
-    // WIB is UTC+7 -> UTC hour is hWib - 7
-    return Date.UTC(year, month - 1, day, (hWib || 14) - 7, mWib || 0, 0, 0);
+    // Default for TV & streaming catalog:
+    // Once the release calendar date arrives (00:00:00 local time),
+    // the episode is officially released & watchable on streaming embeds worldwide.
+    return new Date(year, month - 1, day, 0, 0, 0).getTime();
   }
 
   // Fallback to standard Date parse
