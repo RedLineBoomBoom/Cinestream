@@ -83,6 +83,16 @@
         padding: 0;
       }
     </style>
+
+    <!-- Early PWA Install Prompt Capture: Ensures beforeinstallprompt is never lost on fast browser loads -->
+    <script>
+      window.__cinestreamDeferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__cinestreamDeferredPrompt = e;
+        window.dispatchEvent(new CustomEvent('cinestream:pwa-prompt-ready', { detail: e }));
+      });
+    </script>
   </head>
   <body style="background-color: #141414; color: #f8fafc;" class="bg-[#141414] text-slate-100 selection:bg-[#E50914] selection:text-white font-sans overflow-x-hidden antialiased min-h-screen">
     <div id="root"></div>

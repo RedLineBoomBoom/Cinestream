@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Smartphone, Tablet, Monitor, Share, Plus } from 'lucide-react';
+import { Download, X, Smartphone, Tablet, Monitor, Share, Plus, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '../../context/LanguageContext';
@@ -20,14 +20,19 @@ const getDeviceClass = (): DeviceClass => {
 };
 
 const DISMISS_KEY = 'cinestream_pwa_dismissed_until';
-const DISMISS_DAYS = 7; // re-prompt after 7 days
+const DISMISS_HOURS = 24; // Re-prompt after 24 hours if dismissed
 
 export const PwaInstallPrompt: React.FC = () => {
   const { language } = useLanguage();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    if (typeof window !== 'undefined' && (window as any).__cinestreamDeferredPrompt) {
+      return (window as any).__cinestreamDeferredPrompt;
+    }
+    return null;
+  });
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [deviceClass, setDeviceClass] = useState<DeviceClass>('mobile');
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -37,74 +42,122 @@ export const PwaInstallPrompt: React.FC = () => {
 
     // 1. If already installed as standalone PWA, skip
     const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) ||
+      (typeof window !== 'undefined' && (window.navigator as unknown as { standalone?: boolean }).standalone === true);
     if (isStandalone) return;
 
-    // 2. Check persistent dismissal (up to 7 days)
-    try {
-      const until = localStorage.getItem(DISMISS_KEY);
-      if (until && Date.now() < parseInt(until, 10)) return;
-    } catch {}
-
-    // 3. Detect device
+    // 2. Detect device
     const dc = getDeviceClass();
     setDeviceClass(dc);
 
-    // 4. Detect iOS Safari (excludes Chrome/Firefox on iOS)
-    const ua = window.navigator.userAgent.toLowerCase();
+    // 3. Detect iOS Safari
+    const ua = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : '';
     const isIosDevice = /iphone|ipad|ipod/.test(ua) && !/crios|fxios/.test(ua);
     setIsIOS(isIosDevice);
 
-    // 5. Capture Android/Chrome native prompt
+    // 4. Check persistent dismissal (allow manual open or query param ?pwa=1 to override)
+    const hasForceParam = typeof window !== 'undefined' && (window.location.search.includes('pwa=1') || window.location.search.includes('install=1'));
+    let isDismissed = false;
+    try {
+      const until = localStorage.getItem(DISMISS_KEY);
+      if (until && Date.now() < parseInt(until, 10)) {
+        isDismissed = true;
+      }
+    } catch {}
+
+    // Check if early prompt was already captured in index.html
+    if (typeof window !== 'undefined' && (window as any).__cinestreamDeferredPrompt) {
+      setDeferredPrompt((window as any).__cinestreamDeferredPrompt);
+    }
+
+    // 5. Capture native prompt
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      (window as any).__cinestreamDeferredPrompt = e;
-      // Delay to not interrupt the initial page experience
-      setTimeout(() => setIsVisible(true), 4000);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
+      (window as any).__cinestreamDeferredPrompt = promptEvent;
+      if (!isDismissed || hasForceParam) {
+        setIsVisible(true);
+      }
+    };
+
+    const handlePromptReady = (e: any) => {
+      const promptEvent = e.detail || (window as any).__cinestreamDeferredPrompt;
+      if (promptEvent) {
+        setDeferredPrompt(promptEvent);
+      }
+      if (!isDismissed || hasForceParam) {
+        setIsVisible(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('cinestream:pwa-prompt-ready', handlePromptReady);
 
-    // 6. iOS: show after 5s delay
-    let iosTimer: ReturnType<typeof setTimeout> | undefined;
-    if (isIosDevice) {
-      iosTimer = setTimeout(() => setIsVisible(true), 5000);
+    // 6. Universal visibility timer: on ALL browser devices (Chrome, Edge, Firefox, Safari, Samsung Internet, etc.)
+    // Show after initial page experience (3.5s delay)
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (!isDismissed || hasForceParam) {
+      timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 3500);
     }
+
+    // 7. Manual trigger listener from any button in the app (Navbar, Profile, Footer)
+    const handleManualOpen = () => {
+      setIsVisible(true);
+      setShowGuide(false);
+      try {
+        localStorage.removeItem(DISMISS_KEY);
+      } catch {}
+    };
+    window.addEventListener('cinestream:open-pwa-install', handleManualOpen);
+
+    // 8. Dismiss on successful installation
+    const handleAppInstalled = () => {
+      setIsVisible(false);
+      setDeferredPrompt(null);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-      if (iosTimer) clearTimeout(iosTimer);
+      window.removeEventListener('cinestream:pwa-prompt-ready', handlePromptReady);
+      window.removeEventListener('cinestream:open-pwa-install', handleManualOpen);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (isIOS) {
-      setShowIOSGuide(true);
+    // If native browser prompt is available (Chrome, Edge, Samsung Internet)
+    if (deferredPrompt) {
+      setIsInstalling(true);
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setIsVisible(false);
+        }
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.warn('PWA install prompt error:', err);
+        setShowGuide(true);
+      } finally {
+        setIsInstalling(false);
+      }
       return;
     }
-    if (!deferredPrompt) return;
 
-    setIsInstalling(true);
-    try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsVisible(false);
-      }
-      setDeferredPrompt(null);
-    } catch (err) {
-      console.warn('PWA install prompt failed:', err);
-    } finally {
-      setIsInstalling(false);
-    }
+    // If deferredPrompt is NOT available (iOS Safari, Firefox, or browser already handled)
+    // Toggle the visual step-by-step installation instructions for this browser/device
+    setShowGuide(true);
   };
 
   const handleDismiss = () => {
     setIsVisible(false);
     try {
-      const until = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000;
+      const until = Date.now() + DISMISS_HOURS * 60 * 60 * 1000;
       localStorage.setItem(DISMISS_KEY, String(until));
     } catch {}
   };
@@ -114,7 +167,6 @@ export const PwaInstallPrompt: React.FC = () => {
   // Tablet/desktop → anchored bottom-right like a toast
   // Mobile → bottom full-width card
   const isTabletOrDesktop = deviceClass !== 'mobile';
-
   const DeviceIcon = deviceClass === 'desktop' ? Monitor : deviceClass === 'tablet' ? Tablet : Smartphone;
 
   return (
@@ -176,38 +228,94 @@ export const PwaInstallPrompt: React.FC = () => {
               ))}
             </div>
 
-            {/* iOS Step-by-step Guide */}
-            {showIOSGuide && isIOS && (
+            {/* Step-by-step Installation Guide tailored per device/browser */}
+            {showGuide && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="p-3 rounded-xl bg-white/[0.05] border border-white/10 space-y-2"
               >
                 <p className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
-                  {language === 'en' ? 'How to install on iOS:' : 'Cara pasang di iPhone / iPad:'}
+                  {isIOS
+                    ? (language === 'en' ? 'How to install on iPhone / iPad:' : 'Cara pasang di iPhone / iPad:')
+                    : deviceClass === 'desktop'
+                    ? (language === 'en' ? 'How to install on PC / Mac browser:' : 'Cara pasang di browser PC / Laptop:')
+                    : (language === 'en' ? 'How to install on Android browser:' : 'Cara pasang di browser Android:')}
                 </p>
+
                 <div className="space-y-1.5 text-[11px] text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">1</span>
-                    <span>
-                      {language === 'en' ? 'Tap' : 'Ketuk'}{' '}
-                      <Share className="inline w-3 h-3 mx-0.5 text-blue-400" />
-                      {' '}<strong>{language === 'en' ? 'Share' : 'Bagikan'}</strong>{' '}
-                      {language === 'en' ? 'in Safari' : 'di Safari'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">2</span>
-                    <span>
-                      {language === 'en' ? 'Tap' : 'Pilih'}{' '}
-                      <Plus className="inline w-3 h-3 mx-0.5 text-blue-400" />
-                      {' '}<strong>{language === 'en' ? 'Add to Home Screen' : 'Tambah ke Layar Utama'}</strong>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">3</span>
-                    <span>{language === 'en' ? 'Tap ' : 'Ketuk '}<strong>{language === 'en' ? 'Add' : 'Tambah'}</strong></span>
-                  </div>
+                  {isIOS ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                        <span>
+                          {language === 'en' ? 'Tap' : 'Ketuk'}{' '}
+                          <Share className="inline w-3 h-3 mx-0.5 text-blue-400" />
+                          {' '}<strong>{language === 'en' ? 'Share' : 'Bagikan'}</strong>{' '}
+                          {language === 'en' ? 'in Safari' : 'di Safari'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                        <span>
+                          {language === 'en' ? 'Scroll & tap' : 'Pilih'}{' '}
+                          <Plus className="inline w-3 h-3 mx-0.5 text-blue-400" />
+                          {' '}<strong>{language === 'en' ? 'Add to Home Screen' : 'Tambah ke Layar Utama'}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                        <span>{language === 'en' ? 'Tap ' : 'Ketuk '}<strong>{language === 'en' ? 'Add' : 'Tambah'}</strong></span>
+                      </div>
+                    </>
+                  ) : deviceClass === 'desktop' ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                        <span>
+                          {language === 'en'
+                            ? 'Look at the address bar (URL) at the top and click'
+                            : 'Lihat bilah alamat URL browser di atas dan klik'}{' '}
+                          <Download className="inline w-3 h-3 mx-0.5 text-red-500" />
+                          {' '}<strong>{language === 'en' ? 'Install' : 'Instal'}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                        <span>
+                          {language === 'en'
+                            ? 'Or click browser menu (⋮) > select "Install Cinestream"'
+                            : 'Atau klik menu titik tiga (⋮) > pilih "Instal Cinestream"'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                        <span>{language === 'en' ? 'Click ' : 'Klik '}<strong>{language === 'en' ? 'Install' : 'Instal'}</strong></span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">1</span>
+                        <span>
+                          {language === 'en' ? 'Tap browser menu' : 'Ketuk menu browser'}{' '}
+                          <MoreVertical className="inline w-3 h-3 mx-0.5 text-slate-300" />
+                          {' '}(<strong>⋮</strong>) {language === 'en' ? 'at top-right' : 'di pojok kanan atas'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">2</span>
+                        <span>
+                          {language === 'en' ? 'Select' : 'Pilih'}{' '}
+                          <strong>{language === 'en' ? 'Install app / Add to Home screen' : 'Instal aplikasi / Tambahkan ke Layar Utama'}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#E50914]/20 text-[#E50914] flex items-center justify-center text-[10px] font-black shrink-0">3</span>
+                        <span>{language === 'en' ? 'Confirm and tap ' : 'Konfirmasi dan pilih '}<strong>{language === 'en' ? 'Install' : 'Pasang'}</strong></span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -224,8 +332,8 @@ export const PwaInstallPrompt: React.FC = () => {
                 <span>
                   {isInstalling
                     ? (language === 'en' ? 'Installing…' : 'Memasang…')
-                    : isIOS && showIOSGuide
-                    ? (language === 'en' ? 'See steps above ↑' : 'Lihat langkah di atas ↑')
+                    : showGuide
+                    ? (language === 'en' ? 'Follow steps above ↑' : 'Ikuti langkah di atas ↑')
                     : (language === 'en' ? 'Install App' : 'Pasang Aplikasi')}
                 </span>
               </button>

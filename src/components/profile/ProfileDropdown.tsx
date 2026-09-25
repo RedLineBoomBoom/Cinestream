@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Share2,
   Smartphone,
+  Download,
 } from 'lucide-react';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useWatchlist } from '../../context/WatchlistContext';
@@ -403,6 +404,36 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               </div>
               <ChevronRight className="w-4 h-4 text-red-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </button>
+
+            {/* Install Web App (PWA) button for browser users */}
+            {typeof window !== 'undefined' && !Capacitor.isNativePlatform() && (
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  window.dispatchEvent(new CustomEvent('cinestream:open-pwa-install'));
+                  onClose();
+                }}
+                onMouseEnter={playHover}
+                className="w-full p-2.5 rounded-xl bg-white/[0.04] hover:bg-[#E50914]/15 border border-white/[0.08] hover:border-[#E50914]/40 text-left transition-all cursor-pointer group flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.06] group-hover:bg-[#E50914]/20 flex items-center justify-center transition-colors shrink-0">
+                    <Download className="w-4 h-4 text-slate-300 group-hover:text-[#E50914] transition-colors" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-200 group-hover:text-white flex items-center gap-1.5">
+                      <span>{language === 'en' ? 'Install Web App' : 'Pasang Web App'}</span>
+                      <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-black bg-white/10 text-slate-300">PWA</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {language === 'en' ? 'Fast home screen / desktop access' : 'Akses cepat layar utama / desktop'}
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+            )}
 
             {/* Exclusive Admin Dashboard Button (ONLY for Verified Admins) */}
             {isAdmin && (

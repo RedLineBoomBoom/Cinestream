@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, Shield, Lock, FileText, Smartphone } from 'lucide-react';
+import { Play, Shield, Lock, FileText, Smartphone, Download } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '../../context/LanguageContext';
 import { APP_VERSION, checkForAppUpdate } from '../../utils/pwaUpdate';
 
@@ -85,6 +86,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
                 <Smartphone className="w-3 h-3 text-[#E50914] group-hover:scale-110 transition-transform" />
                 <span>{language === 'en' ? 'Download App (APK)' : 'Unduh Aplikasi (APK)'}</span>
               </a>
+
+              {typeof window !== 'undefined' && !Capacitor.isNativePlatform() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('cinestream:open-pwa-install'));
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-[#E50914]/15 hover:border-[#E50914]/50 hover:text-white text-slate-300 border border-white/[0.08] transition-all duration-200 text-[11px] font-medium group cursor-pointer"
+                  title={language === 'en' ? 'Install Cinestream as Progressive Web App' : 'Pasang Cinestream sebagai Progressive Web App'}
+                >
+                  <Download className="w-3 h-3 text-[#E50914] group-hover:scale-110 transition-transform" />
+                  <span>{language === 'en' ? 'Install Web App' : 'Pasang Web App'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
