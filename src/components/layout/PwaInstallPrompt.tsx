@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Smartphone, Tablet, Monitor, Share, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -31,6 +32,9 @@ export const PwaInstallPrompt: React.FC = () => {
   const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
+    // 0. If in native APK app (Capacitor), never show PWA install prompt
+    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) return;
+
     // 1. If already installed as standalone PWA, skip
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||

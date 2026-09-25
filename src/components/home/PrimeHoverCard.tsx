@@ -319,11 +319,15 @@ export const PrimeHoverCard: React.FC<PrimeHoverCardProps> = ({
               <iframe
                 ref={iframeRef}
                 src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&loop=1&playlist=${trailerKey}${
-                  typeof window !== 'undefined' && window.location.origin
+                  typeof window !== 'undefined' &&
+                  window.location.origin &&
+                  !window.location.origin.includes('localhost') &&
+                  !window.location.origin.startsWith('capacitor://')
                     ? `&origin=${encodeURIComponent(window.location.origin)}`
                     : ''
                 }`}
                 title={`${item.title} Trailer`}
+                referrerPolicy="strict-origin-when-cross-origin"
                 allow="autoplay; encrypted-media"
                 onLoad={() => {
                   try {

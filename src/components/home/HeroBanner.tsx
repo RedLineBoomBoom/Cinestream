@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Info, Plus, Check, ExternalLink, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Play, Info, Plus, Check, ExternalLink, Volume2, VolumeX, Sparkles, Film } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import type { MediaItem } from '../../types/media';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
@@ -181,9 +182,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     };
   }, [currentMedia?.id, currentMedia?.tmdbId, currentMedia?.type, currentMedia?.title]);
 
-  // Auto-play trailer after viewing the photo for 3.5 seconds, only if banner is actively in viewport & trailer exists
+  // Auto-play trailer after viewing the photo for 3.5 seconds, only if banner is actively in viewport & trailer exists.
+  // In native Android APK (Capacitor), do NOT autoplay background YouTube iframes to prevent Android WebView
+  // from triggering Google's automated traffic checkpoint ("Masuk untuk mengonfirmasi bahwa Anda bukan bot").
+  const isNativeApp = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+
   useEffect(() => {
-    if (!isBannerInView || !trailerKey) {
+    if (isNativeApp || !isBannerInView || !trailerKey) {
       setShowTrailer(false);
       return;
     }
@@ -195,7 +200,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     return () => {
       clearTimeout(timer);
     };
-  }, [currentMedia?.id, isBannerInView, trailerKey]);
+  }, [currentMedia?.id, isBannerInView, trailerKey, isNativeApp]);
 
   // Listen to YouTube player state: let trailer play until the end, then advance to next banner highlight
   useEffect(() => {
@@ -213,6 +218,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         }
 
         if (!data || typeof data !== 'object') return;
+
+        // If YouTube throws an error or bot challenge, gracefully hide trailer iframe and keep backdrop photo
+        if (data.event === 'onError' || (data.event === 'onStateChange' && data.info === -1 && showTrailer)) {
+          setShowTrailer(false);
+          return;
+        }
 
         // YouTube IFrame API reports ended state via:
         // 1. data.event === 'onStateChange' with data.info === 0 (0 = YT.PlayerState.ENDED)
@@ -242,7 +253,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [featuredItems.length]);
+  }, [featuredItems.length, showTrailer]);
 
   useEffect(() => {
     let isMounted = true;
@@ -324,13 +335,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           }`}
         />
 
-        {/* Cinematic Auto-playing YouTube Trailer (480p, Muted, Netflix-style) */}
-        {showTrailer && trailerKey && (
+        {/* Cinematic Auto-playing YouTube Trailer (480p, Muted, Netflix-style) - Web/Desktop only */}
+        {!isNativeApp && showTrailer && trailerKey && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden transition-opacity duration-1000 animate-in fade-in">
             <iframe
               ref={iframeRef}
-              src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&vq=medium${typeof window !== 'undefined' && window.location.origin ? `&origin=${encodeURIComponent(window.location.origin)}` : ''}`}
+              src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&vq=medium${
+                typeof window !== 'undefined' &&
+                window.location.origin &&
+                !window.location.origin.includes('localhost') &&
+                !window.location.origin.startsWith('capacitor://')
+                  ? `&origin=${encodeURIComponent(window.location.origin)}`
+                  : ''
+              }`}
               title={`${displayTitle} Official Trailer`}
+              referrerPolicy="strict-origin-when-cross-origin"
               allow="autoplay; encrypted-media"
               onLoad={() => {
                 try {
@@ -526,6 +545,28 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <Info className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               <span>{t('detailsReviews')}</span>
             </button>
+
+            {/* Quick Trailer Button */}
+            {trailerKey && (
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  stopTrailerPlayback();
+                  if (isNativeApp) {
+                    window.open(`https://www.youtube.com/watch?v=${trailerKey}`, '_system');
+                  } else {
+                    onOpenDetails(currentMedia);
+                  }
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-md bg-white/20 hover:bg-white/30 active:scale-95 text-white font-bold text-xs sm:text-sm tracking-wide backdrop-blur-md transition-all duration-200 cursor-pointer flex-1 sm:flex-initial"
+                title={language === 'en' ? 'Watch Official Trailer' : 'Putar Trailer Resmi'}
+              >
+                <Film className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                <span>{language === 'en' ? 'Trailer' : 'Trailer'}</span>
+              </button>
+            )}
 
             {/* Open in New Tab Button */}
             <a

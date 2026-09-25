@@ -11,6 +11,7 @@ import {
   Users,
   Dices,
   Calendar,
+  ChevronDown,
 } from 'lucide-react';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { useUserProfile } from '../../context/UserProfileContext';
@@ -59,7 +60,23 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreOpen(false);
+      }
+    };
+    if (isMoreOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMoreOpen]);
 
   const completedCount = historyItems.filter((h) => h.completed).length;
   const inProgressCount = historyItems.filter((h) => !h.completed).length;
@@ -67,6 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 30);
+      setIsMoreOpen(false);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -74,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Track active overlay to hide background floating search bars
   useEffect(() => {
-    if (mobileMenuOpen || isProfileOpen) {
+    if (mobileMenuOpen || isProfileOpen || isMoreOpen) {
       document.body.setAttribute('data-nav-overlay-open', 'true');
     } else {
       document.body.removeAttribute('data-nav-overlay-open');
@@ -82,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => {
       document.body.removeAttribute('data-nav-overlay-open');
     };
-  }, [mobileMenuOpen, isProfileOpen]);
+  }, [mobileMenuOpen, isProfileOpen, isMoreOpen]);
 
   const navLinks = [
     {
@@ -126,6 +144,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
   ];
 
+  const primaryNavLinks = navLinks.slice(0, 3);
+  const secondaryNavLinks = navLinks.slice(3);
+  const isSecondaryActive = secondaryNavLinks.some((l) => l.id === activeTab);
+  const secondaryBadgeCount = secondaryNavLinks.reduce((acc, curr) => acc + (curr.count || 0), 0);
+
   return (
     <>
     <header
@@ -146,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           : 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}
     >
-      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3 sm:px-6 lg:px-6 xl:px-8 2xl:px-12 flex items-center justify-between gap-2 lg:gap-3 xl:gap-6">
+      <div className="max-w-[1720px] 2xl:max-w-[1880px] 3xl:max-w-[2200px] 4xl:max-w-[2600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-12 flex items-center justify-between gap-1.5 sm:gap-2 lg:gap-3 xl:gap-6 w-full">
         {/* Brand Logo - Modern Netflix-Style Streaming Identity */}
         <a
           href="/"
@@ -169,8 +192,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         </a>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 shrink max-w-fit mx-auto">
-          {navLinks.map((link) => {
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 min-w-0 flex-1 justify-center px-1">
+          {/* Primary Links (always visible on lg and above) */}
+          {primaryNavLinks.map((link) => {
             const isActive = activeTab === link.id;
             const targetUrl = getTabUrl(link.id);
             return (
@@ -193,24 +217,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {link.id === 'advanced-search' && (
                   <SlidersHorizontal className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-slate-400'}`} />
                 )}
-                {link.id === 'schedule' && (
-                  <Calendar className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-violet-400'}`} />
-                )}
-                {link.id === 'watch-party' && (
-                  <Users className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
-                )}
                 <span className="hidden 2xl:inline">{link.fullLabel || link.label}</span>
                 <span className="2xl:hidden">{link.label}</span>
 
-                {link.id === 'watch-party' && liveRoomsCount > 0 ? (
-                  <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                    </span>
-                    {liveRoomsCount}
-                  </span>
-                ) : link.count !== undefined && link.count > 0 ? (
+                {link.count !== undefined && link.count > 0 ? (
                   <span
                     className={`text-[9px] px-1 py-0.5 rounded-full font-bold leading-none ${
                       isActive ? 'bg-[#E50914] text-white' : 'bg-white/20 text-white'
@@ -225,6 +235,138 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             );
           })}
+
+          {/* Secondary Links for Wide Screens (xl and above) */}
+          <div className="hidden xl:flex items-center gap-0.5 xl:gap-1 2xl:gap-1.5 shrink-0">
+            {secondaryNavLinks.map((link) => {
+              const isActive = activeTab === link.id;
+              const targetUrl = getTabUrl(link.id);
+              return (
+                <a
+                  key={link.id}
+                  href={targetUrl}
+                  onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                    e.preventDefault();
+                    playClick();
+                    onSelectTab(link.id);
+                  }}
+                  onMouseEnter={playHover}
+                  className={`relative px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded text-[11.5px] xl:text-xs 2xl:text-[13px] tracking-normal transition-all duration-200 flex items-center gap-1.5 no-underline cursor-pointer whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'text-white font-bold bg-white/10 shadow-sm'
+                      : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
+                  }`}
+                >
+                  {link.id === 'schedule' && (
+                    <Calendar className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : 'text-violet-400'}`} />
+                  )}
+                  {link.id === 'watch-party' && (
+                    <Users className={`w-3 h-3 xl:w-3.5 xl:h-3.5 ${isActive ? 'text-[#E50914]' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  )}
+                  <span className="hidden 2xl:inline">{link.fullLabel || link.label}</span>
+                  <span className="2xl:hidden">{link.label}</span>
+
+                  {link.id === 'watch-party' && liveRoomsCount > 0 ? (
+                    <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold leading-none bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                      </span>
+                      {liveRoomsCount}
+                    </span>
+                  ) : link.count !== undefined && link.count > 0 ? (
+                    <span
+                      className={`text-[9px] px-1 py-0.5 rounded-full font-bold leading-none ${
+                        isActive ? 'bg-[#E50914] text-white' : 'bg-white/20 text-white'
+                      }`}
+                    >
+                      {link.count}
+                    </span>
+                  ) : null}
+                  {isActive && (
+                    <span className="absolute bottom-0 inset-x-2 xl:inset-x-3 h-[2px] bg-[#E50914] rounded-full" />
+                  )}
+                </a>
+              );
+            })}
+          </div>
+
+          {/* Compact "Lainnya / More" Dropdown for Tablets (lg screens between 1024px and 1279px) */}
+          <div ref={moreMenuRef} className="relative xl:hidden flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsMoreOpen((prev) => !prev);
+              }}
+              onMouseEnter={playHover}
+              className={`relative px-2 py-1.5 rounded text-[11.5px] tracking-normal transition-all duration-200 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0 ${
+                isSecondaryActive || isMoreOpen
+                  ? 'text-white font-bold bg-white/10 shadow-sm'
+                  : 'text-slate-300 hover:text-white font-normal hover:bg-white/[0.05]'
+              }`}
+            >
+              <span>{language === 'en' ? 'More' : 'Lainnya'}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isMoreOpen ? 'rotate-180 text-white' : 'text-slate-400'}`} />
+
+              {/* Dot badge if active or secondary items have counts */}
+              {secondaryBadgeCount > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+              )}
+              {isSecondaryActive && (
+                <span className="absolute bottom-0 inset-x-2 h-[2px] bg-[#E50914] rounded-full" />
+              )}
+            </button>
+
+            {/* Dropdown Menu */}
+            {isMoreOpen && (
+              <div className="absolute top-full left-0 mt-2 min-w-[200px] rounded-xl bg-[#141414]/95 backdrop-blur-2xl border border-white/10 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                {secondaryNavLinks.map((link) => {
+                  const isActive = activeTab === link.id;
+                  const targetUrl = getTabUrl(link.id);
+                  return (
+                    <a
+                      key={link.id}
+                      href={targetUrl}
+                      onClick={(e) => {
+                        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+                        e.preventDefault();
+                        playClick();
+                        setIsMoreOpen(false);
+                        onSelectTab(link.id);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all no-underline cursor-pointer ${
+                        isActive
+                          ? 'bg-[#E50914] text-white font-bold shadow-md'
+                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {link.id === 'schedule' && (
+                          <Calendar className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-violet-400'}`} />
+                        )}
+                        {link.id === 'watch-party' && (
+                          <Users className={`w-3.5 h-3.5 ${isActive ? 'text-white' : liveRoomsCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
+                        )}
+                        <span>{link.fullLabel || link.label}</span>
+                      </div>
+
+                      {link.id === 'watch-party' && liveRoomsCount > 0 ? (
+                        <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
+                          {liveRoomsCount}
+                        </span>
+                      ) : link.count !== undefined && link.count > 0 ? (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white text-black' : 'bg-white/20 text-white'}`}>
+                          {link.count}
+                        </span>
+                      ) : null}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right Controls */}
@@ -238,9 +380,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={t('aiSearchTab')}
             title={t('aiSearchTab')}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 2xl:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
+            className="hidden sm:flex items-center justify-center gap-1.5 h-8 w-8 2xl:w-auto px-0 2xl:px-3 rounded-full bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-red-600/20 hover:from-purple-600/35 hover:via-pink-600/35 hover:to-red-600/35 border border-purple-500/35 hover:border-purple-400 text-purple-200 hover:text-white transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
             <span className="hidden 2xl:inline bg-gradient-to-r from-purple-200 via-pink-200 to-amber-200 bg-clip-text text-transparent font-bold whitespace-nowrap">
               {t('aiSearchTab')}
             </span>
@@ -252,9 +394,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
             title={language === 'en' ? 'Surprise Me — Mood Picker' : 'Kejutkan Aku — Mood Picker'}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 lg:px-2.5 2xl:px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-amber-100 transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
+            className="hidden sm:flex items-center justify-center gap-1.5 h-8 w-8 2xl:w-auto px-0 2xl:px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 hover:border-amber-400/60 text-amber-200 hover:text-amber-100 transition-all text-xs font-semibold shadow-sm cursor-pointer active:scale-95 shrink-0"
           >
-            <Dices className="w-3.5 h-3.5 text-amber-300" />
+            <Dices className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             <span className="hidden 2xl:inline font-bold whitespace-nowrap">
               {language === 'en' ? 'Surprise Me' : 'Kejutkan Aku'}
             </span>
@@ -269,9 +411,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseEnter={playHover}
             aria-label={t('searchQuick')}
             title={t('searchQuick')}
-            className="flex items-center justify-center gap-1.5 w-8 h-8 lg:w-auto lg:h-auto lg:px-2.5 lg:py-1.5 2xl:px-3 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs shrink-0"
+            className="flex items-center justify-center gap-1.5 w-8 h-8 2xl:w-auto 2xl:h-8 2xl:px-3 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white transition-all text-xs shrink-0"
           >
-            <Search className="w-3.5 h-3.5 text-white" />
+            <Search className="w-3.5 h-3.5 text-white shrink-0" />
             <span className="hidden 2xl:inline font-normal text-slate-200 whitespace-nowrap">{t('searchQuick')}</span>
             <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 rounded bg-black/50 text-[9px] text-slate-400 font-mono border border-white/10">
               ⌘K
@@ -289,7 +431,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center justify-center gap-1 h-8 px-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs transition-all text-white group shrink-0"
             title={language === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
           >
-            <Globe className="w-3.5 h-3.5 text-white/90 group-hover:rotate-12 transition-transform duration-300" />
+            <Globe className="w-3.5 h-3.5 text-white/90 group-hover:rotate-12 transition-transform duration-300 shrink-0" />
             <span className="font-mono text-[11px] font-black tracking-wider text-white">
               {language.toUpperCase()}
             </span>
@@ -303,14 +445,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onSelectTab('admin');
               }}
               onMouseEnter={playHover}
-              className={`flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer shrink-0 ${
+              className={`hidden sm:flex items-center justify-center gap-1.5 h-8 w-8 2xl:w-auto px-0 2xl:px-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer shrink-0 ${
                 activeTab === 'admin'
                   ? 'bg-[#E50914] text-white border-[#E50914] shadow-lg shadow-red-950/40'
                   : 'bg-red-950/40 hover:bg-red-900/60 text-red-200 border-red-500/40 hover:border-red-500/70'
               }`}
               title="Admin Command Center"
             >
-              <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="hidden 2xl:inline text-[11px] uppercase tracking-wider font-mono">Admin</span>
             </button>
           )}
@@ -358,7 +500,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               setMobileMenuOpen((prev) => !prev);
             }}
             aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors"
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white transition-colors shrink-0"
           >
             {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>

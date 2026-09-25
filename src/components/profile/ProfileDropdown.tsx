@@ -28,6 +28,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { isAdminUser } from '../../utils/admin';
 import { APP_VERSION, checkForAppUpdate, forceHardRefresh } from '../../utils/pwaUpdate';
+import { Capacitor } from '@capacitor/core';
 import { PublicProfileModal } from './PublicProfileModal';
 
 interface ProfileDropdownProps {
@@ -394,7 +395,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                     <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#E50914] text-white">APK</span>
                   </div>
                   <div className="text-[10px] text-slate-300 font-medium">
-                    {language === 'en' ? 'Download for Android & Smart TV' : 'Unduh APK Android & Smart TV'}
+                    {Capacitor.isNativePlatform()
+                      ? (language === 'en' ? `App Installed • v${APP_VERSION}` : `Aplikasi Terpasang • v${APP_VERSION}`)
+                      : (language === 'en' ? 'Download for Android & Smart TV' : 'Unduh APK Android & Smart TV')}
                   </div>
                 </div>
               </div>

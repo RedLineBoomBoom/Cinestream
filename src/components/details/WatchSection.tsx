@@ -43,6 +43,7 @@ import { useWatchlist } from '../../context/WatchlistContext';
 import { useSound } from '../../context/SoundContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useWatchParty } from '../../context/WatchPartyContext';
+import { Capacitor } from '@capacitor/core';
 import { fetchImdbDetails, getImdbUrl, type ImdbDetails } from '../../services/imdb';
 import {
   fetchTmdbRecommendations,
@@ -1950,8 +1951,14 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                       href={trailerInfo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={playClick}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-md hover:scale-105"
+                      onClick={(e) => {
+                        playClick();
+                        if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+                          e.preventDefault();
+                          window.open(trailerInfo.url, '_system');
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-all shadow-md hover:scale-105 cursor-pointer"
                     >
                       <span>{t('watchOnYoutube')}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -1960,35 +1967,58 @@ export const WatchSection: React.FC<WatchSectionProps> = ({
                 </div>
 
                 {trailerInfo.key ? (
-                  <div
-                    ref={trailerContainerRef}
-                    className={`relative aspect-video w-full max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl transition-all ${
-                      isTrailerFullscreen
-                        ? 'fixed inset-0 z-[99999] max-w-none rounded-none border-none w-screen h-screen'
-                        : ''
-                    }`}
-                  >
-                    <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${trailerInfo.key}?rel=0&modestbranding=1&autoplay=1&fs=1&enablejsapi=1`}
-                      title={`${displayTitle} Official Trailer`}
-                      allow="accelerometer *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *; fullscreen *"
-                      allowFullScreen
-                      // @ts-expect-error - vendor fullscreen attributes
-                      webkitallowfullscreen="true"
-                      mozallowfullscreen="true"
-                      className="w-full h-full border-0"
-                    />
+                  <div className="space-y-3">
+                    <div
+                      ref={trailerContainerRef}
+                      className={`relative aspect-video w-full max-w-5xl mx-auto rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl transition-all ${
+                        isTrailerFullscreen
+                          ? 'fixed inset-0 z-[99999] max-w-none rounded-none border-none w-screen h-screen'
+                          : ''
+                      }`}
+                    >
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${trailerInfo.key}?rel=0&modestbranding=1&autoplay=1&fs=1&enablejsapi=1`}
+                        title={`${displayTitle} Official Trailer`}
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allow="accelerometer *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *; fullscreen *"
+                        allowFullScreen
+                        // @ts-expect-error - vendor fullscreen attributes
+                        webkitallowfullscreen="true"
+                        mozallowfullscreen="true"
+                        className="w-full h-full border-0"
+                      />
 
-                    {/* Floating Exit Fullscreen Button in Trailer Fullscreen Mode */}
-                    {isTrailerFullscreen && (
-                      <button
-                        type="button"
-                        onClick={toggleTrailerFullscreen}
-                        className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xl hover:scale-105"
-                        title={t('exitFullscreen')}
-                      >
-                        <Minimize2 className="w-5 h-5 text-white" />
-                      </button>
+                      {/* Floating Exit Fullscreen Button in Trailer Fullscreen Mode */}
+                      {isTrailerFullscreen && (
+                        <button
+                          type="button"
+                          onClick={toggleTrailerFullscreen}
+                          className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xl hover:scale-105"
+                          title={t('exitFullscreen')}
+                        >
+                          <Minimize2 className="w-5 h-5 text-white" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Native App Direct Play helper if on Capacitor */}
+                    {typeof window !== 'undefined' && Capacitor.isNativePlatform() && (
+                      <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                          <span>{language === 'en' ? 'Trouble playing trailer inside APK?' : 'Kendala memutar trailer di aplikasi?'}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playClick();
+                            window.open(trailerInfo.url, '_system');
+                          }}
+                          className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold text-[11px] shrink-0 transition-all cursor-pointer shadow-md"
+                        >
+                          {language === 'en' ? 'Open in YouTube App' : 'Buka di Aplikasi YouTube'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
